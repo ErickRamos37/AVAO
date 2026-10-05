@@ -1,0 +1,25 @@
+# AVAO - infra local (desarrollo).
+# HU: infraestructura base (pendiente DevOps).
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: avao
+      POSTGRES_PASSWORD: avao_dev
+      POSTGRES_DB: avao
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  api:
+    build: ../apps/api
+    depends_on: [db]
+    ports:
+      - "8000:8000"
+  nginx:
+    image: nginx:alpine
+    depends_on: [api]
+    ports:
+      - "80:80"
+volumes:
+  pgdata:
