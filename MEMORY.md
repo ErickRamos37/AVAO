@@ -43,3 +43,8 @@ Delegar a subagentes especializados cuando sea beneficioso; proponer crearlos si
   * Subtareas activas: #26 (Diseño LMD/PMD + Migración), #27 (API REST Pedidos), #28 (Captura PWA), #29 (Endpoint Listado), #30 (Vista Taller PWA), #31 (Actualización estado), #32 (Interfaz Operario), #33 (Validación progreso), #34 (Sumatoria lineal).
   * HUs: HU-01 a HU-15 (con subtareas HU-05.1/2 y HU-10.1/2/3/4).
 - GITHUB_TOKEN actualizado en ~/.config/fish/config.fish.
+
+## Avance Tareas (2026-10-04)
+- #26 (Diseño LMD/PMD + Migración) → **Finalizado**. Documento `docs/design/ERD-FASE1.md` validado con PGlite (DDL + 13 pruebas OK). Commit `5a9e83b`.
+- #27 (API REST Recepción de Pedidos) → **En proceso** (listo para siguiente agente).
+- Marker: #28 también en "Por hacer", #29/#30/#31 en Backlog (por confirmar).
