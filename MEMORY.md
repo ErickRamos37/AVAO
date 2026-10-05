@@ -35,3 +35,11 @@ Delegar a subagentes especializados cuando sea beneficioso; proponer crearlos si
 - opencode.json con MCP GitHub remoto (env GITHUB_TOKEN, guardado en fish config).
 - PAT actual aún sin permiso Projects → tablero Projects V2 sigue FORBIDDEN; requiere PAT clásico con scope `project` o fine-grained con Projects:RW a nivel cuenta.
 - Git repo aún sin commits nuevos (todo untracked).
+
+## Conexión a GitHub Projects (2026-10-04) - CONFIRMADA
+- Token clásico (ghp_d3BDWzys...) con scopes completos (project, repo, user, etc.) funcionando.
+- Tablero: "AVAO / Desarrollo Principal" (`PVT_kwHOCXTPGc4BkXAI`, URL https://github.com/users/ErickRamos37/projects/4).
+- 28 items leídos directamente del tablero:
+  * Subtareas activas: #26 (Diseño LMD/PMD + Migración), #27 (API REST Pedidos), #28 (Captura PWA), #29 (Endpoint Listado), #30 (Vista Taller PWA), #31 (Actualización estado), #32 (Interfaz Operario), #33 (Validación progreso), #34 (Sumatoria lineal).
+  * HUs: HU-01 a HU-15 (con subtareas HU-05.1/2 y HU-10.1/2/3/4).
+- GITHUB_TOKEN actualizado en ~/.config/fish/config.fish.
