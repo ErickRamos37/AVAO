@@ -48,3 +48,12 @@ Delegar a subagentes especializados cuando sea beneficioso; proponer crearlos si
 - #26 (Diseño LMD/PMD + Migración) → **Finalizado**. Documento `docs/design/ERD-FASE1.md` validado con PGlite (DDL + 13 pruebas OK). Commit `5a9e83b`.
 - #27 (API REST Recepción de Pedidos) → **En proceso** (listo para siguiente agente).
 - Marker: #28 también en "Por hacer", #29/#30/#31 en Backlog (por confirmar).
+
+## Avance Tareas (2026-10-05) - PRUEBAS HUMANAS PENDIENTES
+- #27 finalizado, código en `develop`.
+- #28 finalizado, código en `develop` (apps/ventas-pwa).
+- #29 finalizado, código en `develop` (API GET /tareas/pendientes).
+- #30 finalizado, código en `develop` (apps/taller-pwa).
+- #31 finalizado, código en `develop` (PATCH /piezas/{id}/completar).
+- Branch `develop` ahora contiene MVP: API con POST /pedidos, GET /tareas/pendientes, PATCH /piezas/{id}/completar; Ventas con formulario Dexie; Taller con cards.
+- Todo en develop pendiente de tu luz verde para merge a main.
