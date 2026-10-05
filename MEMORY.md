@@ -57,3 +57,11 @@ Delegar a subagentes especializados cuando sea beneficioso; proponer crearlos si
 - #31 finalizado, código en `develop` (PATCH /piezas/{id}/completar).
 - Branch `develop` ahora contiene MVP: API con POST /pedidos, GET /tareas/pendientes, PATCH /piezas/{id}/completar; Ventas con formulario Dexie; Taller con cards.
 - Todo en develop pendiente de tu luz verde para merge a main.
+
+## Especificaciones de Medidas (2026-10-05)
+- Todas las medidas se manejan en **pulgadas fraccionarias** (no mm, no decimales). Precisión 1/16.
+- Reglas de lectura: referencias 1/2 y 1/4, máximo dos fracciones combinadas (ej: `3/4 + 1/16`).
+- Variables clave: `anchoVentana`, `altoVentana` (hueco real).
+- Fórmulas de descuento para Ventana California documentadas en `docs/specs/MEDIDAS-VENTANA-CALIFORNIA.md`.
+- Decisión MVP: backend procesa pulgadas con punto decimal; fracción visual y ventana California como base documentada quedan para post-MVP.
+- Issues creados: #35 (pulgadas/cambio mm), #36 (fórmulas California), #37 (visualización fracciones UI post-MVP).
