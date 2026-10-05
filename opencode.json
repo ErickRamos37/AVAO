@@ -7,6 +7,11 @@
       "headers": {
         "Authorization": "Bearer {env:GITHUB_TOKEN}"
       }
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@latest"],
+      "enabled": true
     }
   }
 }
