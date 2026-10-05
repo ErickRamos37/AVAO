@@ -1,6 +1,6 @@
 // AVAO — Tarea #28, HU-01
 // Pruebas Vitest del formulario de captura con Dexie offline simulado.
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CapturarPedidoPage from '../pages/CapturarPedidoPage'
@@ -18,6 +18,13 @@ describe('Captura de pedido (HU-01)', () => {
   beforeEach(async () => {
     await db.pedidos.clear()
     await db.piezas.clear()
+    // #38: el disparador post-guardado puede lanzar fetch a la API real;
+    // se aísla con stub para que las pruebas no dependan de la red (PLAN-#38 §6).
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('renderiza el formulario con campos de cliente y al menos 1 fila de pieza', () => {
