@@ -1,0 +1,23 @@
+# Plan de Trabajo: Diseño Lógico y Físico de Base de Datos (Fase 1 - Prioridad Inicial)
+
+**Estándar de Referencia:** IEEE Std 1016-2009 (Software Design Descriptions).
+**Trazabilidad:** Tareas #26, #27, #28, #29, #30, #31 | Historias de Usuario: HU-01, HU-02, HU-03.
+
+---
+
+## 1. Alcance Estricto (Principio YAGNI / Cero Sobreingeniería)
+Este diseño cubre **únicamente** las entidades necesarias para soportar el flujo inicial de captura de pedidos en Ventas y visualización/actualización de cortes en Taller:
+1. `clientes`: Información de contacto básica del cliente (HU-01).
+2. `pedidos`: Cabecera del pedido, estados del flujo y timestamps (HU-01, #27).
+3. `productos`: Catálogo base de materiales (vidrio/aluminio) y sus características técnicas (HU-01).
+4. `piezas`: Detalle de cortes individuales con dimensiones milimétricas, cantidades, estado de corte y asignación de operario (HU-01, HU-02, #29, #30, #31).
+
+*Nota:* Tablas de optimización 2D (guillotina/rectpack), inventario complejo (HU-14) o usuarios avanzados (HU-10) se integrarán en fases posteriores para no inflar el modelo.
+
+---
+
+## 2. Entregables Esperados del Agente de Base de Datos
+1. **Modelo Lógico de Datos (LMD):** Entidades, atributos de negocio, relaciones, cardinalidades y claves candidatas (notación Mermaid ERD).
+2. **Modelo Físico de Datos (PMD):** Tipos de datos específicos de PostgreSQL (UUID v4, `NUMERIC(10, 2)` para medidas en mm, `TIMESTAMP WITH TIME ZONE`, Enums o Checks para estados), restricciones (`NOT NULL`, `CHECK (ancho > 0)`, `ON DELETE RESTRICT/CASCADE`), índices necesarios (`btree` en FKs y estados).
+3. **Diccionario de Datos:** Descripción exhaustiva de cada campo y justificación técnica.
+4. **Archivo de Salida:** `/home/erick/Proyectos/AVAO/docs/design/ERD-FASE1.md`.
