@@ -1,6 +1,7 @@
-"""Esquemas Pydantic v2 para recepción de pedidos.
+"""Esquemas Pydantic v2 de pedidos y tareas.
 
 Tarea #27, Historia de Usuario HU-01 — Registrar el pedido del cliente.
+Tarea #29, Historia de Usuario HU-02 — Listado de tareas pendientes.
 Validaciones a nivel de esquema (422 claros sin depender de CHECKs de BD),
 enums alineados al vocabulario cerrado del ERD-FASE1.
 """
@@ -72,3 +73,24 @@ class PedidoResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     piezas: list[PiezaResponse]
+
+
+class TareaPendienteResponse(BaseModel):
+    """Pieza pendiente como tarea del operario del taller. #29 / HU-02.
+
+    Contrato expuesto a la PWA Taller: mapea columnas del modelo
+    ``Piece`` (`id`→`pieza_id`, `producto_id`→`product_id`,
+    `created_at`→`fecha`) vía aliases de validación.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    pieza_id: uuid.UUID = Field(validation_alias="id")
+    pedido_id: uuid.UUID
+    product_id: uuid.UUID = Field(validation_alias="producto_id")
+    ancho_mm: Decimal
+    largo_mm: Decimal
+    cantidad: int
+    estado: EstadoPieza  # == "pendiente", garantizado por el filtro
+    operario_asignado: str | None
+    fecha: datetime = Field(validation_alias="created_at")
