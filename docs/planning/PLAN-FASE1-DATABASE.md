@@ -21,3 +21,13 @@ Este diseño cubre **únicamente** las entidades necesarias para soportar el flu
 2. **Modelo Físico de Datos (PMD):** Tipos de datos específicos de PostgreSQL (UUID v4, `NUMERIC(10, 2)` para medidas en mm, `TIMESTAMP WITH TIME ZONE`, Enums o Checks para estados), restricciones (`NOT NULL`, `CHECK (ancho > 0)`, `ON DELETE RESTRICT/CASCADE`), índices necesarios (`btree` en FKs y estados).
 3. **Diccionario de Datos:** Descripción exhaustiva de cada campo y justificación técnica.
 4. **Archivo de Salida:** `/home/erick/Proyectos/AVAO/docs/design/ERD-FASE1.md`.
+
+---
+
+## 3. Flujo de Trabajo del Agente (Gestión de Tareas en GitHub Projects)
+1. **Inicio:** Tomar la primera tarea de la columna **"Por hacer"** (la más prioritaria) y moverla a **"En proceso"** en el tablero de GitHub Projects.
+2. **Ejecución:** Desarrollar e implementar exactamente lo definido en el checklist de esa tarea, siguiendo estándares IEEE aplicables y pruebas TDD (o estrategia de QA equivalente para diseño/modelos).
+3. **Validación:** Ejecutar todas las pruebas especificadas en la tarea y asegurar cero errores de integridad/compilación.
+4. **Finalización:** Solo tras validar éxito, notificar al orquestador para que **mueva la tarea a "Finalizada"** en GitHub Projects.
+5. **Avance:** Inmediatamente tomar la siguiente tarea de "Por hacer", moverla a "En proceso" y repetir el ciclo.
+6. **Restricción:** No avanzar a una nueva tarea sin que la anterior esté en "Finalizada".
