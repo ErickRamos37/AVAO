@@ -71,6 +71,6 @@ fix(pwa): corregir estado offline en Dexie (#28)
 
 ## 5. Estado observado (2026-10-05)
 
-- #26–#31 figuran cerradas y en Finalizado. #38 estuvo cerrada durante la auditoría, pero se **reabrió y pasó a En proceso** hasta integrar a `develop` la corrección que exige HTTP 201. La comprobación independiente se registra en `AUDITORIA-CIERRES-2026-10-05.md`.
+- #26–#31 y #38 figuran cerradas y en Finalizado. #38 estuvo cerrada al iniciar la auditoría, se reabrió para corregir el contrato HTTP 201, se integró por [PR #42](https://github.com/ErickRamos37/AVAO/pull/42) a `develop` (`b3f7ce692cb627f30e32f891fea457305732302c`) y volvió a cerrarse. La prueba focalizada allí pasó 13/13. La comprobación independiente se registra en `AUDITORIA-CIERRES-2026-10-05.md`; HU-08 sigue incompleta.
 - `develop` contiene el MVP de API, captura Ventas, tarjetas Taller y sincronización #38. Antes de iniciar una tarea, verificar rama, historial y estado remoto; las referencias a commits de iteraciones anteriores son históricas.
 - Política de Prioridad del tablero: sólo las HUs rectoras #1/HU-01, #2/HU-02, #11/HU-09, #14/HU-13 y #24/HU-05.1 llevan **Alta**; subtareas usan **Media** o **Baja**. Orden MVP: HU-01 (incluidas #35/#39/#40) → HU-02 (incluida #41) → HU-09/#32 → HU-13/#33 → HU-05.1/#34 → #36/#37, sujeto a dependencias técnicas y de negocio.
