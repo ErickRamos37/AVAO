@@ -1,7 +1,7 @@
 # AVAO — Arquitectura de Software
 **Sistema PWA B2B con optimización de cortes 2D y sincronización bidireccional**
 
-A continuación se detalla la estructura y el flujo de datos de la plataforma VidriCalc, dividida en dos entornos principales.
+A continuación se detalla la arquitectura objetivo de AVAO, dividida en dos entornos principales. El diagrama describe entregables previstos; la implementación actual se resume al final.
 
 ## Diagrama de Arquitectura (Mermaid)
 
@@ -94,3 +94,9 @@ Las interacciones entre los nodos se realizan de la siguiente manera:
 3.  **Proxy ➔ Backend:** *Nginx* canaliza el tráfico entrante hacia el *Backend API* mediante un **Proxy Pass**.
 4.  **Backend ➔ Base de Datos:** El *Backend FastAPI* realiza transacciones de lectura/escritura en *PostgreSQL* utilizando **SQLAlchemy (ORM)**.
 5.  **Backend ➔ Taller:** Una vez que el algoritmo procesa la optimización, el *Backend* envía un **Payload JSON (Coordenadas 2D)** directamente a la *PWA Taller* para que Canvas 2D pueda dibujar los cortes.
+
+## 4. Estado de implementación (2026-10-05)
+
+- **Disponible:** API FastAPI con PostgreSQL/SQLAlchemy/Alembic para pedidos, listado de piezas pendientes y finalización de piezas; Ventas con formulario y cola Dexie; Taller con vista de tarjetas que consulta la API por REST. Véanse #26–#31 y #38, vinculadas a HU-01, HU-02 y HU-08.
+- **Pendiente:** JWT/RBAC (`fastapi-users`), WSS, Canvas 2D, optimización con `rectpack`, entrega del JSON de coordenadas, caché Service Worker y despliegue SSL en Oracle Cloud. Las dependencias en manifests no implican funcionalidad terminada.
+- **Medidas:** el contrato y el esquema presentes usan `*_mm` y `NUMERIC(10,2)`, mientras la especificación actual exige pulgadas en pasos de 1/16. #35 debe definir la representación, conversión, migración y validación antes de aplicar el cambio.

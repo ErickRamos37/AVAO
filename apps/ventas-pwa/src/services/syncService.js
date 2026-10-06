@@ -80,7 +80,13 @@ async function ejecutarSync() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      if (!resp.ok) throw new Error(`API respondió ${resp.status}`)
+      if (resp.status !== 201) {
+        throw new Error(
+          resp.ok
+            ? `API respondió ${resp.status}; se esperaba 201`
+            : `API respondió ${resp.status}`,
+        )
+      }
       await marcarSincronizado(pedido.idLocal)
       resumen.sincronizados++
     } catch (err) {
