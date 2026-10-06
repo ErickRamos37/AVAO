@@ -149,6 +149,17 @@ describe('syncService (HU-08)', () => {
     expect(resumen.erroresDetalle[0].mensaje).toContain('API respondió 404')
   })
 
+  it.each([200, 204])('5b. HTTP %i no confirma el alta y mantiene el pedido pendiente', async (status) => {
+    const idLocal = await agregarPedido()
+    fetchMock.mockResolvedValue({ ok: true, status })
+
+    const resumen = await syncPedidosPendientes()
+
+    expect((await db.pedidos.get(idLocal)).estadoSync).toBe('pendiente')
+    expect(resumen.errores).toBe(1)
+    expect(resumen.erroresDetalle[0].mensaje).toBe(`API respondió ${status}; se esperaba 201`)
+  })
+
   // Caso 6 — cola con éxito parcial.
   it('6. cola de 2 pedidos: el que resuelve mapeo se sincroniza; el otro queda pendiente', async () => {
     const idOk = await agregarPedido()

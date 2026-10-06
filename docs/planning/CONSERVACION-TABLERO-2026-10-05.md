@@ -1,0 +1,25 @@
+# Conservación del tablero AVAO — 2026-10-05
+
+**Fuente:** [AVAO / Desarrollo Principal](https://github.com/users/ErickRamos37/projects/4) y las [issues del repositorio](https://github.com/ErickRamos37/AVAO/issues). Registro de los cambios ejecutados y comprobados por el coordinador en esta iteración, incluida la corrección posterior de Prioridad y estado de #38; esta documentación no cambia campos ni estados por sí misma. Los criterios técnicos de las subtareas auditadas están en [AUDITORIA-CIERRES-2026-10-05.md](AUDITORIA-CIERRES-2026-10-05.md).
+
+## Resultado registrado
+
+| Área | Estado tras conservación | Motivo y límite |
+|---|---|---|
+| Elementos | **35** (eran 32): se crearon [#39, idempotencia de `POST /pedidos`](https://github.com/ErickRamos37/AVAO/issues/39), [#40, cliente/producto reales en Ventas](https://github.com/ErickRamos37/AVAO/issues/40) y [#41, filtro por operario activo](https://github.com/ErickRamos37/AVAO/issues/41). Las tres están en **Backlog / Prioridad Media / Épica 1**. | #39 sigue el riesgo de respuesta 201 perdida de #38; #40 y #41 hacen explícitas brechas de HU-01 y HU-02 detectadas por la auditoría. |
+| Prioridad | **Alta sólo en HUs rectoras:** [#1 HU-01](https://github.com/ErickRamos37/AVAO/issues/1), [#2 HU-02](https://github.com/ErickRamos37/AVAO/issues/2), [#11 HU-09](https://github.com/ErickRamos37/AVAO/issues/11), [#14 HU-13](https://github.com/ErickRamos37/AVAO/issues/14), [#24 HU-05.1](https://github.com/ErickRamos37/AVAO/issues/24). **Subtareas Media:** #26–#35 y #38–#41. **Subtareas Baja:** #36–#37. | La clasificación Alta anterior de #26–#36 y #39 fue corregida a Media/Baja según la política del usuario. Prioridad no representa Esfuerzo. |
+| Épica | #26–#30 → **1**; #31–#32 → **3**; #33 → **5**; #34–#35 → **1**; #38 → **3**; #39–#41 → **1**. | Sólo [#36](https://github.com/ErickRamos37/AVAO/issues/36) y [#37](https://github.com/ErickRamos37/AVAO/issues/37) quedan sin Épica hasta definir HU o flujo dueño. |
+| Jerarquía de issues | [#35](https://github.com/ErickRamos37/AVAO/issues/35), [#39](https://github.com/ErickRamos37/AVAO/issues/39) y [#40](https://github.com/ErickRamos37/AVAO/issues/40) son subissues de [#1 / HU-01](https://github.com/ErickRamos37/AVAO/issues/1); [#41](https://github.com/ErickRamos37/AVAO/issues/41) de [#2 / HU-02](https://github.com/ErickRamos37/AVAO/issues/2); [#38](https://github.com/ErickRamos37/AVAO/issues/38) de [#10 / HU-08](https://github.com/ErickRamos37/AVAO/issues/10). | El cuerpo de #35 identifica HU-01 como HU principal. #36/#37 siguen sin parent y sin Épica. |
+| Esfuerzo | Vacío en las cerradas #26–#31 y pendiente en abiertas, incluidas #38–#41. | Los cierres históricos no tienen una estimación recuperable. Para trabajo abierto falta acordar escala y refinamiento; rellenar cifras ahora inventaría una precisión que no existe. |
+| Redacción | Cuerpos de [#34](https://github.com/ErickRamos37/AVAO/issues/34)–[#38](https://github.com/ErickRamos37/AVAO/issues/38) ampliados con decisiones pendientes; #38 enlaza #39. | Las decisiones de unidad, conversión, fórmulas y representación deben resolverse antes de estimar o implementar. |
+| Estados | #26–#31 permanecen en Finalizado y cerradas; [#38](https://github.com/ErickRamos37/AVAO/issues/38) se **reabrió y pasó a En proceso** hasta integrar a `develop` la corrección HTTP 201; #32–#33 están en Por hacer; #34–#37 y #39–#41 en Backlog. | #38 estaba cerrada al comenzar la auditoría; su estado actual refleja que la corrección probada sigue en rama `feature/*`. Las HUs se evalúan por sus propios criterios. |
+| Posición global | El coordinador reordenó los 35 ítems y verificó los primeros 18: **#1, #26, #27, #28, #35, #39, #40, #2, #29, #30, #41, #11, #31, #32, #14, #33, #24, #34**. Los últimos dos son **#36 y #37**. | Esta es la posición global del proyecto; las vistas agrupadas por **Status** separan tarjetas en columnas y pueden mostrar otra disposición visual. No se verificó aquí la posición exacta de los 15 ítems intermedios. |
+
+**Orden MVP acordado:** HU-01 (incluidas #35, #39 y #40) → HU-02 (incluida #41) → HU-09/#32 → HU-13/#33 → HU-05.1/#34 → #36/#37. Las dependencias de unidad, contrato y negocio pueden cambiar el orden efectivo de tareas dentro de cada fase.
+
+## Pendientes de mantenimiento
+
+1. Definir HU o flujo dueño de #36/#37 y entonces asignar parent y Épica de acuerdo con el tablero.
+2. Acordar escala de Esfuerzo (por ejemplo, puntos o tiempo, nunca ambas sin definición) y refinar las abiertas, incluida #38. Conservar vacías las cerradas si no hay fuente histórica fiable.
+3. Revisar #39 durante el diseño de la clave idempotente y su persistencia en API/cliente; vincular pruebas de reintento tras respuesta perdida antes de mover su estado.
+4. Mantener una revisión periódica de nuevas issues con HU, criterio verificable, Prioridad, Épica cuando esté definida y estado coherente con el cierre. Consultar opciones actuales del tablero antes de futuras ediciones.

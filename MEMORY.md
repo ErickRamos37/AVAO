@@ -1,67 +1,37 @@
 # MEMORY.md — Contexto AVAO
 
-## Rol
-Arquitecto principal / orquestador de agentes del proyecto AVAO. Abogado del diablo: contradecir cuando haga falta, investigar antes de asumir, cero huecos de información.
-Delegar a subagentes especializados cuando sea beneficioso; proponer crearlos si faltan.
+## Identidad y fuentes
 
-## Proyecto
-- Nombre oficial: **AVAO** (Asistente para Vidrieras Administrativo y Operativo). OJO: ARCHITECTURE.md lo llama "VidriCalc" (pendiente resolver).
-- PWA B2B para MiPyMEs vidrieras. Repo: https://github.com/ErickRamos37/AVAO (público, rama main).
-- Stack estricto: Vite+React (2 PWAs: Ventas/Medidor y Taller/Operario), FastAPI + PostgreSQL (SQLAlchemy/Alembic, fastapi-users JWT, rectpack, UUIDs), Nginx, Docker.
-- Ventas→HTTPS REST+JWT; Taller→WSS; backend envía payload JSON de coordenadas 2D a PWA Taller (Canvas 2D).
-- Convenciones: toda componente/API/modelo referencia su HU, documentado in-line. Scripts Docker en raíz (pendiente DevOps).
+- Producto: **AVAO** (Asistente para Vidrieras Administrativo y Operativo), repositorio [ErickRamos37/AVAO](https://github.com/ErickRamos37/AVAO).
+- Fuente principal del estado: [tablero AVAO / Desarrollo Principal](https://github.com/users/ErickRamos37/projects/4); los cuerpos de las issues y sus checklists delimitan cada subtarea. No confundir cierre de subtarea con HU completa.
+- `README.md` fija trazabilidad inline a HU. `AGENTS.md` y `docs/planning/WORKFLOWS.md` describen convenciones y coordinación; `ARCHITECTURE.md` distingue objetivo y avance. Los planes/revisiones anteriores son registros históricos.
 
-## Estado actual (2026-10-04)
-- Local: solo README.md, ARCHITECTURE.md, AGENTS.md, MEMORY.md. Sin código; sin node/npm/docker/gh/pip instalados.
-- GitHub: repo público, issues = HUs. GitHub Projects pendiente de acceso.
-- MCP GitHub: pendiente configurar con PAT del usuario (PAT recibido 2026-10-04).
-- "Stack": herramienta externa sin nombre confirmado aún.
+## Rol y flujo
 
-## Reglas SDLC
-- Orden: Planificación → Análisis → Diseño (ERD LMD/PMD) → Implementación → Pruebas (TDD obligatorio) → Despliegue.
-- No escribir código de implementación sin diseño previo y entorno configurado.
-- Actualizar MEMORY.md cuando el contexto cambie.
+- Coordinador: organiza fases, transmite contexto, contrasta evidencia y gobierna el tablero.
+- Planificador: analiza HU y diseña. Implementador: cambia código con pruebas. Revisor: comprueba contra plan, checklist y resultados. El coordinador integra la decisión.
+- Orden: planificación → análisis/diseño → implementación con TDD → verificación → integración. No considerar una prueba verde suficiente para completar una HU.
+- Ramas: `feature/*` hacia `develop` tras revisión; `main` requiere aprobación humana explícita, según `WORKFLOWS.md`.
 
-## MCP GitHub (2026-10-04)
-- opencode.json creó MCP remoto github (https://api.githubcopilot.com/mcp/), token vía env GITHUB_TOKEN (guardado en ~/.config/fish/config.fish). Requiere reiniciar opencode para cargarlo.
-- Probado el handshake initialize: OK. Issues/HUs legibles vía API (lista completa obtenida, 30 issues, 2 épicas, HU-01..HU-15, subtareas 25-34).
-- BLOCKER: el PAT no tiene permiso de Projects (fine-grained PAT necesita "Projects: Read/Write" a nivel cuenta). GitHub Projects V2 devuelve FORBIDDEN → regenerar PAT con ese permiso.
-- Hubo un dir MEMORY.md fantasma; ya eliminado; MEMORY.md es archivo.
+## Estado verificado al 2026-10-05
 
-## Iteración 1 (2026-10-04) completada
-- Herramientas instaladas vía sudo(1923): node v26.10.0, npm 12.2.0, docker 29.8.2, compose 5.6.0, python-pip. Docker service habilitado; grupo docker agregado a erick (requiere re-login para que aplique sin sudo).
-- Estructura monorepo: apps/ventas-pwa + apps/taller-pwa (Vite+React, build OK en ambas, lint=oxlint), apps/api (FastAPI, venv, test_health pytest OK, Dockerfile), packages/shared, infra/docker-compose.yml (postgres:17, api, nginx), docs/.
-- docker run hello-world OK.
-- opencode.json con MCP GitHub remoto (env GITHUB_TOKEN, guardado en fish config).
-- PAT actual aún sin permiso Projects → tablero Projects V2 sigue FORBIDDEN; requiere PAT clásico con scope `project` o fine-grained con Projects:RW a nivel cuenta.
-- Git repo aún sin commits nuevos (todo untracked).
+- Existen `apps/api` (FastAPI, SQLAlchemy, Alembic, pytest, Ruff), `apps/ventas-pwa` (React/Vite, Dexie, Vitest), `apps/taller-pwa` (React/Vite, Vitest), `infra/docker-compose.yml` y documentación de diseño.
+- API: `POST /pedidos` (#27), `GET /tareas/pendientes` (#29), `PATCH /piezas/{id}/completar` (#31), migración de cuatro tablas (#26). Ventas: formulario y almacenamiento Dexie (#28), sincronización offline → API (#38). Taller: tarjetas de cortes pendientes por REST (#30).
+- Instantánea del tablero autenticado: **35 elementos**. En Finalizado y cerradas: #26–#31; **#38 reabierta, En proceso**, hasta integrar a `develop` la corrección HTTP 201; Por hacer: #32–#33; Backlog: #34–#37, #39–#41 y HUs. #40 resuelve cliente/producto reales en captura y sincronización de Ventas; #41 filtra cortes por operario activo. Ambas son Backlog, Prioridad Media, Épica 1, con Esfuerzo pendiente.
+- Política: sólo cinco HUs rectoras están en **Alta** (#1 HU-01, #2 HU-02, #11 HU-09, #14 HU-13, #24 HU-05.1); las subtareas usan Media/Baja. Prioridad actual: Media #26–#35 y #38–#41; Baja #36–#37. Épica: #26–#30→1, #31–#32→3, #33→5, #34–#35→1, #38→3, #39–#41→1. #35, #39 y #40 están vinculadas como subissues de #1/HU-01; #41 es subissue de #2/HU-02; #38 de #10/HU-08. Sólo #36/#37 carecen de parent y Épica hasta definir flujo/HU dueño. Esfuerzo permanece vacío en cerradas para no inventar estimaciones históricas y en abiertas hasta acordar escala/refinamiento. Los cuerpos #34–#38 se ampliaron con decisiones pendientes; #35 identifica HU-01 como principal y #38 enlaza #39. Véase `docs/planning/CONSERVACION-TABLERO-2026-10-05.md`.
+- Orden MVP: HU-01 (incluidas #35/#39/#40) → HU-02 (incluida #41) → HU-09/#32 → HU-13/#33 → HU-05.1/#34 → #36/#37; las dependencias técnicas y decisiones de negocio pueden ajustar la secuencia.
+- Posición global verificada del tablero: primeros 18 **#1, #26, #27, #28, #35, #39, #40, #2, #29, #30, #41, #11, #31, #32, #14, #33, #24, #34**; últimos dos **#36, #37**. Las vistas agrupadas por Status muestran columnas y pueden diferir visualmente de este orden global.
+- Las pruebas de esta iteración y sus límites constan en `docs/planning/AUDITORIA-CIERRES-2026-10-05.md`. La migración Alembic se verificó con upgrade/downgrade en PostgreSQL 17 desechable.
 
-## Conexión a GitHub Projects (2026-10-04) - CONFIRMADA
-- Token clásico (ghp_d3BDWzys...) con scopes completos (project, repo, user, etc.) funcionando.
-- Tablero: "AVAO / Desarrollo Principal" (`PVT_kwHOCXTPGc4BkXAI`, URL https://github.com/users/ErickRamos37/projects/4).
-- 28 items leídos directamente del tablero:
-  * Subtareas activas: #26 (Diseño LMD/PMD + Migración), #27 (API REST Pedidos), #28 (Captura PWA), #29 (Endpoint Listado), #30 (Vista Taller PWA), #31 (Actualización estado), #32 (Interfaz Operario), #33 (Validación progreso), #34 (Sumatoria lineal).
-  * HUs: HU-01 a HU-15 (con subtareas HU-05.1/2 y HU-10.1/2/3/4).
-- GITHUB_TOKEN actualizado en ~/.config/fish/config.fish.
+## Arquitectura y brechas abiertas
 
-## Avance Tareas (2026-10-04)
-- #26 (Diseño LMD/PMD + Migración) → **Finalizado**. Documento `docs/design/ERD-FASE1.md` validado con PGlite (DDL + 13 pruebas OK). Commit `5a9e83b`.
-- #27 (API REST Recepción de Pedidos) → **En proceso** (listo para siguiente agente).
-- Marker: #28 también en "Por hacer", #29/#30/#31 en Backlog (por confirmar).
+- Objetivo: dos PWAs (Ventas móvil y Taller tablet), Dexie/IndexedDB offline-first, Canvas 2D en Taller; backend FastAPI/PostgreSQL, `fastapi-users` JWT, `rectpack`; Ventas HTTPS REST + JWT, Taller WSS, Nginx/Oracle Cloud. Resultado de optimización: JSON de coordenadas 2D para Canvas.
+- El flujo actual de Taller usa REST y tarjetas. JWT, WSS, Canvas, optimización y Service Workers todavía no están implementados. HU-02 requiere tareas filtradas por operario activo (#41); HU-08 requiere caché offline adicional a #38; HU-09 necesita interfaz táctil; HU-13 requiere actualización del pedido al 100%.
+- Negocio define pulgadas fraccionarias con precisión de 1/16 (`docs/specs/MEDIDAS-VENTANA-CALIFORNIA.md`); implementación conserva `*_mm` y `NUMERIC(10,2)`. #35 necesita diseño de unidad canónica y migración sin pérdida.
+- #38 carece de idempotencia del POST en servidor: una respuesta 201 perdida puede duplicar un pedido al reintentar; **#39** quedó abierta para resolverlo. El mapeo de cliente/producto a UUID sigue siendo manual y se sigue en **#40**; teléfono se coloca en notas. Son brechas específicas para seguimiento, no prueba de HU-08 completa.
+- `README.md` pide scripts Docker local en raíz tras definición DevOps; el compose de desarrollo existente está en `infra/`. Resolver ubicación antes de añadir scripts.
 
-## Avance Tareas (2026-10-05) - PRUEBAS HUMANAS PENDIENTES
-- #27 finalizado, código en `develop`.
-- #28 finalizado, código en `develop` (apps/ventas-pwa).
-- #29 finalizado, código en `develop` (API GET /tareas/pendientes).
-- #30 finalizado, código en `develop` (apps/taller-pwa).
-- #31 finalizado, código en `develop` (PATCH /piezas/{id}/completar).
-- Branch `develop` ahora contiene MVP: API con POST /pedidos, GET /tareas/pendientes, PATCH /piezas/{id}/completar; Ventas con formulario Dexie; Taller con cards.
-- Todo en develop pendiente de tu luz verde para merge a main.
+## Conexiones
 
-## Especificaciones de Medidas (2026-10-05)
-- Todas las medidas se manejan en **pulgadas fraccionarias** (no mm, no decimales). Precisión 1/16.
-- Reglas de lectura: referencias 1/2 y 1/4, máximo dos fracciones combinadas (ej: `3/4 + 1/16`).
-- Variables clave: `anchoVentana`, `altoVentana` (hueco real).
-- Fórmulas de descuento para Ventana California documentadas en `docs/specs/MEDIDAS-VENTANA-CALIFORNIA.md`.
-- Decisión MVP: backend procesa pulgadas con punto decimal; fracción visual y ventana California como base documentada quedan para post-MVP.
-- Issues creados: #35 (pulgadas/cambio mm), #36 (fórmulas California), #37 (visualización fracciones UI post-MVP).
+- `opencode.json` define MCP remoto GitHub con `GITHUB_TOKEN` por variable de entorno y Chrome DevTools. El tablero se consultó por GraphQL autenticado en la iteración previa; no registrar credenciales en documentos ni salida de herramientas.
+- Los roles `.opencode/agents` fueron adaptados a AVAO, pero en esta sesión el coordinador usa subagentes nativos. La configuración de OpenCode no activa automáticamente esos roles en este entorno.
