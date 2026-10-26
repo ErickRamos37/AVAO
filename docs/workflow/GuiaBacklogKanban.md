@@ -62,6 +62,8 @@ La [Guía Kanban de mayo de 2025](https://kanbanguides.org/the-kanban-guide) pid
 
 **Tablero de subtareas acordado:** Por hacer → En proceso → Finalizado. Mantener como máximo **cinco subtareas preparadas en Por hacer** y **una En proceso** para el desarrollador individual. El límite de cinco es para una cola preparada, no equivale a cinco tareas en curso. Si una subtarea se bloquea, registrar causa y siguiente acción antes de seleccionar otra; se puede usar una etiqueta «Bloqueada» sin ocultar su estado. Revisar el límite si la experiencia real lo pide. La guía Kanban permite definir estas políticas según el contexto.
 
+**Responsabilidad de actualización:** el usuario mueve las tarjetas del Project y confirma la aceptación funcional. El agente comprueba que la subtarea seleccionada corresponde al momento del flujo y cierra la issue después de esa aprobación; no mueve el estado del Project por su cuenta.
+
 **Relación entre HU y subtareas:**
 
 - **Checklist de aceptación en la HU:** comprueba lo que debe observar el usuario. No sustituye las subtareas de desarrollo.

@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from fastapi import HTTPException
 
-from apps.api.main import NewOrder, create_order
+from apps.api.main import NewOrder, create_order, get_order, list_orders
 
 
 class PersistenceTests(unittest.TestCase):
@@ -33,6 +33,29 @@ class PersistenceTests(unittest.TestCase):
     def count(self, table: str) -> int:
         with sqlite3.connect(self.path) as connection:
             return connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
+    def test_list_is_empty_before_first_order(self):
+        self.assertEqual(list_orders(), {"pedidos": []})
+
+    def test_lists_several_orders_and_opens_any_of_them(self):
+        first = create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
+        second = create_order(NewOrder(ventanas=[
+            {"ancho": "48", "alto": "36"},
+            {"ancho": "50 3/4", "alto": "38 1/2"},
+        ]))["id"]
+        result = subprocess.run(
+            [sys.executable, "-c", "import json; from apps.api.main import list_orders; "
+             "print(json.dumps(list_orders()))"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(json.loads(result.stdout), {"pedidos": [{"id": first}, {"id": second}]})
+        self.assertEqual(get_order(first)["ventanas"][0]["ancho"], "24")
+        self.assertEqual(
+            [(window["numero"], window["ancho"]) for window in get_order(second)["ventanas"]],
+            [(1, "48"), (2, "50 3/4")],
+        )
 
     def test_reopens_multiple_windows_in_a_new_process(self):
         order_id = create_order(NewOrder(ventanas=[
