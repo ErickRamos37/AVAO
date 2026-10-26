@@ -16,16 +16,23 @@
 
       <section id="capture">
         <h1>Nuevo pedido</h1>
-        <p>Ventana California por mitad. Ingresa el ancho y el alto del hueco en pulgadas.</p>
+        <p>Ventanas California por mitad. Ingresa el ancho y el alto de cada hueco en pulgadas.</p>
         <form id="order-form">
-          <label for="width">Ancho</label>
-          <input id="width" name="ancho" type="text" required inputmode="text" placeholder="Ej. 24 1/4 1/16" autocomplete="off">
-          <label for="height">Alto</label>
-          <input id="height" name="alto" type="text" required inputmode="text" placeholder="Ej. 26 1/2" autocomplete="off">
+          <div id="window-rows"></div>
+          <button id="add-row" type="button">Añadir ventana</button>
           <button type="submit">Guardar pedido</button>
         </form>
         <p class="hint">Puedes escribir un entero o sumar fracciones de 1/2, 1/4, 1/8 y 1/16.</p>
       </section>
+
+      <template id="window-template">
+        <fieldset class="window-row">
+          <legend>Ventana</legend>
+          <p><label>Ancho <input class="width" type="text" inputmode="text" placeholder="Ej. 24 1/4 1/16" autocomplete="off"></label></p>
+          <p><label>Alto <input class="height" type="text" inputmode="text" placeholder="Ej. 26 1/2" autocomplete="off"></label></p>
+          <button class="discard-row" type="button">Descartar ventana</button>
+        </fieldset>
+      </template>
 
       <section id="detail" hidden>
         <h1 id="order-title"></h1>

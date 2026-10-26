@@ -2,6 +2,37 @@ const capture = document.querySelector('#capture');
 const detail = document.querySelector('#detail');
 const message = document.querySelector('#message');
 const errorReturn = document.querySelector('#error-return');
+const rows = document.querySelector('#window-rows');
+const rowTemplate = document.querySelector('#window-template');
+let nextRowId = 1;
+
+function numberRows() {
+  for (const [index, row] of [...rows.children].entries()) {
+    row.querySelector('legend').textContent = `Ventana ${index + 1}`;
+    row.querySelector('.discard-row').textContent = `Descartar ventana ${index + 1}`;
+  }
+}
+
+function addRow() {
+  const row = rowTemplate.content.firstElementChild.cloneNode(true);
+  const width = row.querySelector('.width');
+  const height = row.querySelector('.height');
+  width.id = `width-${nextRowId}`;
+  height.id = `height-${nextRowId}`;
+  nextRowId += 1;
+  row.querySelectorAll('label')[0].htmlFor = width.id;
+  row.querySelectorAll('label')[1].htmlFor = height.id;
+  row.querySelector('.discard-row').addEventListener('click', () => {
+    row.remove();
+    if (!rows.children.length) addRow();
+    else numberRows();
+  });
+  rows.append(row);
+  numberRows();
+}
+
+document.querySelector('#add-row').addEventListener('click', addRow);
+addRow();
 
 function showError(text) {
   message.textContent = text;
@@ -36,16 +67,26 @@ async function openOrder(id) {
 document.querySelector('#order-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   message.hidden = true;
-  const button = event.currentTarget.querySelector('button');
+  const button = event.currentTarget.querySelector('button[type="submit"]');
   button.disabled = true;
   try {
+    const windows = [...rows.children].map((row) => ({
+      ancho: row.querySelector('.width').value.trim(),
+      alto: row.querySelector('.height').value.trim(),
+    }));
+    const partialIndex = windows.findIndex((window) => Boolean(window.ancho) !== Boolean(window.alto));
+    if (partialIndex !== -1) {
+      showError(`Ventana ${partialIndex + 1}: completa ancho y alto o descarta la fila.`);
+      return;
+    }
+    if (!windows.some((window) => window.ancho && window.alto)) {
+      showError('Agrega al menos una ventana con ancho y alto completos.');
+      return;
+    }
     const response = await fetch('/api/pedidos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ancho: document.querySelector('#width').value,
-        alto: document.querySelector('#height').value,
-      }),
+      body: JSON.stringify({ ventanas: windows }),
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
