@@ -70,6 +70,13 @@ def create_order(order: NewOrder):
     return {"id": order_id}
 
 
+@app.get("/api/pedidos")
+def list_orders():
+    with closing(connect_db()) as connection:
+        rows = connection.execute("SELECT id FROM pedidos ORDER BY id ASC").fetchall()
+    return {"pedidos": [{"id": order_id} for (order_id,) in rows]}
+
+
 @app.get("/api/pedidos/{order_id}")
 def get_order(order_id: int):
     with closing(connect_db()) as connection:

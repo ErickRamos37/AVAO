@@ -10,4 +10,5 @@
 - El trabajo nuevo sale de `develop` en una rama corta. Integra por PR a `develop`, prueba allí el flujo y lleva lo aceptado a `main`; `main` es la rama estable. Una rama no equivale por sí sola a un entorno de producción.
 - Para requisitos y HU, consulta `docs/product/Backlog.md` y `docs/workflow/GuiaBacklogKanban.md`. Para fórmulas y reglas del taller, consulta `docs/domain/` y confirma cualquier vacío con el usuario.
 - GitHub Projects es la fuente de verdad del estado del trabajo; `docs/product/Backlog.md` conserva el contenido del producto mientras se traslada al tablero. No crees un tablero paralelo.
+- El usuario mueve las tarjetas del GitHub Project. El agente revisa si la tarea elegida tiene sentido y cierra su issue cuando el usuario aprueba el resultado; no cambia el estado del Project por su cuenta.
 - Skills del proyecto: `avao-refinar-hu` al refinar historias y `avao-entrega-vertical` al implementar una entrega.

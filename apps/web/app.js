@@ -39,6 +39,30 @@ function showError(text) {
   message.hidden = false;
 }
 
+async function loadOrders() {
+  const list = document.querySelector('#order-list');
+  try {
+    const response = await fetch('/api/pedidos');
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    list.replaceChildren();
+    if (!data.pedidos.length) {
+      list.textContent = 'Aún no hay pedidos.';
+      return;
+    }
+    for (const order of data.pedidos) {
+      const item = document.createElement('p');
+      const link = document.createElement('a');
+      link.href = `/pedidos/${order.id}`;
+      link.textContent = `Pedido ${order.id}`;
+      item.append(link);
+      list.append(item);
+    }
+  } catch {
+    list.textContent = 'No se pudo cargar la lista de pedidos.';
+  }
+}
+
 async function openOrder(id) {
   capture.hidden = true;
   detail.hidden = true;
@@ -94,6 +118,7 @@ document.querySelector('#order-form').addEventListener('submit', async (event) =
     }
     const order = await response.json();
     history.pushState({}, '', `/pedidos/${order.id}`);
+    loadOrders();
     await openOrder(order.id);
   } catch (error) {
     showError(error.message);
@@ -114,4 +139,5 @@ window.addEventListener('popstate', () => {
 });
 
 const match = location.pathname.match(/^\/pedidos\/(\d+)$/);
+loadOrders();
 if (match) openOrder(match[1]);
