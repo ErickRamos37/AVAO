@@ -1,5 +1,5 @@
--- Esquema inicial ejecutable para HU-01 en SQLite.
--- apps.api.init_db lo aplica; no contiene migraciones de versiones posteriores.
+-- Esquema ejecutable de pedidos, ventanas y etiqueta de taller en SQLite.
+-- apps.api.init_db agrega la columna a bases anteriores sin modificar sus pedidos.
 -- Unidad de ancho_16 y alto_16: dieciseisavos de pulgada.
 -- Ejemplos: 24 -> 384; 26 1/2 -> 424; 24 1/4 1/16 -> 389.
 -- El backend valida la entrada fraccionaria y la convierte a esta unidad.
@@ -7,8 +7,11 @@
 -- 389 -> 24 5/16. No se conserva la escritura original de la entrada.
 
 CREATE TABLE IF NOT EXISTS pedidos (
-    id INTEGER PRIMARY KEY
+    id INTEGER PRIMARY KEY,
+    etiqueta TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS pedidos_etiqueta_unica ON pedidos (etiqueta);
 
 CREATE TABLE IF NOT EXISTS ventanas (
     id INTEGER PRIMARY KEY,
@@ -29,5 +32,7 @@ CREATE TABLE IF NOT EXISTS ventanas (
 -- Ejemplo: 753 / 2 -> 376.5 -> 377 (= 23 9/16).
 -- El índice de UNIQUE (pedido_id, numero_en_pedido) cubre búsquedas por pedido.
 -- La conexión activa PRAGMA foreign_keys para hacer cumplir la referencia.
--- HU-13 añadirá datos del cliente; HU-22 añadirá el código con letra.
+-- Los pedidos anteriores a HU-22 conservan etiqueta NULL hasta que el usuario
+-- decida reiniciar sus datos de prueba; los pedidos nuevos reciben A, B, ...
+-- HU-13 añadirá datos del cliente.
 -- No hay tabla de catálogo: solo se registra California por mitad en HU-01.

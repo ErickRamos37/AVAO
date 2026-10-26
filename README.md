@@ -28,7 +28,9 @@ python -m apps.api.init_db
 uvicorn apps.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Abre `http://127.0.0.1:8000`. Captura el ancho y alto del hueco de una o más ventanas California, guarda el pedido y usa la lista de pedidos para abrir cualquiera y consultar sus ventanas, incluso después de reiniciar el servidor. La lista se muestra por ID ascendente: es una decisión técnica para mantener un orden estable, no una prioridad de negocio. Puedes añadir o descartar filas antes de guardar; las filas completamente vacías se omiten y las parciales se señalan. Las medidas se guardan en dieciseisavos de pulgada y se muestran como fracción simplificada. La inicialización crea las tablas si faltan; no sustituye migraciones cuando el esquema cambie más adelante. Para usar otro archivo local, configura `AVAO_DB_PATH` antes de inicializar y arrancar la aplicación.
+Abre `http://127.0.0.1:8000`. Captura el ancho y alto del hueco de una o más ventanas California, guarda el pedido y usa la lista de pedidos para abrir cualquiera y consultar sus ventanas, incluso después de reiniciar el servidor. La lista se muestra por ID ascendente: es una decisión técnica para mantener un orden estable, no una prioridad de negocio. Los pedidos nuevos reciben etiquetas `A`…`Z`, `AA`… y sus ventanas muestran códigos como `A1` y `A2`. Puedes añadir o descartar filas antes de guardar; las filas completamente vacías se omiten y las parciales se señalan. Las medidas se guardan en dieciseisavos de pulgada y se muestran como fracción simplificada. Para usar otro archivo local, configura `AVAO_DB_PATH` antes de inicializar y arrancar la aplicación.
+
+Si ya tienes una base SQLite de la entrega anterior, ejecuta de nuevo `python -m apps.api.init_db` antes de iniciar la aplicación. Conserva los pedidos existentes sin etiqueta y los muestra como «sin etiqueta»; solo los pedidos creados después reciben códigos. No borra ni reinicia los datos de prueba.
 
 ## Documentación
 
