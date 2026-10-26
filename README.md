@@ -28,7 +28,7 @@ python -m apps.api.init_db
 uvicorn apps.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Abre `http://127.0.0.1:8000`. Captura el ancho y alto del hueco de una ventana California, guarda el pedido y usa la URL del pedido para volver a consultarlo incluso después de reiniciar el servidor. El listado de pedidos y la captura de varias ventanas pertenecen a las siguientes subtareas de HU-01. Las medidas se guardan en dieciseisavos de pulgada y se muestran como fracción simplificada. La inicialización crea las tablas si faltan; no sustituye migraciones cuando el esquema cambie más adelante. Para usar otro archivo local, configura `AVAO_DB_PATH` antes de inicializar y arrancar la aplicación.
+Abre `http://127.0.0.1:8000`. Captura el ancho y alto del hueco de una o más ventanas California, guarda el pedido y usa la URL del pedido para volver a consultarlo incluso después de reiniciar el servidor. Puedes añadir o descartar filas antes de guardar; las filas completamente vacías se omiten y las parciales se señalan. El listado de pedidos pertenece a la siguiente subtarea de HU-01. Las medidas se guardan en dieciseisavos de pulgada y se muestran como fracción simplificada. La inicialización crea las tablas si faltan; no sustituye migraciones cuando el esquema cambie más adelante. Para usar otro archivo local, configura `AVAO_DB_PATH` antes de inicializar y arrancar la aplicación.
 
 ## Documentación
 

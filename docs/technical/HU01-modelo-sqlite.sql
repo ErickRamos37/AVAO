@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS ventanas (
 );
 
 -- Guardar pedido y ventanas juntos en una transacción de la aplicación.
--- La primera subtarea crea exactamente una ventana con ambas medidas completas.
--- Añadir y descartar filas durante la captura pertenece a la siguiente subtarea.
+-- La aplicación exige al menos una ventana con ambas medidas completas.
+-- Una fila vacía se omite; una fila parcial se rechaza antes de guardar.
 -- La aplicación rechaza entradas inválidas o más finas que 1/16; no las
 -- redondea silenciosamente al guardar. El redondeo de cortes pertenece a HU-02.
 -- Para el centro de HU-02, el backend toma el techo de ancho_16 / 2;
