@@ -6,7 +6,7 @@ AVAO busca ayudar a una MiPyME vidriera a registrar y dar seguimiento a pedidos 
 
 El primer grupo de trabajo cubre el registro de medidas y el seguimiento básico del trabajo de taller, según el backlog vigente. El usuario es el experto del negocio y define las reglas, el alcance de cada entrega y sus prioridades.
 
-El modo sin conexión, las capacidades PWA, los algoritmos avanzados de corte y el endurecimiento del backend quedan para etapas posteriores. El stack tecnológico y las instrucciones para ejecutar la aplicación se documentarán cuando estén decididos y disponibles.
+El modo sin conexión, las capacidades PWA, los algoritmos avanzados de corte y el endurecimiento del backend quedan para etapas posteriores. La primera entrega usa FastAPI, SQLite y una página HTML/JavaScript sencilla.
 
 ## Estructura
 
@@ -16,7 +16,19 @@ El modo sin conexión, las capacidades PWA, los algoritmos avanzados de corte y 
 - `docs/product/`: historias y alcance del producto.
 - `docs/workflow/`: guía de trabajo Kanban.
 
-Las carpetas de aplicación están preparadas; todavía no contienen una implementación inicial.
+## Ejecutar la primera entrega
+
+Se necesita Python 3. La base SQLite se crea en `data/avao.sqlite3` (ignorada por Git) al inicializar la aplicación.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r apps/api/requirements.txt
+python -m apps.api.init_db
+uvicorn apps.api.main:app --host 127.0.0.1 --port 8000
+```
+
+Abre `http://127.0.0.1:8000`. Captura el ancho y alto del hueco de una ventana California, guarda el pedido y usa la URL del pedido para volver a consultarlo incluso después de reiniciar el servidor. El listado de pedidos y la captura de varias ventanas pertenecen a las siguientes subtareas de HU-01. Las medidas se guardan en dieciseisavos de pulgada y se muestran como fracción simplificada. La inicialización crea las tablas si faltan; no sustituye migraciones cuando el esquema cambie más adelante. Para usar otro archivo local, configura `AVAO_DB_PATH` antes de inicializar y arrancar la aplicación.
 
 ## Documentación
 
@@ -25,7 +37,7 @@ Las carpetas de aplicación están preparadas; todavía no contienen una impleme
 - [Flujo de trabajo de vidriería](docs/domain/FlujoDeTrabajoVidrieria.md)
 - [Medidas de ventana California por mitad](docs/domain/Medidas.md)
 - [Guía del backlog y Kanban](docs/workflow/GuiaBacklogKanban.md)
-- [Borrador de esquema relacional de HU-01 (PostgreSQL)](docs/technical/HU01-modelo-postgresql.sql)
+- [Esquema inicial de HU-01 (SQLite)](docs/technical/HU01-modelo-sqlite.sql)
 - [Instrucciones para agentes](AGENTS.md) y skills del proyecto en `.agents/skills/`.
 
 GitHub Projects es la fuente de verdad para el estado del trabajo. El backlog en `docs/product/Backlog.md` conserva el contenido de producto; no reemplaza el tablero.
