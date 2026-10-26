@@ -1,26 +1,31 @@
-# AVAO — Asistente para Vidrieras Administrativo y Operativo
+# AVAO
 
-## 1. Identidad del Proyecto
-**Nombre Oficial:** Automatización de procesos operativos y gestión de taller para MiPyMEs vidrieras mediante una Aplicación Web Progresiva con asistente gráfico de corte.
-**Nombre del Producto:** AVAO.
+AVAO busca ayudar a una MiPyME vidriera a registrar y dar seguimiento a pedidos y ventanas. El trabajo inmediato se enfoca en validar un flujo web completo con las funciones mínimas acordadas, antes de ampliar la aplicación.
 
-## 2. Objetivo General
-Desarrollar una Aplicación Web Progresiva (PWA) B2B para automatizar el cálculo de descuentos, digitalizar el seguimiento de pedidos y asistir visualmente la ejecución de cortes en MiPyMEs vidrieras, eliminando la fricción de los procesos manuales.
+## Alcance actual
 
-## 3. Stack Tecnológico Estructural
-La plataforma se divide en dos entornos que garantizan escalabilidad y resiliencia offline:
+El primer grupo de trabajo cubre el registro de medidas y el seguimiento básico del trabajo de taller, según el backlog vigente. El usuario es el experto del negocio y define las reglas, el alcance de cada entrega y sus prioridades.
 
-*   **Entorno Cliente (Frontend B2B):**
-    *   **Framework:** Vite + React.
-    *   **Motor Gráfico:** HTML5 Canvas 2D (Renderizado de guías de corte en Taller).
-    *   **Persistencia Local:** Dexie.js para soporte Offline-First mediante IndexedDB.
-*   **Entorno Servidor (Backend & DB en Docker / Oracle Cloud):**
-    *   **API y Lógica:** Python (FastAPI).
-    *   **Motor de Optimización:** `rectpack` (Algoritmo de Guillotina 2D).
-    *   **Seguridad:** `fastapi-users` (Autenticación JWT) e implementación de UUIDs.
-    *   **Base de Datos:** PostgreSQL gestionado vía SQLAlchemy (ORM) y Alembic (Migraciones).
-    *   **Proxy / Web Server:** Nginx (Proxy Pass, Terminación SSL/TLS, WSS).
+El modo sin conexión, las capacidades PWA, los algoritmos avanzados de corte y el endurecimiento del backend quedan para etapas posteriores. El stack tecnológico y las instrucciones para ejecutar la aplicación se documentarán cuando estén decididos y disponibles.
 
-## 4. Estándares de Codificación
-*   Todo componente, API o modelo de base de datos debe ser referenciado a su respectiva Historia de Usuario (HU) y documentado in-line.
-*   Los scripts de despliegue local de Docker se ubicarán en la raíz del repositorio (pendiente de definición por DevOps). Actualmente existe `infra/docker-compose.yml` para desarrollo; su ubicación definitiva sigue pendiente. No agregar scripts nuevos hasta resolverla.
+## Estructura
+
+- `apps/web/`: aplicación web.
+- `apps/api/`: backend.
+- `docs/domain/`: flujo del negocio y reglas de medidas.
+- `docs/product/`: historias y alcance del producto.
+- `docs/workflow/`: guía de trabajo Kanban.
+
+Las carpetas de aplicación están preparadas; todavía no contienen una implementación inicial.
+
+## Documentación
+
+- [Contexto y decisiones del proyecto](docs/MEMORY.md)
+- [Backlog de producto](docs/product/Backlog.md)
+- [Flujo de trabajo de vidriería](docs/domain/FlujoDeTrabajoVidrieria.md)
+- [Medidas de ventana California por mitad](docs/domain/Medidas.md)
+- [Guía del backlog y Kanban](docs/workflow/GuiaBacklogKanban.md)
+- [Borrador de esquema relacional de HU-01 (PostgreSQL)](docs/technical/HU01-modelo-postgresql.sql)
+- [Instrucciones para agentes](AGENTS.md) y skills del proyecto en `.agents/skills/`.
+
+GitHub Projects es la fuente de verdad para el estado del trabajo. El backlog en `docs/product/Backlog.md` conserva el contenido de producto; no reemplaza el tablero.
