@@ -19,9 +19,13 @@ app = FastAPI(title="AVAO")
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 
-class NewOrder(BaseModel):
+class NewWindow(BaseModel):
     ancho: StrictStr
     alto: StrictStr
+
+
+class NewOrder(BaseModel):
+    ventanas: list[NewWindow]
 
 
 def database_path() -> Path:
@@ -36,22 +40,32 @@ def connect_db() -> sqlite3.Connection:
 
 @app.post("/api/pedidos", status_code=201)
 def create_order(order: NewOrder):
-    try:
-        width = parse_measure(order.ancho)
-        height = parse_measure(order.alto)
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+    measurements = []
+    for row_number, window in enumerate(order.ventanas, start=1):
+        width_text, height_text = window.ancho.strip(), window.alto.strip()
+        if not width_text and not height_text:
+            continue
+        if not width_text or not height_text:
+            raise HTTPException(status_code=422, detail=f"Ventana {row_number}: completa ancho y alto o descarta la fila.")
+        try:
+            measurements.append((parse_measure(width_text), parse_measure(height_text)))
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=f"Ventana {row_number}: {error}") from error
 
-    # La transacción evita pedidos vacíos si falla la inserción de la ventana.
+    if not measurements:
+        raise HTTPException(status_code=422, detail="Agrega al menos una ventana con ancho y alto completos.")
+
+    # El pedido y todas sus ventanas se confirman o revierten juntos.
     with closing(connect_db()) as connection:
         with connection:
             cursor = connection.execute("INSERT INTO pedidos DEFAULT VALUES")
             order_id = cursor.lastrowid
-            connection.execute(
-                "INSERT INTO ventanas (pedido_id, numero_en_pedido, ancho_16, alto_16) "
-                "VALUES (?, 1, ?, ?)",
-                (order_id, width, height),
-            )
+            for number, (width, height) in enumerate(measurements, start=1):
+                connection.execute(
+                    "INSERT INTO ventanas (pedido_id, numero_en_pedido, ancho_16, alto_16) "
+                    "VALUES (?, ?, ?, ?)",
+                    (order_id, number, width, height),
+                )
 
     return {"id": order_id}
 
