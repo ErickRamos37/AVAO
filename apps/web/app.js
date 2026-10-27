@@ -54,7 +54,9 @@ async function loadOrders() {
       const item = document.createElement('p');
       const link = document.createElement('a');
       link.href = `/pedidos/${order.id}`;
-      link.textContent = `Pedido ${order.id}`;
+      link.textContent = order.etiqueta === null
+        ? `Pedido ${order.id} · sin etiqueta`
+        : `Pedido ${order.id} · ${order.codigos.join(', ')}`;
       item.append(link);
       list.append(item);
     }
@@ -73,12 +75,14 @@ async function openOrder(id) {
     const response = await fetch(`/api/pedidos/${encodeURIComponent(id)}`);
     if (!response.ok) throw new Error(response.status === 404 ? 'Pedido no encontrado.' : 'No se pudo consultar el pedido.');
     const order = await response.json();
-    document.querySelector('#order-title').textContent = `Pedido ${order.id}`;
+    document.querySelector('#order-title').textContent = order.etiqueta === null
+      ? `Pedido ${order.id} · sin etiqueta`
+      : `Pedido ${order.id} · ${order.etiqueta}`;
     const content = document.querySelector('#order-content');
     content.replaceChildren();
     for (const window of order.ventanas) {
       const item = document.createElement('p');
-      item.textContent = `Ventana ${window.numero}: ${window.ancho} × ${window.alto}`;
+      item.textContent = `Ventana ${window.codigo ?? window.numero}: ${window.ancho} × ${window.alto}`;
       content.append(item);
     }
     detail.hidden = false;

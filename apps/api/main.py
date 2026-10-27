@@ -38,6 +38,18 @@ def connect_db() -> sqlite3.Connection:
     return connection
 
 
+def following_label(current: str | None) -> str:
+    number = 0
+    for letter in current or "":
+        number = number * 26 + ord(letter) - ord("A") + 1
+    number += 1
+    label = ""
+    while number:
+        number, remainder = divmod(number - 1, 26)
+        label = chr(ord("A") + remainder) + label
+    return label
+
+
 @app.post("/api/pedidos", status_code=201)
 def create_order(order: NewOrder):
     measurements = []
@@ -55,10 +67,16 @@ def create_order(order: NewOrder):
     if not measurements:
         raise HTTPException(status_code=422, detail="Agrega al menos una ventana con ancho y alto completos.")
 
-    # El pedido y todas sus ventanas se confirman o revierten juntos.
+    # BEGIN IMMEDIATE serializa la elección de etiqueta entre guardados simultáneos.
     with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
         with connection:
-            cursor = connection.execute("INSERT INTO pedidos DEFAULT VALUES")
+            latest = connection.execute(
+                "SELECT etiqueta FROM pedidos WHERE etiqueta IS NOT NULL "
+                "ORDER BY LENGTH(etiqueta) DESC, etiqueta DESC LIMIT 1"
+            ).fetchone()
+            label = following_label(latest[0] if latest else None)
+            cursor = connection.execute("INSERT INTO pedidos (etiqueta) VALUES (?)", (label,))
             order_id = cursor.lastrowid
             for number, (width, height) in enumerate(measurements, start=1):
                 connection.execute(
@@ -73,15 +91,29 @@ def create_order(order: NewOrder):
 @app.get("/api/pedidos")
 def list_orders():
     with closing(connect_db()) as connection:
-        rows = connection.execute("SELECT id FROM pedidos ORDER BY id ASC").fetchall()
-    return {"pedidos": [{"id": order_id} for (order_id,) in rows]}
+        rows = connection.execute(
+            "SELECT p.id, p.etiqueta, v.numero_en_pedido "
+            "FROM pedidos AS p LEFT JOIN ventanas AS v ON v.pedido_id = p.id "
+            "ORDER BY p.id ASC, v.numero_en_pedido ASC"
+        ).fetchall()
+    orders = {}
+    for order_id, label, number in rows:
+        if order_id not in orders:
+            orders[order_id] = {"id": order_id, "etiqueta": label, "codigos": []}
+        if label is not None and number is not None:
+            orders[order_id]["codigos"].append(f"{label}{number}")
+    return {"pedidos": list(orders.values())}
 
 
 @app.get("/api/pedidos/{order_id}")
 def get_order(order_id: int):
     with closing(connect_db()) as connection:
-        if connection.execute("SELECT id FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
+        order = connection.execute(
+            "SELECT id, etiqueta FROM pedidos WHERE id = ?", (order_id,)
+        ).fetchone()
+        if order is None:
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+        label = order[1]
         windows = connection.execute(
             "SELECT id, numero_en_pedido, ancho_16, alto_16 "
             "FROM ventanas WHERE pedido_id = ? ORDER BY numero_en_pedido",
@@ -90,10 +122,12 @@ def get_order(order_id: int):
 
     return {
         "id": order_id,
+        "etiqueta": label,
         "ventanas": [
             {
                 "id": window_id,
                 "numero": number,
+                "codigo": f"{label}{number}" if label is not None else None,
                 "ancho": format_measure(width),
                 "alto": format_measure(height),
             }
