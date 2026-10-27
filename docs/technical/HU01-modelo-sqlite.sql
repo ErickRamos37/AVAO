@@ -22,6 +22,25 @@ CREATE TABLE IF NOT EXISTS ventanas (
     CONSTRAINT ventanas_numero_por_pedido UNIQUE (pedido_id, numero_en_pedido)
 );
 
+-- Se crea al guardar el pedido. Cada fila es un tipo/orientación de perfil;
+-- cantidad indica cuántas piezas iguales necesita esa ventana.
+CREATE TABLE IF NOT EXISTS plan_aluminio (
+    ventana_id INTEGER NOT NULL REFERENCES ventanas (id),
+    orden INTEGER NOT NULL CHECK (orden BETWEEN 1 AND 10),
+    perfil TEXT NOT NULL,
+    longitud_16 INTEGER NOT NULL CHECK (longitud_16 > 0),
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    PRIMARY KEY (ventana_id, orden)
+);
+
+-- Dos vidrios iguales por ventana, calculados y guardados con el pedido.
+CREATE TABLE IF NOT EXISTS plan_vidrio (
+    ventana_id INTEGER PRIMARY KEY REFERENCES ventanas (id),
+    ancho_16 INTEGER NOT NULL CHECK (ancho_16 > 0),
+    alto_16 INTEGER NOT NULL CHECK (alto_16 > 0),
+    cantidad INTEGER NOT NULL CHECK (cantidad = 2)
+);
+
 -- Guardar pedido y ventanas juntos en una transacción de la aplicación.
 -- La aplicación exige al menos una ventana con ambas medidas completas.
 -- Una fila vacía se omite; una fila parcial se rechaza antes de guardar.

@@ -84,6 +84,27 @@ async function openOrder(id) {
       const item = document.createElement('p');
       item.textContent = `Ventana ${window.codigo ?? window.numero}: ${window.ancho} × ${window.alto}`;
       content.append(item);
+      if (!window.plan_aluminio.length) {
+        const notice = document.createElement('p');
+        notice.textContent = 'Plan de aluminio no disponible para este pedido anterior.';
+        content.append(notice);
+      } else {
+        const heading = document.createElement('h3');
+        heading.textContent = 'Plan de aluminio';
+        content.append(heading);
+        const plan = document.createElement('ul');
+        for (const cut of window.plan_aluminio) {
+          const line = document.createElement('li');
+          line.textContent = `${cut.perfil}: ${cut.longitud}″ × ${cut.cantidad}`;
+          plan.append(line);
+        }
+        content.append(plan);
+      }
+      const glass = document.createElement('p');
+      glass.textContent = window.plan_vidrio
+        ? `Vidrio: ${window.plan_vidrio.ancho}″ × ${window.plan_vidrio.alto}″ · ${window.plan_vidrio.cantidad} piezas iguales`
+        : 'Plan de vidrio no disponible para este pedido anterior.';
+      content.append(glass);
     }
     detail.hidden = false;
   } catch (error) {

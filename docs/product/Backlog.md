@@ -60,10 +60,11 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
   1. Para cada ventana, se muestran perfil, longitud y cantidad de **17 piezas de aluminio** y **dos vidrios iguales** según [Medidas.md](../domain/Medidas.md).
   2. Guía y riel son perfiles físicos distintos aunque compartan longitud. El screen muestra dos piezas de ancho y dos de alto.
   3. Los tres ejemplos de [Medidas.md](../domain/Medidas.md) coinciden; el centro calculado en treintaidosavos se sube al siguiente dieciseisavo antes de obtener cortes dependientes.
-- **Subtareas técnicas propuestas:**
-  1. **Mostrar el plan de aluminio de una ventana guardada:** desde un pedido, calcular y mostrar cada tipo de perfil, longitud legible y cantidad requerida conforme a `Medidas.md`, distinguiendo guía de riel.
-  2. **Mostrar el plan de vidrio de esa ventana:** completar la misma consulta con ancho × alto y cantidad de dos vidrios iguales; comprobar el resultado integral con los tres ejemplos de `Medidas.md`.
-- **Límites confirmados:** las dimensiones registradas ya incorporan el criterio del vidriero al medir el hueco; AVAO no aplica una holgura previa. Cuando HU-06 permita corregir una medida antes de registrar cortes, se mostrará únicamente el plan recalculado con la medida nueva; HU-02 no necesita implementar esa edición. Las marcas de cortes realizados son HU-03 y HU-04; las correcciones después de cortar y sus piezas corresponden a HU-07. Guardar por separado cada corte calculado no es un requisito de esta HU mientras pueda volver a obtenerse el mismo plan desde las medidas registradas.
+  4. Al guardar el pedido se confirman sus ventanas y se calcula y guarda el plan de cortes de cada una. Al reabrir el pedido se consulta ese plan guardado, sin volver a calcularlo por el solo hecho de consultarlo.
+- **Subtareas de la HU, ya creadas como subissues #19 y #20:**
+  1. **#19 — Plan de aluminio de una ventana confirmada:** al guardar el pedido, calcular y guardar los cortes de aluminio de cada ventana; desde el pedido, mostrar cada tipo de perfil, longitud legible y cantidad requerida conforme a `Medidas.md`, distinguiendo guía de riel. Comprobar que el plan siga disponible al reabrir. Es la primera subtarea preparada para trabajar.
+  2. **#20 — Plan de vidrio de esa ventana:** al guardar el pedido, calcular y guardar las medidas y cantidad de dos vidrios iguales de cada ventana; completar la consulta del plan con ancho × alto. Comprobar el resultado integral con los tres ejemplos de `Medidas.md`.
+- **Límites confirmados:** las dimensiones registradas ya incorporan el criterio del vidriero al medir el hueco; AVAO no aplica una holgura previa. En esta etapa, confirmar una ventana equivale a guardar el pedido. Cuando HU-06 permita corregir una medida antes de registrar cortes, se mostrará únicamente el plan actualizado con la medida nueva; HU-02 no necesita implementar esa edición. Las marcas de piezas cortadas son HU-03 y HU-04; el ensamble es HU-05; las correcciones después de cortar y sus piezas corresponden a HU-07.
 
 #### HU-03 — Registrar cortes de aluminio
 

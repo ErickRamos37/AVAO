@@ -79,7 +79,49 @@ class PersistenceTests(unittest.TestCase):
             [(window["codigo"], window["ancho"], window["alto"]) for window in opened["ventanas"]],
             [("A1", "24 5/16", "26 1/2"), ("A2", "48", "36")],
         )
+        self.assertEqual(opened["ventanas"][1]["plan_aluminio"][6],
+                         {"perfil": "Guía", "longitud": "46 1/8", "cantidad": 1})
+        self.assertEqual(opened["ventanas"][1]["plan_vidrio"],
+                         {"ancho": "22", "alto": "34", "cantidad": 2})
         self.assertEqual(self.count("ventanas"), 2)
+
+    def test_three_reference_plans_have_seventeen_pieces_each(self):
+        order_id = create_order(NewOrder(ventanas=[
+            {"ancho": "48", "alto": "36"},
+            {"ancho": "47 1/16", "alto": "35 7/8 1/16"},
+            {"ancho": "50 3/4", "alto": "38 1/2"},
+        ]))["id"]
+        expected = [
+            ["36", "35", "34 3/4", "33 1/2", "21 1/2", "23 1/8", "46 1/8", "46 1/8", "22 3/8", "34 3/4"],
+            ["35 15/16", "34 15/16", "34 11/16", "33 7/16", "21 1/16", "22 11/16", "45 3/16", "45 3/16", "21 15/16", "34 11/16"],
+            ["38 1/2", "37 1/2", "37 1/4", "36", "22 7/8", "24 1/2", "48 7/8", "48 7/8", "23 3/4", "37 1/4"],
+        ]
+        expected_glass = [
+            {"ancho": "22", "alto": "34", "cantidad": 2},
+            {"ancho": "21 9/16", "alto": "33 15/16", "cantidad": 2},
+            {"ancho": "23 3/8", "alto": "36 1/2", "cantidad": 2},
+        ]
+        profiles = ["Jamba", "Mulio", "Vertical fijo", "Aleta", "Horizontal fijo",
+                    "Horizontal corredizo", "Guía", "Riel", "Screen ancho", "Screen alto"]
+        quantities = [2, 1, 2, 2, 2, 2, 1, 1, 2, 2]
+        self.assertEqual(sum(quantities), 17)
+        for window, lengths, glass in zip(get_order(order_id)["ventanas"], expected, expected_glass, strict=True):
+            plan = window["plan_aluminio"]
+            self.assertEqual([cut["perfil"] for cut in plan], profiles)
+            self.assertEqual([cut["longitud"] for cut in plan], lengths)
+            self.assertEqual([cut["cantidad"] for cut in plan], quantities)
+            self.assertEqual(window["plan_vidrio"], glass)
+        self.assertEqual(self.count("plan_aluminio"), 30)
+        self.assertEqual(self.count("plan_vidrio"), 3)
+
+    def test_reopened_order_reads_saved_plan_without_recalculating(self):
+        order_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
+        with (patch("apps.api.main.calcular_plan_aluminio", side_effect=AssertionError("recalculated")),
+              patch("apps.api.main.calcular_plan_vidrio", side_effect=AssertionError("recalculated"))):
+            self.assertEqual(get_order(order_id)["ventanas"][0]["plan_aluminio"][0],
+                             {"perfil": "Jamba", "longitud": "36", "cantidad": 2})
+            self.assertEqual(get_order(order_id)["ventanas"][0]["plan_vidrio"],
+                             {"ancho": "22", "alto": "34", "cantidad": 2})
 
     def test_code_sequence_continues_from_z_to_aa(self):
         ids = [create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
@@ -111,6 +153,8 @@ class PersistenceTests(unittest.TestCase):
                 self.assertTrue(all(order["etiqueta"] is None and order["codigos"] == []
                                     for order in previous))
                 self.assertEqual(get_order(1)["ventanas"][0]["codigo"], None)
+                self.assertEqual(get_order(1)["ventanas"][0]["plan_aluminio"], [])
+                self.assertIsNone(get_order(1)["ventanas"][0]["plan_vidrio"])
                 new_id = create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
                 self.assertEqual(new_id, 9)
                 self.assertEqual(get_order(new_id)["ventanas"][0]["codigo"], "A1")
@@ -124,12 +168,16 @@ class PersistenceTests(unittest.TestCase):
             [{"ancho": " ", "alto": " "}],
             [],
             [{"ancho": "24", "alto": "26"}, {"ancho": "1/32", "alto": "26"}],
+            [{"ancho": "5", "alto": "36"}],
+            [{"ancho": "48", "alto": "2 1/2"}],
         ):
             with self.subTest(windows=windows), self.assertRaises(HTTPException) as result:
                 create_order(NewOrder(ventanas=windows))
             self.assertEqual(result.exception.status_code, 422)
         self.assertEqual(self.count("pedidos"), 0)
         self.assertEqual(self.count("ventanas"), 0)
+        self.assertEqual(self.count("plan_aluminio"), 0)
+        self.assertEqual(self.count("plan_vidrio"), 0)
         self.assertEqual(create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"], 1)
         self.assertEqual(get_order(1)["ventanas"][0]["codigo"], "A1")
 
@@ -148,6 +196,27 @@ class PersistenceTests(unittest.TestCase):
             connection.execute("DROP TRIGGER fail_second")
         order_id = create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
         self.assertEqual(get_order(order_id)["ventanas"][0]["codigo"], "A1")
+
+    def test_rolls_back_order_windows_and_plan_if_plan_insert_fails(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("CREATE TRIGGER fail_second_plan BEFORE INSERT ON plan_aluminio "
+                               "WHEN NEW.ventana_id = 2 BEGIN SELECT RAISE(FAIL, 'test'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            create_order(NewOrder(ventanas=[
+                {"ancho": "48", "alto": "36"},
+                {"ancho": "50 3/4", "alto": "38 1/2"},
+            ]))
+        for table in ("pedidos", "ventanas", "plan_aluminio", "plan_vidrio"):
+            self.assertEqual(self.count(table), 0)
+
+    def test_rolls_back_order_and_aluminum_if_glass_insert_fails(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("CREATE TRIGGER fail_glass BEFORE INSERT ON plan_vidrio "
+                               "BEGIN SELECT RAISE(FAIL, 'test'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))
+        for table in ("pedidos", "ventanas", "plan_aluminio", "plan_vidrio"):
+            self.assertEqual(self.count(table), 0)
 
 
 if __name__ == "__main__":
