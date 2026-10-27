@@ -14,7 +14,7 @@
 
 | Épica | Resultado amplio | HU |
 | --- | --- | --- |
-| E1. Preparar ventanas California para corte | Registrar medidas de huecos y obtener cortes identificados por ventana. | HU-01, HU-02, HU-06, HU-22 |
+| E1. Preparar ventanas California para corte | Registrar las dimensiones de fabricación indicadas por el vidriero y obtener cortes identificados por ventana. | HU-01, HU-02, HU-06, HU-22 |
 | E2. Seguir la fabricación de pedidos | Saber qué aluminio, vidrio y ventanas están terminados con varios pedidos pendientes. | HU-03, HU-04, HU-05, HU-07, HU-08, HU-09, HU-10, HU-23 |
 | E3. Completar un pedido desde presupuesto hasta liquidación | Comunicar total, registrar aceptación y pagos, instalar y cerrar. | HU-11 a HU-17 |
 | E4. Actualizar el cálculo comercial desde insumos | Cambiar precios individuales y aplicar ganancia definida. | HU-18, HU-19 |
@@ -23,16 +23,16 @@ HU-20 y HU-21 quedan independientes hasta que su alcance justifique agruparlas. 
 
 ## Primer MVP: medidas y taller
 
-El empleado captura ancho y alto del hueco en pulgadas. Se calculan cortes para la ventana California por mitad, con una hoja fija y una corrediza, y se sigue corte y ensamble. Cada pedido y ventana conserva identidad interna estable. Primero se guardan y consultan las medidas (HU-01); después se asigna el código corto de taller `A1`, `A2`, `B1` (HU-22), que el trabajador escribirá a mano en aluminio y vidrio. La etiqueta del pedido se liberará solo cuando esté **instalado y pagado por completo**; automatizar esa liberación depende del registro posterior de instalación y pagos.
+El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse la ventana**, en pulgadas. El empleado captura esas dimensiones finales; AVAO no calcula una holgura adicional a partir del hueco. Se calculan cortes para la ventana California por mitad, con una hoja fija y una corrediza, y se sigue corte y ensamble. Cada pedido y ventana conserva identidad interna estable. Primero se guardan y consultan las medidas (HU-01); después se asigna el código corto de taller `A1`, `A2`, `B1` (HU-22), que el trabajador escribirá a mano en aluminio y vidrio. La etiqueta del pedido se liberará solo cuando esté **instalado y pagado por completo**; automatizar esa liberación depende del registro posterior de instalación y pagos.
 
 ### Seis HU altas para preparar ahora
 
 #### HU-01 — Registrar ventanas medidas en un pedido
 
 - **Área:** Pedidos y medidas · **Épica:** E1 · **Prioridad:** Alta · **Esfuerzo inicial:** **5**. Alcance acotado a guardar y consultar medidas sin datos del cliente ni generación de códigos; revisar al preparar la implementación.
-- **Historia:** **Como** empleado que mide, **necesito** registrar y volver a consultar el ancho y alto del hueco de una o más ventanas California dentro de un pedido, **para** conservar las medidas de cada trabajo.
+- **Historia:** **Como** empleado que mide, **necesito** registrar y volver a consultar el ancho y alto indicados para fabricar una o más ventanas California dentro de un pedido, **para** conservar las medidas de cada trabajo.
 - **Criterios de aceptación:**
-  1. Desde un formulario sencillo se puede crear un pedido con una o más ventanas California, cada una con ancho y alto del hueco en pulgadas. La entrada admite entero solo o una suma de fracciones como `26 1/2` y `24 1/4 1/16`.
+  1. Desde un formulario sencillo se puede crear un pedido con una o más ventanas California, cada una con el ancho y alto de fabricación indicados por el vidriero en pulgadas. La entrada admite entero solo o una suma de fracciones como `26 1/2` y `24 1/4 1/16`.
   2. Durante la captura se pueden añadir filas de ventana y descartar una fila **antes de guardar**. Una fila adicional completamente vacía no se guarda; una fila parcialmente llena se señala para que el empleado la complete o descarte. Se requiere al menos una ventana con ambas medidas.
   3. Tras guardar, se pueden listar los pedidos y abrir uno para consultar sus ventanas y medidas. Una medida ingresada como `24 1/4 1/16` puede mostrarse como su fracción simplificada equivalente `24 5/16`; no es necesario conservar la escritura original. Las ventanas se distinguen dentro del pedido y conservan su identidad.
 - **Subtareas técnicas propuestas, aún sin crear en el tablero:** cada paso debe producir un resultado comprobable, no una capa aislada.
@@ -63,7 +63,7 @@ El empleado captura ancho y alto del hueco en pulgadas. Se calculan cortes para 
 - **Subtareas técnicas propuestas:**
   1. **Mostrar el plan de aluminio de una ventana guardada:** desde un pedido, calcular y mostrar cada tipo de perfil, longitud legible y cantidad requerida conforme a `Medidas.md`, distinguiendo guía de riel.
   2. **Mostrar el plan de vidrio de esa ventana:** completar la misma consulta con ancho × alto y cantidad de dos vidrios iguales; comprobar el resultado integral con los tres ejemplos de `Medidas.md`.
-- **Por refinar al trabajarla:** confirmar si existe una holgura previa entre la medida del hueco y la medida de la ventana fabricada; sin esa regla no debe suponerse un descuento adicional. Las marcas de cortes realizados son HU-03 y HU-04. Guardar por separado cada corte calculado no es un requisito de esta HU mientras pueda volver a obtenerse el mismo plan desde las medidas registradas.
+- **Límites confirmados:** las dimensiones registradas ya incorporan el criterio del vidriero al medir el hueco; AVAO no aplica una holgura previa. Cuando HU-06 permita corregir una medida antes de registrar cortes, se mostrará únicamente el plan recalculado con la medida nueva; HU-02 no necesita implementar esa edición. Las marcas de cortes realizados son HU-03 y HU-04; las correcciones después de cortar y sus piezas corresponden a HU-07. Guardar por separado cada corte calculado no es un requisito de esta HU mientras pueda volver a obtenerse el mismo plan desde las medidas registradas.
 
 #### HU-03 — Registrar cortes de aluminio
 
@@ -104,7 +104,7 @@ El empleado captura ancho y alto del hueco en pulgadas. Se calculan cortes para 
 | HU-08 | Cortes y taller · E2 | Media | Pendiente | **Como** trabajador del taller, **necesito** señalar que todas las ventanas del pedido están ensambladas, **para** distinguir un pedido listo para coordinar instalación de una sola ventana terminada. Al refinarla, comprobar si basta derivar este dato del estado de cada ventana en HU-05, sin crear un segundo estado manual divergente. |
 | HU-09 | Cortes y taller · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos del taller y sus pendientes de corte y ensamble, **para** retomar el trabajo que corresponde. La forma de la pantalla sigue abierta. |
 | HU-10 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** cambiar entre pedidos pendientes sin perder su avance, **para** continuar con otro cuando falta material para el actual. Un cliente puede tener varios pedidos y cada pedido varias ventanas. |
-| HU-23 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos en orden de llegada a AVAO, **para** reconocer cuál se registró primero y abrir el que convenga atender. La llegada ocurre al guardar el pedido. La lista muestra una posición calculada y `Pedido A`, `Pedido B`, etc.; abrir B antes que A no cambia el orden. La posición no es el ID interno ni la etiqueta reutilizable. Por ahora se muestran los pedidos guardados: retirar de la cola a uno instalado **y** pagado depende de HU-16 y HU-17; entonces se recalculan las posiciones restantes. Prioridad Media propuesta, revisable por el usuario. |
+| HU-23 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos en orden de llegada a AVAO, **para** reconocer cuál se registró primero y abrir el que convenga atender. La llegada ocurre al guardar el pedido. La lista muestra una posición calculada y `Pedido A`, `Pedido B`, etc.; abrir B antes que A no cambia el orden. La posición no es el ID interno ni la etiqueta reutilizable. Por ahora se muestran los pedidos guardados: retirar de la cola a uno instalado **y** pagado depende de HU-16 y HU-17; entonces se recalculan las posiciones restantes. **Prioridad Media confirmada; se trabaja después de HU-02.** |
 
 ## Siguiente etapa: precio sencillo, instalación y liquidación
 
