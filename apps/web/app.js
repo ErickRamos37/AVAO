@@ -88,14 +88,29 @@ async function openOrder(id) {
         const notice = document.createElement('p');
         notice.textContent = 'Plan de aluminio no disponible para este pedido anterior.';
         content.append(notice);
+      } else if (window.plan_aluminio.length !== 10) {
+        const notice = document.createElement('p');
+        notice.textContent = 'El plan de aluminio está incompleto.';
+        content.append(notice);
       } else {
         const heading = document.createElement('h3');
         heading.textContent = 'Plan de aluminio';
         content.append(heading);
         const plan = document.createElement('ul');
-        for (const cut of window.plan_aluminio) {
+        const [j, m, vf, alet, hf, hc, guia, riel, screenAncho, screenAlto] = window.plan_aluminio;
+        const lines = [
+          `J. Jamba: ${j.longitud}″ × ${j.cantidad}`,
+          `M. Mulio: ${m.longitud}″ × ${m.cantidad}`,
+          `VF. Vertical fijo: ${vf.longitud}″ × ${vf.cantidad}`,
+          `Alet. Aleta: ${alet.longitud}″ × ${alet.cantidad}`,
+          `HF. Horizontal fijo: ${hf.longitud}″ × ${hf.cantidad}`,
+          `HC. Horizontal corredizo: ${hc.longitud}″ × ${hc.cantidad}`,
+          `GYR. Guía: ${guia.longitud}″ × ${guia.cantidad}; Riel: ${riel.longitud}″ × ${riel.cantidad}`,
+          `Esc. Screen: ${screenAncho.longitud}″ ancho × ${screenAlto.longitud}″ alto; ${screenAncho.cantidad} de ancho y ${screenAlto.cantidad} de alto`,
+        ];
+        for (const text of lines) {
           const line = document.createElement('li');
-          line.textContent = `${cut.perfil}: ${cut.longitud}″ × ${cut.cantidad}`;
+          line.textContent = text;
           plan.append(line);
         }
         content.append(plan);
