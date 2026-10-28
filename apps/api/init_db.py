@@ -20,6 +20,16 @@ if __name__ == "__main__":
                 connection.execute("ALTER TABLE pedidos ADD COLUMN etiqueta TEXT")
                 connection.commit()
         if connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'ventanas'"
+        ).fetchone():
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(ventanas)")}
+            if "ensamblada" not in columns:
+                connection.execute(
+                    "ALTER TABLE ventanas ADD COLUMN ensamblada INTEGER NOT NULL DEFAULT 0 "
+                    "CHECK (ensamblada IN (0, 1))"
+                )
+                connection.commit()
+        if connection.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'plan_aluminio'"
         ).fetchone():
             columns = {row[1] for row in connection.execute("PRAGMA table_info(plan_aluminio)")}

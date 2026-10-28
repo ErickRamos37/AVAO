@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS ventanas (
     numero_en_pedido INTEGER NOT NULL CHECK (numero_en_pedido > 0),
     ancho_16 INTEGER NOT NULL CHECK (ancho_16 > 0),
     alto_16 INTEGER NOT NULL CHECK (alto_16 > 0),
+    ensamblada INTEGER NOT NULL DEFAULT 0 CHECK (ensamblada IN (0, 1)),
     CONSTRAINT ventanas_numero_por_pedido UNIQUE (pedido_id, numero_en_pedido)
 );
 

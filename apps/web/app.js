@@ -39,7 +39,7 @@ function showError(text) {
   message.hidden = false;
 }
 
-function aluminumCutRow(window, cut, progress, label) {
+function aluminumCutRow(window, cut, progress, label, onProgressChange) {
   const row = document.createElement('div');
   row.className = 'cut-row';
   const status = document.createElement('div');
@@ -56,7 +56,7 @@ function aluminumCutRow(window, cut, progress, label) {
   function refresh() {
     status.textContent = `${label}: ${cut.longitud}″ · requerido ${cut.cantidad}, cortado ${progress.cortadas}, pendiente ${progress.pendientes}`;
     mark.disabled = progress.cortadas >= cut.cantidad;
-    undo.disabled = progress.cortadas <= 0;
+    undo.disabled = progress.cortadas <= 0 || window.ensamblada;
   }
 
   async function change(action) {
@@ -75,6 +75,7 @@ function aluminumCutRow(window, cut, progress, label) {
       const updated = await response.json();
       progress.cortadas = updated.cortadas;
       progress.pendientes = updated.pendientes;
+      onProgressChange();
     } catch (error) {
       showError(error.message);
     } finally {
@@ -90,7 +91,7 @@ function aluminumCutRow(window, cut, progress, label) {
   return row;
 }
 
-function glassCutRow(window) {
+function glassCutRow(window, onProgressChange) {
   const row = document.createElement('div');
   row.className = 'cut-row';
   const status = document.createElement('div');
@@ -109,7 +110,7 @@ function glassCutRow(window) {
   function refresh() {
     status.textContent = `Vidrio: ${plan.ancho}″ × ${plan.alto}″ · cortados: ${progress.cortadas} de ${plan.cantidad} · pendientes: ${progress.pendientes}`;
     mark.disabled = progress.cortadas >= plan.cantidad;
-    undo.disabled = progress.cortadas <= 0;
+    undo.disabled = progress.cortadas <= 0 || window.ensamblada;
   }
 
   async function change(action) {
@@ -128,6 +129,7 @@ function glassCutRow(window) {
       const updated = await response.json();
       progress.cortadas = updated.cortadas;
       progress.pendientes = updated.pendientes;
+      onProgressChange();
     } catch (error) {
       showError(error.message);
     } finally {
@@ -141,6 +143,61 @@ function glassCutRow(window) {
   actions.append(mark, undo);
   row.append(status, actions);
   return row;
+}
+
+function assemblyRow(window, orderId) {
+  const row = document.createElement('div');
+  row.className = 'cut-row';
+  const status = document.createElement('p');
+  const note = document.createElement('p');
+  note.textContent = 'Se habilita al registrar todos los cortes. Al confirmar, verificas físicamente screen, accesorios y extras aplicables.';
+  const actions = document.createElement('div');
+  actions.className = 'cut-actions';
+  const mark = document.createElement('button');
+  const undo = document.createElement('button');
+  mark.type = undo.type = 'button';
+  mark.textContent = 'Confirmar ensamble';
+  undo.textContent = 'Deshacer ensamble';
+  mark.setAttribute('aria-label', `Confirmar ensamble de ${window.codigo}`);
+  undo.setAttribute('aria-label', `Deshacer ensamble de ${window.codigo}`);
+
+  function refresh() {
+    const complete = window.plan_aluminio.length === 10
+      && window.avance_aluminio.length === 10
+      && window.avance_aluminio.every((cut) => cut.pendientes === 0)
+      && window.plan_vidrio && window.avance_vidrio
+      && window.avance_vidrio.pendientes === 0;
+    status.textContent = `Ensamble de ${window.codigo ?? window.numero}: ${window.ensamblada ? 'ensamblada' : 'pendiente'}`;
+    mark.disabled = window.ensamblada || !complete;
+    undo.disabled = !window.ensamblada;
+  }
+
+  async function change(action) {
+    message.hidden = true;
+    mark.disabled = undo.disabled = true;
+    try {
+      const response = await fetch(`/api/ventanas/${window.id}/ensamble/marcas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: action }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar el ensamble.');
+      }
+      await openOrder(orderId);
+    } catch (error) {
+      showError(error.message);
+      refresh();
+    }
+  }
+
+  mark.addEventListener('click', () => change('marcar'));
+  undo.addEventListener('click', () => change('deshacer'));
+  refresh();
+  actions.append(mark, undo);
+  row.append(status, note, actions);
+  return {row, refresh};
 }
 
 async function loadOrders() {
@@ -188,6 +245,8 @@ async function openOrder(id) {
       const item = document.createElement('p');
       item.textContent = `Ventana ${window.codigo ?? window.numero}: ${window.ancho} × ${window.alto}`;
       content.append(item);
+      const assembly = assemblyRow(window, order.id);
+      content.append(assembly.row);
       if (!window.plan_aluminio.length) {
         const notice = document.createElement('p');
         notice.textContent = 'Plan de aluminio no disponible para este pedido anterior.';
@@ -210,13 +269,13 @@ async function openOrder(id) {
         ];
         for (const [index, label] of labels.entries()) {
           const line = document.createElement('li');
-          line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], label));
+          line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], label, assembly.refresh));
           plan.append(line);
         }
         content.append(plan);
       }
       if (window.plan_vidrio && window.avance_vidrio) {
-        content.append(glassCutRow(window));
+        content.append(glassCutRow(window, assembly.refresh));
       } else {
         const notice = document.createElement('p');
         notice.textContent = 'Plan de vidrio no disponible para este pedido anterior.';
