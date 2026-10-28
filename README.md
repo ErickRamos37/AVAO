@@ -36,6 +36,8 @@ Desde el plan de aluminio de una ventana se puede marcar un corte físico o desh
 
 Cada ventana también muestra las medidas y el avance de sus dos vidrios iguales. Se puede marcar cada corte físico y deshacer una marca accidental; el conteo queda guardado por ventana.
 
+El pedido muestra el estado de ensamble de cada ventana. Solo se puede confirmar tras registrar todos sus cortes de aluminio y vidrio; el ensamblador verifica físicamente screen, accesorios y extras aplicables. Puede deshacer una marca de ensamble accidental. Mientras una ventana figure ensamblada, primero hay que deshacer esa marca para poder deshacer un corte. Este estado no declara listo, instalado ni pagado el pedido.
+
 Si ya tienes una base SQLite de la entrega anterior, ejecuta de nuevo `python -m apps.api.init_db` antes de iniciar la aplicación. Conserva los pedidos existentes sin etiqueta y los muestra como «sin etiqueta»; solo los pedidos creados después reciben códigos. No borra ni reinicia los datos de prueba.
 
 ## Documentación

@@ -39,6 +39,10 @@ class GlassMark(BaseModel):
     accion: Literal["marcar", "deshacer"]
 
 
+class AssemblyMark(BaseModel):
+    accion: Literal["marcar", "deshacer"]
+
+
 def database_path() -> Path:
     return Path(os.environ.get("AVAO_DB_PATH", ROOT / "data" / "avao.sqlite3"))
 
@@ -140,7 +144,7 @@ def get_order(order_id: int):
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
         label = order[1]
         windows = connection.execute(
-            "SELECT id, numero_en_pedido, ancho_16, alto_16 "
+            "SELECT id, numero_en_pedido, ancho_16, alto_16, ensamblada "
             "FROM ventanas WHERE pedido_id = ? ORDER BY numero_en_pedido",
             (order_id,),
         ).fetchall()
@@ -189,12 +193,13 @@ def get_order(order_id: int):
                 "codigo": f"{label}{number}" if label is not None else None,
                 "ancho": format_measure(width),
                 "alto": format_measure(height),
+                "ensamblada": bool(assembled),
                 "plan_aluminio": plans[window_id],
                 "avance_aluminio": progress[window_id],
                 "plan_vidrio": glass_plans.get(window_id),
                 "avance_vidrio": glass_progress.get(window_id),
             }
-            for window_id, number, width, height in windows
+            for window_id, number, width, height, assembled in windows
         ],
     }
 
@@ -212,6 +217,10 @@ def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
             ).fetchone()
             if row is None:
                 raise HTTPException(status_code=404, detail="Corte de aluminio no encontrado.")
+            if difference < 0 and connection.execute(
+                "SELECT ensamblada FROM ventanas WHERE id = ?", (window_id,)
+            ).fetchone()[0]:
+                raise HTTPException(status_code=409, detail="Deshaz primero la marca de ensamble de esta ventana.")
             required, cut = row
             updated = cut + difference
             if not 0 <= updated <= required:
@@ -235,6 +244,10 @@ def mark_glass(window_id: int, mark: GlassMark):
             ).fetchone()
             if row is None:
                 raise HTTPException(status_code=404, detail="Plan de vidrio no encontrado.")
+            if difference < 0 and connection.execute(
+                "SELECT ensamblada FROM ventanas WHERE id = ?", (window_id,)
+            ).fetchone()[0]:
+                raise HTTPException(status_code=409, detail="Deshaz primero la marca de ensamble de esta ventana.")
             required, cut = row
             updated = cut + difference
             if not 0 <= updated <= required:
@@ -244,6 +257,42 @@ def mark_glass(window_id: int, mark: GlassMark):
                 (updated, window_id),
             )
     return {"requeridas": required, "cortadas": updated, "pendientes": required - updated}
+
+
+@app.post("/api/ventanas/{window_id}/ensamble/marcas")
+def mark_assembly(window_id: int, mark: AssemblyMark):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            row = connection.execute(
+                "SELECT ensamblada FROM ventanas WHERE id = ?", (window_id,)
+            ).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Ventana no encontrada.")
+            assembled = bool(row[0])
+            if (mark.accion == "marcar") == assembled:
+                raise HTTPException(status_code=409, detail="La ventana ya tiene ese estado de ensamble.")
+            if mark.accion == "marcar":
+                aluminum = connection.execute(
+                    "SELECT orden, cantidad, cortadas FROM plan_aluminio WHERE ventana_id = ?",
+                    (window_id,),
+                ).fetchall()
+                glass = connection.execute(
+                    "SELECT cantidad, cortadas FROM plan_vidrio WHERE ventana_id = ?",
+                    (window_id,),
+                ).fetchone()
+                if (len(aluminum) != 10 or {item[0] for item in aluminum} != set(range(1, 11))
+                        or glass is None or any(cut != required for _, required, cut in aluminum)
+                        or glass[1] != glass[0]):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Completa primero todos los cortes de aluminio y vidrio de esta ventana.",
+                    )
+            connection.execute(
+                "UPDATE ventanas SET ensamblada = ? WHERE id = ?",
+                (int(mark.accion == "marcar"), window_id),
+            )
+    return {"ensamblada": mark.accion == "marcar"}
 
 
 @app.get("/pedidos/{order_id}", include_in_schema=False)
