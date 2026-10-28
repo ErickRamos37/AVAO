@@ -43,3 +43,8 @@ def format_measure(units: int) -> str:
     divisor = gcd(remainder, 16)
     fraction = f"{remainder // divisor}/{16 // divisor}"
     return f"{whole} {fraction}" if whole else fraction
+
+
+def centro_16(ancho_16: int) -> int:
+    """Mitad del ancho, subiendo un posible 1/32 al siguiente 1/16."""
+    return (ancho_16 + 1) // 2

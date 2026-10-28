@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StrictStr
 
 from apps.api.medidas import format_measure, parse_measure
+from apps.api.plan_aluminio import calcular_plan_aluminio
+from apps.api.plan_vidrio import calcular_plan_vidrio
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,7 +62,10 @@ def create_order(order: NewOrder):
         if not width_text or not height_text:
             raise HTTPException(status_code=422, detail=f"Ventana {row_number}: completa ancho y alto o descarta la fila.")
         try:
-            measurements.append((parse_measure(width_text), parse_measure(height_text)))
+            width, height = parse_measure(width_text), parse_measure(height_text)
+            aluminum = calcular_plan_aluminio(width, height)
+            glass = calcular_plan_vidrio(width, height)
+            measurements.append((width, height, aluminum, glass))
         except ValueError as error:
             raise HTTPException(status_code=422, detail=f"Ventana {row_number}: {error}") from error
 
@@ -78,11 +83,22 @@ def create_order(order: NewOrder):
             label = following_label(latest[0] if latest else None)
             cursor = connection.execute("INSERT INTO pedidos (etiqueta) VALUES (?)", (label,))
             order_id = cursor.lastrowid
-            for number, (width, height) in enumerate(measurements, start=1):
-                connection.execute(
+            for number, (width, height, aluminum, glass) in enumerate(measurements, start=1):
+                window_cursor = connection.execute(
                     "INSERT INTO ventanas (pedido_id, numero_en_pedido, ancho_16, alto_16) "
                     "VALUES (?, ?, ?, ?)",
                     (order_id, number, width, height),
+                )
+                connection.executemany(
+                    "INSERT INTO plan_aluminio (ventana_id, orden, perfil, longitud_16, cantidad) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    [(window_cursor.lastrowid, index, perfil, length, quantity)
+                     for index, (perfil, length, quantity) in enumerate(aluminum, start=1)],
+                )
+                connection.execute(
+                    "INSERT INTO plan_vidrio (ventana_id, ancho_16, alto_16, cantidad) "
+                    "VALUES (?, ?, ?, ?)",
+                    (window_cursor.lastrowid, *glass),
                 )
 
     return {"id": order_id}
@@ -119,6 +135,30 @@ def get_order(order_id: int):
             "FROM ventanas WHERE pedido_id = ? ORDER BY numero_en_pedido",
             (order_id,),
         ).fetchall()
+        plan_rows = connection.execute(
+            "SELECT a.ventana_id, a.perfil, a.longitud_16, a.cantidad "
+            "FROM plan_aluminio AS a JOIN ventanas AS v ON v.id = a.ventana_id "
+            "WHERE v.pedido_id = ? ORDER BY v.numero_en_pedido, a.orden",
+            (order_id,),
+        ).fetchall()
+        glass_rows = connection.execute(
+            "SELECT g.ventana_id, g.ancho_16, g.alto_16, g.cantidad "
+            "FROM plan_vidrio AS g JOIN ventanas AS v ON v.id = g.ventana_id "
+            "WHERE v.pedido_id = ?",
+            (order_id,),
+        ).fetchall()
+
+    plans = {window_id: [] for window_id, *_ in windows}
+    for window_id, profile, length, quantity in plan_rows:
+        plans[window_id].append({
+            "perfil": profile,
+            "longitud": format_measure(length),
+            "cantidad": quantity,
+        })
+    glass_plans = {
+        window_id: {"ancho": format_measure(width), "alto": format_measure(height), "cantidad": quantity}
+        for window_id, width, height, quantity in glass_rows
+    }
 
     return {
         "id": order_id,
@@ -130,6 +170,8 @@ def get_order(order_id: int):
                 "codigo": f"{label}{number}" if label is not None else None,
                 "ancho": format_measure(width),
                 "alto": format_measure(height),
+                "plan_aluminio": plans[window_id],
+                "plan_vidrio": glass_plans.get(window_id),
             }
             for window_id, number, width, height in windows
         ],

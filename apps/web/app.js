@@ -84,6 +84,43 @@ async function openOrder(id) {
       const item = document.createElement('p');
       item.textContent = `Ventana ${window.codigo ?? window.numero}: ${window.ancho} × ${window.alto}`;
       content.append(item);
+      if (!window.plan_aluminio.length) {
+        const notice = document.createElement('p');
+        notice.textContent = 'Plan de aluminio no disponible para este pedido anterior.';
+        content.append(notice);
+      } else if (window.plan_aluminio.length !== 10) {
+        const notice = document.createElement('p');
+        notice.textContent = 'El plan de aluminio está incompleto.';
+        content.append(notice);
+      } else {
+        const heading = document.createElement('h3');
+        heading.textContent = 'Plan de aluminio';
+        content.append(heading);
+        const plan = document.createElement('ul');
+        const [j, m, vf, alet, hf, hc, guia, riel, screenAncho, screenAlto] = window.plan_aluminio;
+        const lines = [
+          `Jamba: ${j.longitud}″ × ${j.cantidad}`,
+          `Mulio: ${m.longitud}″ × ${m.cantidad}`,
+          `Vertical fijo: ${vf.longitud}″ × ${vf.cantidad}`,
+          `Aleta: ${alet.longitud}″ × ${alet.cantidad}`,
+          `Horizontal fijo: ${hf.longitud}″ × ${hf.cantidad}`,
+          `Horizontal corredizo: ${hc.longitud}″ × ${hc.cantidad}`,
+          `Guía y riel: guía ${guia.longitud}″ × ${guia.cantidad}; riel ${riel.longitud}″ × ${riel.cantidad}`,
+          `Screen horizontal: ${screenAncho.longitud}″ × ${screenAncho.cantidad}`,
+          `Screen vertical: ${screenAlto.longitud}″ × ${screenAlto.cantidad}`,
+        ];
+        for (const text of lines) {
+          const line = document.createElement('li');
+          line.textContent = text;
+          plan.append(line);
+        }
+        content.append(plan);
+      }
+      const glass = document.createElement('p');
+      glass.textContent = window.plan_vidrio
+        ? `Vidrio: ${window.plan_vidrio.ancho}″ × ${window.plan_vidrio.alto}″ · ${window.plan_vidrio.cantidad} piezas iguales`
+        : 'Plan de vidrio no disponible para este pedido anterior.';
+      content.append(glass);
     }
     detail.hidden = false;
   } catch (error) {
