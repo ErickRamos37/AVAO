@@ -151,21 +151,13 @@ async function openOrder(id) {
         note.textContent = 'Cortado indica que el corte físico se realizó.';
         content.append(note);
         const plan = document.createElement('ul');
-        const groups = [
-          ['Jamba', [0]], ['Mulio', [1]], ['Vertical fijo', [2]], ['Aleta', [3]],
-          ['Horizontal fijo', [4]], ['Horizontal corredizo', [5]],
-          ['Guía y riel', [6, 7]], ['', [8, 9]],
-        ];
         const labels = [
           'Jamba', 'Mulio', 'Vertical fijo', 'Aleta', 'Horizontal fijo',
           'Horizontal corredizo', 'Guía', 'Riel', 'Screen horizontal', 'Screen vertical',
         ];
-        for (const [name, indices] of groups) {
+        for (const [index, label] of labels.entries()) {
           const line = document.createElement('li');
-          if (name && indices.length > 1) line.append(document.createTextNode(`${name}:`));
-          for (const index of indices) {
-            line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], labels[index]));
-          }
+          line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], label));
           plan.append(line);
         }
         content.append(plan);
