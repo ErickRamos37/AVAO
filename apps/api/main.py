@@ -35,6 +35,10 @@ class AluminumMark(BaseModel):
     accion: Literal["marcar", "deshacer"]
 
 
+class GlassMark(BaseModel):
+    accion: Literal["marcar", "deshacer"]
+
+
 def database_path() -> Path:
     return Path(os.environ.get("AVAO_DB_PATH", ROOT / "data" / "avao.sqlite3"))
 
@@ -147,7 +151,7 @@ def get_order(order_id: int):
             (order_id,),
         ).fetchall()
         glass_rows = connection.execute(
-            "SELECT g.ventana_id, g.ancho_16, g.alto_16, g.cantidad "
+            "SELECT g.ventana_id, g.ancho_16, g.alto_16, g.cantidad, g.cortadas "
             "FROM plan_vidrio AS g JOIN ventanas AS v ON v.id = g.ventana_id "
             "WHERE v.pedido_id = ?",
             (order_id,),
@@ -168,7 +172,11 @@ def get_order(order_id: int):
         })
     glass_plans = {
         window_id: {"ancho": format_measure(width), "alto": format_measure(height), "cantidad": quantity}
-        for window_id, width, height, quantity in glass_rows
+        for window_id, width, height, quantity, _ in glass_rows
+    }
+    glass_progress = {
+        window_id: {"cortadas": cut, "pendientes": quantity - cut}
+        for window_id, _, _, quantity, cut in glass_rows
     }
 
     return {
@@ -184,6 +192,7 @@ def get_order(order_id: int):
                 "plan_aluminio": plans[window_id],
                 "avance_aluminio": progress[window_id],
                 "plan_vidrio": glass_plans.get(window_id),
+                "avance_vidrio": glass_progress.get(window_id),
             }
             for window_id, number, width, height in windows
         ],
@@ -212,6 +221,29 @@ def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
                 (updated, window_id, order),
             )
     return {"orden": order, "requeridas": required, "cortadas": updated, "pendientes": required - updated}
+
+
+@app.post("/api/ventanas/{window_id}/vidrio/marcas")
+def mark_glass(window_id: int, mark: GlassMark):
+    difference = 1 if mark.accion == "marcar" else -1
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            row = connection.execute(
+                "SELECT cantidad, cortadas FROM plan_vidrio WHERE ventana_id = ?",
+                (window_id,),
+            ).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Plan de vidrio no encontrado.")
+            required, cut = row
+            updated = cut + difference
+            if not 0 <= updated <= required:
+                raise HTTPException(status_code=409, detail="No se puede registrar esa marca de corte.")
+            connection.execute(
+                "UPDATE plan_vidrio SET cortadas = ? WHERE ventana_id = ?",
+                (updated, window_id),
+            )
+    return {"requeridas": required, "cortadas": updated, "pendientes": required - updated}
 
 
 @app.get("/pedidos/{order_id}", include_in_schema=False)

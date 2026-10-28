@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS plan_vidrio (
     ventana_id INTEGER PRIMARY KEY REFERENCES ventanas (id),
     ancho_16 INTEGER NOT NULL CHECK (ancho_16 > 0),
     alto_16 INTEGER NOT NULL CHECK (alto_16 > 0),
-    cantidad INTEGER NOT NULL CHECK (cantidad = 2)
+    cantidad INTEGER NOT NULL CHECK (cantidad = 2),
+    cortadas INTEGER NOT NULL DEFAULT 0 CHECK (cortadas >= 0 AND cortadas <= cantidad)
 );
 
 -- Guardar pedido y ventanas juntos en una transacción de la aplicación.

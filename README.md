@@ -34,6 +34,8 @@ Al guardar un pedido nuevo se calcula y guarda el plan de aluminio y de dos vidr
 
 Desde el plan de aluminio de una ventana se puede marcar un corte físico o deshacer una marca accidental. La pantalla muestra cantidad requerida, cortada y pendiente por perfil; el avance queda guardado al reabrir el pedido. Guía y riel se marcan por separado.
 
+Cada ventana también muestra las medidas y el avance de sus dos vidrios iguales. Se puede marcar cada corte físico y deshacer una marca accidental; el conteo queda guardado por ventana.
+
 Si ya tienes una base SQLite de la entrega anterior, ejecuta de nuevo `python -m apps.api.init_db` antes de iniciar la aplicación. Conserva los pedidos existentes sin etiqueta y los muestra como «sin etiqueta»; solo los pedidos creados después reciben códigos. No borra ni reinicia los datos de prueba.
 
 ## Documentación
