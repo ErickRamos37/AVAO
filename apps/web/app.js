@@ -39,6 +39,57 @@ function showError(text) {
   message.hidden = false;
 }
 
+function aluminumCutRow(window, cut, progress, label) {
+  const row = document.createElement('div');
+  row.className = 'cut-row';
+  const status = document.createElement('div');
+  const actions = document.createElement('div');
+  actions.className = 'cut-actions';
+  const mark = document.createElement('button');
+  const undo = document.createElement('button');
+  mark.type = undo.type = 'button';
+  mark.textContent = 'Marcar corte';
+  undo.textContent = 'Deshacer marca';
+  mark.setAttribute('aria-label', `Marcar corte de ${label} para ${window.codigo}`);
+  undo.setAttribute('aria-label', `Deshacer marca de ${label} para ${window.codigo}`);
+
+  function refresh() {
+    status.textContent = `${label}: ${cut.longitud}″ · requerido ${cut.cantidad}, cortado ${progress.cortadas}, pendiente ${progress.pendientes}`;
+    mark.disabled = progress.cortadas >= cut.cantidad;
+    undo.disabled = progress.cortadas <= 0;
+  }
+
+  async function change(action) {
+    message.hidden = true;
+    mark.disabled = undo.disabled = true;
+    try {
+      const response = await fetch(`/api/ventanas/${window.id}/aluminio/${progress.orden}/marcas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: action }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar la marca de corte.');
+      }
+      const updated = await response.json();
+      progress.cortadas = updated.cortadas;
+      progress.pendientes = updated.pendientes;
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      refresh();
+    }
+  }
+
+  mark.addEventListener('click', () => change('marcar'));
+  undo.addEventListener('click', () => change('deshacer'));
+  refresh();
+  actions.append(mark, undo);
+  row.append(status, actions);
+  return row;
+}
+
 async function loadOrders() {
   const list = document.querySelector('#order-list');
   try {
@@ -88,7 +139,7 @@ async function openOrder(id) {
         const notice = document.createElement('p');
         notice.textContent = 'Plan de aluminio no disponible para este pedido anterior.';
         content.append(notice);
-      } else if (window.plan_aluminio.length !== 10) {
+      } else if (window.plan_aluminio.length !== 10 || window.avance_aluminio.length !== 10) {
         const notice = document.createElement('p');
         notice.textContent = 'El plan de aluminio está incompleto.';
         content.append(notice);
@@ -96,22 +147,25 @@ async function openOrder(id) {
         const heading = document.createElement('h3');
         heading.textContent = 'Plan de aluminio';
         content.append(heading);
+        const note = document.createElement('p');
+        note.textContent = 'Cortado indica que el corte físico se realizó.';
+        content.append(note);
         const plan = document.createElement('ul');
-        const [j, m, vf, alet, hf, hc, guia, riel, screenAncho, screenAlto] = window.plan_aluminio;
-        const lines = [
-          `Jamba: ${j.longitud}″ × ${j.cantidad}`,
-          `Mulio: ${m.longitud}″ × ${m.cantidad}`,
-          `Vertical fijo: ${vf.longitud}″ × ${vf.cantidad}`,
-          `Aleta: ${alet.longitud}″ × ${alet.cantidad}`,
-          `Horizontal fijo: ${hf.longitud}″ × ${hf.cantidad}`,
-          `Horizontal corredizo: ${hc.longitud}″ × ${hc.cantidad}`,
-          `Guía y riel: guía ${guia.longitud}″ × ${guia.cantidad}; riel ${riel.longitud}″ × ${riel.cantidad}`,
-          `Screen horizontal: ${screenAncho.longitud}″ × ${screenAncho.cantidad}`,
-          `Screen vertical: ${screenAlto.longitud}″ × ${screenAlto.cantidad}`,
+        const groups = [
+          ['Jamba', [0]], ['Mulio', [1]], ['Vertical fijo', [2]], ['Aleta', [3]],
+          ['Horizontal fijo', [4]], ['Horizontal corredizo', [5]],
+          ['Guía y riel', [6, 7]], ['', [8, 9]],
         ];
-        for (const text of lines) {
+        const labels = [
+          'Jamba', 'Mulio', 'Vertical fijo', 'Aleta', 'Horizontal fijo',
+          'Horizontal corredizo', 'Guía', 'Riel', 'Screen horizontal', 'Screen vertical',
+        ];
+        for (const [name, indices] of groups) {
           const line = document.createElement('li');
-          line.textContent = text;
+          if (name && indices.length > 1) line.append(document.createTextNode(`${name}:`));
+          for (const index of indices) {
+            line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], labels[index]));
+          }
           plan.append(line);
         }
         content.append(plan);

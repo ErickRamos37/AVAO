@@ -32,6 +32,8 @@ Abre `http://127.0.0.1:8000`. Captura el ancho y alto a los que el vidriero deci
 
 Al guardar un pedido nuevo se calcula y guarda el plan de aluminio y de dos vidrios iguales de cada ventana. El detalle muestra los perfiles de aluminio con longitud y cantidad, y las medidas ancho × alto de los vidrios. Se consulta el plan guardado sin recalcularlo al abrir el pedido. Los pedidos guardados antes de este cambio conservan sus medidas, pero no tienen un plan generado.
 
+Desde el plan de aluminio de una ventana se puede marcar un corte físico o deshacer una marca accidental. La pantalla muestra cantidad requerida, cortada y pendiente por perfil; el avance queda guardado al reabrir el pedido. Guía y riel se marcan por separado.
+
 Si ya tienes una base SQLite de la entrega anterior, ejecuta de nuevo `python -m apps.api.init_db` antes de iniciar la aplicación. Conserva los pedidos existentes sin etiqueta y los muestra como «sin etiqueta»; solo los pedidos creados después reciben códigos. No borra ni reinicia los datos de prueba.
 
 ## Documentación
