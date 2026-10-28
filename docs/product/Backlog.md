@@ -19,7 +19,7 @@
 | E3. Completar un pedido desde presupuesto hasta liquidación | Comunicar total, registrar aceptación y pagos, instalar y cerrar. | HU-11 a HU-17 |
 | E4. Actualizar el cálculo comercial desde insumos | Cambiar precios individuales y aplicar ganancia definida. | HU-18, HU-19 |
 
-HU-20 y HU-21 quedan independientes hasta que su alcance justifique agruparlas. El progreso de una épica no reemplaza la aceptación de cada HU.
+HU-20, HU-21 y HU-24 quedan independientes hasta que su alcance justifique agruparlas. El progreso de una épica no reemplaza la aceptación de cada HU.
 
 ## Primer MVP: medidas y taller
 
@@ -113,6 +113,20 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 | HU-09 | Cortes y taller · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos del taller y sus pendientes de corte y ensamble, **para** retomar el trabajo que corresponde. La forma de la pantalla sigue abierta. |
 | HU-10 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** cambiar entre pedidos pendientes sin perder su avance, **para** continuar con otro cuando falta material para el actual. Un cliente puede tener varios pedidos y cada pedido varias ventanas. |
 | HU-23 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos en orden de llegada a AVAO, **para** reconocer cuál se registró primero y abrir el que convenga atender. La llegada ocurre al guardar el pedido. La lista muestra una posición calculada y `Pedido A`, `Pedido B`, etc.; abrir B antes que A no cambia el orden. La posición no es el ID interno ni la etiqueta reutilizable. Por ahora se muestran los pedidos guardados: retirar de la cola a uno instalado **y** pagado depende de HU-16 y HU-17; entonces se recalculan las posiciones restantes. **Prioridad Media confirmada; se trabaja después de HU-02.** |
+
+## HU candidata transversal, por priorizar
+
+### HU-24 — Consultar un pedido por área de trabajo
+
+- **Issue:** [AVAO #30](https://github.com/ErickRamos37/AVAO/issues/30).
+- **Área:** Visibilidad · **Épica:** sin asignar · **Prioridad y esfuerzo:** sin asignar.
+- **Historia:** **Como** empleado que trabaja en un pedido, **necesito** consultar por separado sus medidas, cortes de aluminio, cortes de vidrio y ensamble, **para** concentrarme en la información pertinente a la tarea que realizo.
+- **Criterios de aceptación propuestos:**
+  1. Dentro del pedido que el empleado abrió se puede pasar entre medidas, aluminio, vidrio y ensamble sin mostrar información de otros pedidos.
+  2. Cada área presenta solo los datos y acciones ya disponibles que le corresponden. Por ejemplo, vidrio muestra el código de ventana, `ancho × alto` y el avance de sus dos piezas, como `1 de 2`, en una lista o tabla sencilla; aluminio muestra sus perfiles, medidas y avance; ensamble muestra los códigos y estados de sus ventanas.
+  3. Al cambiar de área y volver, se consultan las mismas medidas y avances guardados, sin repetir capturas ni cálculos y sin modificar el estado del pedido por navegar.
+- **Límites:** no reúne pendientes de todos los pedidos (HU-09), no agrega cálculos, marcas o estados nuevos a HU-01, HU-03, HU-04 y HU-05, no introduce permisos por área ni fija un diseño visual detallado.
+- **Pregunta abierta:** decidir si «Medidas» será solo consulta de las ventanas ya guardadas o también contendrá la captura de un pedido nuevo. Esta HU no presupone cambiar el flujo de captura aceptado en HU-01.
 
 ## Siguiente etapa: precio sencillo, instalación y liquidación
 
