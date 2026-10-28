@@ -71,20 +71,24 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 - **Área:** Cortes y taller · **Épica:** E2 · **Prioridad:** Alta · **Esfuerzo inicial:** **5**.
 - **Historia:** **Como** quien corta aluminio, **necesito** marcar las piezas realizadas de cada perfil y medida, **para** ver cuántas faltan sin tachar una hoja.
 - **Criterios de aceptación:**
-  1. Cada corte muestra cantidad requerida, realizada y pendiente, asociado al pedido y al código corto de su ventana generado en HU-22.
+  1. Cada corte muestra cantidad requerida, cortada físicamente y pendiente de corte, asociado al pedido y al código corto de su ventana generado en HU-22, como `A1` o `A2`.
   2. Puede registrarse avance parcial para piezas repetidas; guía y riel se marcan por separado.
   3. El avance permanece al cambiar de ventana o reabrir el pedido y no se mezcla con otra ventana.
-- **Por decidir al implementarla:** reversión de marca errónea, descartes y retrabajo; HU-07 trata correcciones de medida.
+  4. Una marca hecha por error de registro puede deshacerse y restaura el conteo anterior sin afectar otra pieza o ventana.
+- **Subissue #22 — Registrar y deshacer marcas de corte de aluminio por ventana:** desde el plan guardado de HU-02, permitir marcar cada corte físico, ver cantidades requeridas, cortadas y pendientes, conservar el avance y corregir una marca accidental. Comprobar el avance parcial con una de dos piezas requeridas y su persistencia al reabrir.
+- **Límite confirmado:** «cortada» significa que se hizo el corte físico, aunque aún no se sepa si la pieza es utilizable. Deshacer solo corrige un registro accidental; daños, descartes y retrabajo quedan para otra historia. No incluye ensamble (HU-05). En el caso habitual de una sola persona se trabaja primero el aluminio; con varios trabajadores puede cortarse en paralelo con el vidrio.
 
 #### HU-04 — Registrar cortes de vidrio
 
 - **Área:** Cortes y taller · **Épica:** E2 · **Prioridad:** Alta · **Esfuerzo inicial:** **3**.
 - **Historia:** **Como** quien corta vidrio, **necesito** marcar los dos vidrios iguales de cada ventana conforme se cortan, **para** ver cuántos faltan sin contarlos en papel.
 - **Criterios de aceptación:**
-  1. Se muestran el pedido y el código corto de su ventana generado en HU-22, medidas `ancho × alto`, cantidad requerida `2` y realizada.
+  1. Se muestran el pedido y el código corto de su ventana generado en HU-22, como `A1` o `A2`, medidas `ancho × alto`, cantidad requerida `2`, cortada físicamente y pendiente de corte.
   2. Puede registrarse uno de los dos vidrios sin declarar completa la pareja.
   3. El avance permanece al cambiar de pedido o reabrirlo y no se confunde con otra ventana de igual medida.
-- **Por decidir al implementarla:** reversión de marca errónea o vidrio descartado.
+  4. Una marca hecha por error de registro puede deshacerse y restaura el conteo anterior sin afectar otra ventana.
+- **Subissue #23 — Registrar y deshacer marcas de corte de vidrio por ventana:** desde el plan guardado de HU-02, permitir marcar por separado los dos cortes físicos, ver cantidades requeridas, cortadas y pendientes, conservar el avance y corregir una marca accidental. Comprobar la secuencia `1 de 2` → `2 de 2` → `1 de 2` y que otra ventana de igual medida no cambia.
+- **Límite confirmado:** «cortada» acredita el corte físico, no que el vidrio sea utilizable. Deshacer solo corrige un registro accidental; daños, descartes y retrabajo quedan para otra historia. No incluye ensamble (HU-05). HU-04 puede trabajarse en paralelo con HU-03 y no depende técnicamente de ella.
 
 #### HU-05 — Marcar ventanas ensambladas
 
