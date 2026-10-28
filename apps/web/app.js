@@ -99,14 +99,15 @@ async function openOrder(id) {
         const plan = document.createElement('ul');
         const [j, m, vf, alet, hf, hc, guia, riel, screenAncho, screenAlto] = window.plan_aluminio;
         const lines = [
-          `J. Jamba: ${j.longitud}″ × ${j.cantidad}`,
-          `M. Mulio: ${m.longitud}″ × ${m.cantidad}`,
-          `VF. Vertical fijo: ${vf.longitud}″ × ${vf.cantidad}`,
-          `Alet. Aleta: ${alet.longitud}″ × ${alet.cantidad}`,
-          `HF. Horizontal fijo: ${hf.longitud}″ × ${hf.cantidad}`,
-          `HC. Horizontal corredizo: ${hc.longitud}″ × ${hc.cantidad}`,
-          `GYR. Guía: ${guia.longitud}″ × ${guia.cantidad}; Riel: ${riel.longitud}″ × ${riel.cantidad}`,
-          `Esc. Screen: ${screenAncho.longitud}″ ancho × ${screenAlto.longitud}″ alto; ${screenAncho.cantidad} de ancho y ${screenAlto.cantidad} de alto`,
+          `Jamba: ${j.longitud}″ × ${j.cantidad}`,
+          `Mulio: ${m.longitud}″ × ${m.cantidad}`,
+          `Vertical fijo: ${vf.longitud}″ × ${vf.cantidad}`,
+          `Aleta: ${alet.longitud}″ × ${alet.cantidad}`,
+          `Horizontal fijo: ${hf.longitud}″ × ${hf.cantidad}`,
+          `Horizontal corredizo: ${hc.longitud}″ × ${hc.cantidad}`,
+          `Guía y riel: guía ${guia.longitud}″ × ${guia.cantidad}; riel ${riel.longitud}″ × ${riel.cantidad}`,
+          `Screen horizontal: ${screenAncho.longitud}″ × ${screenAncho.cantidad}`,
+          `Screen vertical: ${screenAlto.longitud}″ × ${screenAlto.cantidad}`,
         ];
         for (const text of lines) {
           const line = document.createElement('li');
