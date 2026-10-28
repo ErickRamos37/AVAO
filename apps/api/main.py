@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import sqlite3
 from contextlib import closing
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -28,6 +29,10 @@ class NewWindow(BaseModel):
 
 class NewOrder(BaseModel):
     ventanas: list[NewWindow]
+
+
+class AluminumMark(BaseModel):
+    accion: Literal["marcar", "deshacer"]
 
 
 def database_path() -> Path:
@@ -136,7 +141,7 @@ def get_order(order_id: int):
             (order_id,),
         ).fetchall()
         plan_rows = connection.execute(
-            "SELECT a.ventana_id, a.perfil, a.longitud_16, a.cantidad "
+            "SELECT a.ventana_id, a.orden, a.perfil, a.longitud_16, a.cantidad, a.cortadas "
             "FROM plan_aluminio AS a JOIN ventanas AS v ON v.id = a.ventana_id "
             "WHERE v.pedido_id = ? ORDER BY v.numero_en_pedido, a.orden",
             (order_id,),
@@ -149,11 +154,17 @@ def get_order(order_id: int):
         ).fetchall()
 
     plans = {window_id: [] for window_id, *_ in windows}
-    for window_id, profile, length, quantity in plan_rows:
+    progress = {window_id: [] for window_id, *_ in windows}
+    for window_id, order, profile, length, quantity, cut in plan_rows:
         plans[window_id].append({
             "perfil": profile,
             "longitud": format_measure(length),
             "cantidad": quantity,
+        })
+        progress[window_id].append({
+            "orden": order,
+            "cortadas": cut,
+            "pendientes": quantity - cut,
         })
     glass_plans = {
         window_id: {"ancho": format_measure(width), "alto": format_measure(height), "cantidad": quantity}
@@ -171,11 +182,36 @@ def get_order(order_id: int):
                 "ancho": format_measure(width),
                 "alto": format_measure(height),
                 "plan_aluminio": plans[window_id],
+                "avance_aluminio": progress[window_id],
                 "plan_vidrio": glass_plans.get(window_id),
             }
             for window_id, number, width, height in windows
         ],
     }
+
+
+@app.post("/api/ventanas/{window_id}/aluminio/{order}/marcas")
+def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
+    difference = 1 if mark.accion == "marcar" else -1
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            row = connection.execute(
+                "SELECT cantidad, cortadas FROM plan_aluminio "
+                "WHERE ventana_id = ? AND orden = ?",
+                (window_id, order),
+            ).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Corte de aluminio no encontrado.")
+            required, cut = row
+            updated = cut + difference
+            if not 0 <= updated <= required:
+                raise HTTPException(status_code=409, detail="No se puede registrar esa marca de corte.")
+            connection.execute(
+                "UPDATE plan_aluminio SET cortadas = ? WHERE ventana_id = ? AND orden = ?",
+                (updated, window_id, order),
+            )
+    return {"orden": order, "requeridas": required, "cortadas": updated, "pendientes": required - updated}
 
 
 @app.get("/pedidos/{order_id}", include_in_schema=False)

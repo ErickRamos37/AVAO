@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS plan_aluminio (
     perfil TEXT NOT NULL,
     longitud_16 INTEGER NOT NULL CHECK (longitud_16 > 0),
     cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    cortadas INTEGER NOT NULL DEFAULT 0 CHECK (cortadas >= 0 AND cortadas <= cantidad),
     PRIMARY KEY (ventana_id, orden)
 );
 
