@@ -29,5 +29,15 @@ if __name__ == "__main__":
                     "CHECK (cortadas >= 0 AND cortadas <= cantidad)"
                 )
                 connection.commit()
+        if connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'plan_vidrio'"
+        ).fetchone():
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(plan_vidrio)")}
+            if "cortadas" not in columns:
+                connection.execute(
+                    "ALTER TABLE plan_vidrio ADD COLUMN cortadas INTEGER NOT NULL DEFAULT 0 "
+                    "CHECK (cortadas >= 0 AND cortadas <= cantidad)"
+                )
+                connection.commit()
         connection.executescript(SCHEMA.read_text(encoding="utf-8"))
     print("Esquema de pedidos preparado.")

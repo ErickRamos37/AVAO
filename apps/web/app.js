@@ -90,6 +90,59 @@ function aluminumCutRow(window, cut, progress, label) {
   return row;
 }
 
+function glassCutRow(window) {
+  const row = document.createElement('div');
+  row.className = 'cut-row';
+  const status = document.createElement('div');
+  const actions = document.createElement('div');
+  actions.className = 'cut-actions';
+  const mark = document.createElement('button');
+  const undo = document.createElement('button');
+  mark.type = undo.type = 'button';
+  mark.textContent = 'Marcar corte';
+  undo.textContent = 'Deshacer marca';
+  mark.setAttribute('aria-label', `Marcar corte de vidrio para ${window.codigo}`);
+  undo.setAttribute('aria-label', `Deshacer marca de vidrio para ${window.codigo}`);
+  const plan = window.plan_vidrio;
+  const progress = window.avance_vidrio;
+
+  function refresh() {
+    status.textContent = `Vidrio: ${plan.ancho}″ × ${plan.alto}″ · cortados: ${progress.cortadas} de ${plan.cantidad} · pendientes: ${progress.pendientes}`;
+    mark.disabled = progress.cortadas >= plan.cantidad;
+    undo.disabled = progress.cortadas <= 0;
+  }
+
+  async function change(action) {
+    message.hidden = true;
+    mark.disabled = undo.disabled = true;
+    try {
+      const response = await fetch(`/api/ventanas/${window.id}/vidrio/marcas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: action }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar la marca de corte de vidrio.');
+      }
+      const updated = await response.json();
+      progress.cortadas = updated.cortadas;
+      progress.pendientes = updated.pendientes;
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      refresh();
+    }
+  }
+
+  mark.addEventListener('click', () => change('marcar'));
+  undo.addEventListener('click', () => change('deshacer'));
+  refresh();
+  actions.append(mark, undo);
+  row.append(status, actions);
+  return row;
+}
+
 async function loadOrders() {
   const list = document.querySelector('#order-list');
   try {
@@ -162,11 +215,13 @@ async function openOrder(id) {
         }
         content.append(plan);
       }
-      const glass = document.createElement('p');
-      glass.textContent = window.plan_vidrio
-        ? `Vidrio: ${window.plan_vidrio.ancho}″ × ${window.plan_vidrio.alto}″ · ${window.plan_vidrio.cantidad} piezas iguales`
-        : 'Plan de vidrio no disponible para este pedido anterior.';
-      content.append(glass);
+      if (window.plan_vidrio && window.avance_vidrio) {
+        content.append(glassCutRow(window));
+      } else {
+        const notice = document.createElement('p');
+        notice.textContent = 'Plan de vidrio no disponible para este pedido anterior.';
+        content.append(notice);
+      }
     }
     detail.hidden = false;
   } catch (error) {
