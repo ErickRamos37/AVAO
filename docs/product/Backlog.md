@@ -95,10 +95,13 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 - **Área:** Cortes y taller · **Épica:** E2 · **Prioridad:** Alta · **Esfuerzo inicial:** **3**.
 - **Historia:** **Como** ensamblador, **necesito** indicar qué ventanas están ensambladas y cuáles faltan, **para** conocer el avance real del pedido.
 - **Criterios de aceptación:**
-  1. Cada ventana puede señalarse como ensamblada y distinguirse de las pendientes.
-  2. El estado permanece al reabrir el pedido y no cambia el de otra ventana o pedido.
-  3. Se ven las ventanas pendientes; marcar una no declara instalado ni pagado el pedido.
-- **Por decidir al implementarla:** condiciones previas y reversión por retrabajo. Declarar listo todo el pedido es HU-08.
+  1. En el pedido abierto se muestran el código y el estado de ensamble de cada una de sus ventanas; se distinguen las ensambladas de las pendientes sin mostrar ventanas de otros pedidos.
+  2. AVAO solo permite marcar ensamblada una ventana cuando todos sus cortes de aluminio y vidrio registrados están marcados. El ensamblador confirma físicamente que todas sus partes están ensambladas, incluidos screen, accesorios y extras aplicables, aunque AVAO no lleve un registro individual de estos últimos.
+  3. El estado permanece al reabrir el pedido y no cambia el de otra ventana o pedido. Una marca de ensamble accidental puede deshacerse.
+  4. Mientras una ventana esté marcada como ensamblada, AVAO impide deshacer marcas de corte de aluminio o vidrio; primero debe deshacerse la marca de ensamble.
+  5. Marcar una ventana no declara instalado ni pagado el pedido, ni declara completo el ensamble de todas sus ventanas.
+- **Subtarea #27 — Registrar y deshacer el ensamble de ventanas del pedido:** mostrar el estado por ventana en el pedido abierto, permitir marcarla ensamblada solo sin cortes pendientes y conservar el avance al reabrir. Permitir deshacer una marca de ensamble accidental y bloquear la reversión de marcas de corte mientras siga ensamblada. Comprobar con dos ventanas que el estado y los bloqueos afectan solo a la ventana correspondiente.
+- **Límites confirmados:** AVAO comprueba las marcas de cortes registrados; el ensamblador verifica físicamente screen, accesorios y extras aplicables. No se añade seguimiento de esas partes ni se automatiza la declaración de pedido listo (HU-08). Las correcciones por retrabajo quedan fuera de esta entrega. Una sección mínima de ensamble pertenece a HU-05; separar por completo medidas, aluminio, vidrio y ensamble en vistas propias sigue como posible mejora independiente, sin prioridad asignada.
 
 ### Otras HU del primer MVP, por refinar cuando se acerquen
 
