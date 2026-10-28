@@ -46,6 +46,7 @@ Si ya tienes una base SQLite de la entrega anterior, ejecuta de nuevo `python -m
 - [Medidas de ventana California por mitad](docs/domain/Medidas.md)
 - [Guía del backlog y Kanban](docs/workflow/GuiaBacklogKanban.md)
 - [Esquema inicial de HU-01 (SQLite)](docs/technical/HU01-modelo-sqlite.sql)
+- [Evaluación de la estructura del proyecto](docs/technical/EvaluacionEstructura.md)
 - [Instrucciones para agentes](AGENTS.md) y skills del proyecto en `.agents/skills/`.
 
 GitHub Projects es la fuente de verdad para el estado del trabajo. El backlog en `docs/product/Backlog.md` conserva el contenido de producto; no reemplaza el tablero.
