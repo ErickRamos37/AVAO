@@ -5,7 +5,23 @@ const errorReturn = document.querySelector('#error-return');
 const rows = document.querySelector('#window-rows');
 const rowTemplate = document.querySelector('#window-template');
 const clientForm = document.querySelector('#client-form');
+const areaButtons = [...document.querySelectorAll('#area-nav button')];
+const areaPanels = [...document.querySelectorAll('[data-area-panel]')];
+let currentOrderId = null;
 let nextRowId = 1;
+
+function showArea(area) {
+  for (const button of areaButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.area === area));
+  }
+  for (const panel of areaPanels) {
+    panel.hidden = panel.id !== `area-${area}`;
+  }
+}
+
+for (const button of areaButtons) {
+  button.addEventListener('click', () => showArea(button.dataset.area));
+}
 
 function numberRows() {
   for (const [index, row] of [...rows.children].entries()) {
@@ -237,6 +253,11 @@ async function openOrder(id) {
     const response = await fetch(`/api/pedidos/${encodeURIComponent(id)}`);
     if (!response.ok) throw new Error(response.status === 404 ? 'Pedido no encontrado.' : 'No se pudo consultar el pedido.');
     const order = await response.json();
+    if (currentOrderId !== order.id) {
+      currentOrderId = order.id;
+      showArea('medidas');
+      document.querySelector('#client-details').open = false;
+    }
     document.querySelector('#order-title').textContent = order.etiqueta === null
       ? `Pedido ${order.id} · sin etiqueta`
       : `Pedido ${order.etiqueta}`;
@@ -250,29 +271,34 @@ async function openOrder(id) {
       : 'Faltan los datos del cliente.';
     clientForm.querySelector('button[type="submit"]').textContent = order.cliente
       ? 'Guardar correcciones' : 'Guardar datos del cliente';
-    const content = document.querySelector('#order-content');
-    content.replaceChildren();
+    const measures = document.querySelector('#order-measures');
+    const aluminum = document.querySelector('#order-aluminum');
+    const glass = document.querySelector('#order-glass');
+    const assemblyList = document.querySelector('#order-assembly');
+    for (const panel of [measures, aluminum, glass, assemblyList]) panel.replaceChildren();
     for (const window of order.ventanas) {
       const item = document.createElement('p');
       item.textContent = `Ventana ${window.codigo ?? window.numero}: ${window.ancho} × ${window.alto}`;
-      content.append(item);
+      measures.append(item);
       const assembly = assemblyRow(window, order.id);
-      content.append(assembly.row);
+      const assemblyHeading = document.createElement('h3');
+      assemblyHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      assemblyList.append(assemblyHeading, assembly.row);
+      const aluminumHeading = document.createElement('h3');
+      aluminumHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      aluminum.append(aluminumHeading);
       if (!window.plan_aluminio.length) {
         const notice = document.createElement('p');
         notice.textContent = 'Plan de aluminio no disponible para este pedido anterior.';
-        content.append(notice);
+        aluminum.append(notice);
       } else if (window.plan_aluminio.length !== 10 || window.avance_aluminio.length !== 10) {
         const notice = document.createElement('p');
         notice.textContent = 'El plan de aluminio está incompleto.';
-        content.append(notice);
+        aluminum.append(notice);
       } else {
-        const heading = document.createElement('h3');
-        heading.textContent = 'Plan de aluminio';
-        content.append(heading);
         const note = document.createElement('p');
         note.textContent = 'Cortado indica que el corte físico se realizó.';
-        content.append(note);
+        aluminum.append(note);
         const plan = document.createElement('ul');
         const labels = [
           'Jamba', 'Mulio', 'Vertical fijo', 'Aleta', 'Horizontal fijo',
@@ -283,14 +309,17 @@ async function openOrder(id) {
           line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], label, assembly.refresh));
           plan.append(line);
         }
-        content.append(plan);
+        aluminum.append(plan);
       }
+      const glassHeading = document.createElement('h3');
+      glassHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      glass.append(glassHeading);
       if (window.plan_vidrio && window.avance_vidrio) {
-        content.append(glassCutRow(window, assembly.refresh));
+        glass.append(glassCutRow(window, assembly.refresh));
       } else {
         const notice = document.createElement('p');
         notice.textContent = 'Plan de vidrio no disponible para este pedido anterior.';
-        content.append(notice);
+        glass.append(notice);
       }
     }
     detail.hidden = false;
