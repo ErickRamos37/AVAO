@@ -227,6 +227,10 @@ def save_order_client(order_id: int, details: OrderClient):
     phone = details.celular.strip()
     if not name or not first_surname:
         raise HTTPException(status_code=422, detail="Completa nombre y primer apellido del cliente.")
+    for value, field in ((name, "nombre"), (first_surname, "primer apellido"),
+                         (details.apellido_2, "segundo apellido")):
+        if any(character.isnumeric() for character in value):
+            raise HTTPException(status_code=422, detail=f"El {field} no puede contener números.")
     if len(phone) != 10 or not phone.isascii() or not phone.isdigit():
         raise HTTPException(status_code=422, detail="El celular debe tener diez dígitos.")
 
