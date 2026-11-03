@@ -310,6 +310,15 @@ clientForm.addEventListener('submit', async (event) => {
       ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion', 'notas']
         .map((field) => [field, clientForm.elements[field].value.trim()]),
     );
+    for (const [field, label] of [
+      ['nombre', 'nombre'], ['apellido_1', 'primer apellido'], ['apellido_2', 'segundo apellido'],
+    ]) {
+      if (/\p{N}/u.test(details[field])) {
+        clientForm.elements[field].focus();
+        showError(`El ${label} no puede contener números.`);
+        return;
+      }
+    }
     const response = await fetch(`/api/pedidos/${clientForm.dataset.orderId}/cliente`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

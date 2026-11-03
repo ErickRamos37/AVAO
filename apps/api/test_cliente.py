@@ -84,6 +84,29 @@ class ClientTests(unittest.TestCase):
                                                 celular="0123456789"))
         self.assertEqual(raised.exception.status_code, 404)
 
+    def test_rejects_numbers_in_any_name_without_changing_saved_client(self):
+        order_id = self.new_order()
+        valid = OrderClient(nombre="Ana María", apellido_1="O'Connor-Sáenz",
+                            apellido_2="Núñez", celular="0123456789")
+        for field, value in (("nombre", "Ana2"), ("apellido_1", "Ruiz 3"),
+                             ("apellido_2", "López4"), ("nombre", "Ana²")):
+            invalid = valid.model_copy(update={field: value})
+            with self.assertRaises(HTTPException) as raised:
+                save_order_client(order_id, invalid)
+            self.assertEqual(raised.exception.status_code, 422)
+            self.assertIn("no puede contener números", raised.exception.detail)
+            self.assertIsNone(get_order(order_id)["cliente"])
+
+        save_order_client(order_id, valid)
+        saved = get_order(order_id)["cliente"]
+        self.assertEqual(saved["apellido_1"], "O'Connor-Sáenz")
+        for field, value in (("nombre", "Ana2"), ("apellido_1", "Ruiz 3"),
+                             ("apellido_2", "López4")):
+            with self.assertRaises(HTTPException) as raised:
+                save_order_client(order_id, valid.model_copy(update={field: value}))
+            self.assertEqual(raised.exception.status_code, 422)
+            self.assertEqual(get_order(order_id)["cliente"], saved)
+
     def test_migrates_an_order_saved_before_client_fields(self):
         with sqlite3.connect(self.path) as connection:
             connection.execute("DROP TABLE clientes")
