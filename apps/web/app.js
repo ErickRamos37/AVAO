@@ -4,7 +4,6 @@ const message = document.querySelector('#message');
 const errorReturn = document.querySelector('#error-return');
 const rows = document.querySelector('#window-rows');
 const rowTemplate = document.querySelector('#window-template');
-const clientForm = document.querySelector('#client-form');
 let nextRowId = 1;
 
 function numberRows() {
@@ -40,167 +39,6 @@ function showError(text) {
   message.hidden = false;
 }
 
-function aluminumCutRow(window, cut, progress, label, onProgressChange) {
-  const row = document.createElement('div');
-  row.className = 'cut-row';
-  const status = document.createElement('div');
-  const actions = document.createElement('div');
-  actions.className = 'cut-actions';
-  const mark = document.createElement('button');
-  const undo = document.createElement('button');
-  mark.type = undo.type = 'button';
-  mark.textContent = 'Marcar corte';
-  undo.textContent = 'Deshacer marca';
-  mark.setAttribute('aria-label', `Marcar corte de ${label} para ${window.codigo}`);
-  undo.setAttribute('aria-label', `Deshacer marca de ${label} para ${window.codigo}`);
-
-  function refresh() {
-    status.textContent = `${label}: ${cut.longitud}″ · requerido ${cut.cantidad}, cortado ${progress.cortadas}, pendiente ${progress.pendientes}`;
-    mark.disabled = progress.cortadas >= cut.cantidad;
-    undo.disabled = progress.cortadas <= 0 || window.ensamblada;
-  }
-
-  async function change(action) {
-    message.hidden = true;
-    mark.disabled = undo.disabled = true;
-    try {
-      const response = await fetch(`/api/ventanas/${window.id}/aluminio/${progress.orden}/marcas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: action }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar la marca de corte.');
-      }
-      const updated = await response.json();
-      progress.cortadas = updated.cortadas;
-      progress.pendientes = updated.pendientes;
-      onProgressChange();
-    } catch (error) {
-      showError(error.message);
-    } finally {
-      refresh();
-    }
-  }
-
-  mark.addEventListener('click', () => change('marcar'));
-  undo.addEventListener('click', () => change('deshacer'));
-  refresh();
-  actions.append(mark, undo);
-  row.append(status, actions);
-  return row;
-}
-
-function glassCutRow(window, onProgressChange) {
-  const row = document.createElement('div');
-  row.className = 'cut-row';
-  const status = document.createElement('div');
-  const actions = document.createElement('div');
-  actions.className = 'cut-actions';
-  const mark = document.createElement('button');
-  const undo = document.createElement('button');
-  mark.type = undo.type = 'button';
-  mark.textContent = 'Marcar corte';
-  undo.textContent = 'Deshacer marca';
-  mark.setAttribute('aria-label', `Marcar corte de vidrio para ${window.codigo}`);
-  undo.setAttribute('aria-label', `Deshacer marca de vidrio para ${window.codigo}`);
-  const plan = window.plan_vidrio;
-  const progress = window.avance_vidrio;
-
-  function refresh() {
-    status.textContent = `Vidrio: ${plan.ancho}″ × ${plan.alto}″ · cortados: ${progress.cortadas} de ${plan.cantidad} · pendientes: ${progress.pendientes}`;
-    mark.disabled = progress.cortadas >= plan.cantidad;
-    undo.disabled = progress.cortadas <= 0 || window.ensamblada;
-  }
-
-  async function change(action) {
-    message.hidden = true;
-    mark.disabled = undo.disabled = true;
-    try {
-      const response = await fetch(`/api/ventanas/${window.id}/vidrio/marcas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: action }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar la marca de corte de vidrio.');
-      }
-      const updated = await response.json();
-      progress.cortadas = updated.cortadas;
-      progress.pendientes = updated.pendientes;
-      onProgressChange();
-    } catch (error) {
-      showError(error.message);
-    } finally {
-      refresh();
-    }
-  }
-
-  mark.addEventListener('click', () => change('marcar'));
-  undo.addEventListener('click', () => change('deshacer'));
-  refresh();
-  actions.append(mark, undo);
-  row.append(status, actions);
-  return row;
-}
-
-function assemblyRow(window, orderId) {
-  const row = document.createElement('div');
-  row.className = 'cut-row';
-  const status = document.createElement('p');
-  const note = document.createElement('p');
-  note.textContent = 'Se habilita al registrar todos los cortes. Al confirmar, verificas físicamente screen, accesorios y extras aplicables.';
-  const actions = document.createElement('div');
-  actions.className = 'cut-actions';
-  const mark = document.createElement('button');
-  const undo = document.createElement('button');
-  mark.type = undo.type = 'button';
-  mark.textContent = 'Confirmar ensamble';
-  undo.textContent = 'Deshacer ensamble';
-  mark.setAttribute('aria-label', `Confirmar ensamble de ${window.codigo}`);
-  undo.setAttribute('aria-label', `Deshacer ensamble de ${window.codigo}`);
-
-  function refresh() {
-    const complete = window.plan_aluminio.length === 10
-      && window.avance_aluminio.length === 10
-      && window.avance_aluminio.every((cut) => cut.pendientes === 0)
-      && window.plan_vidrio && window.avance_vidrio
-      && window.avance_vidrio.pendientes === 0;
-    status.textContent = `Ensamble de ${window.codigo ?? window.numero}: ${window.ensamblada ? 'ensamblada' : 'pendiente'}`;
-    mark.disabled = window.ensamblada || !complete;
-    undo.disabled = !window.ensamblada;
-  }
-
-  async function change(action) {
-    message.hidden = true;
-    mark.disabled = undo.disabled = true;
-    try {
-      const response = await fetch(`/api/ventanas/${window.id}/ensamble/marcas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: action }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar el ensamble.');
-      }
-      await openOrder(orderId);
-    } catch (error) {
-      showError(error.message);
-      refresh();
-    }
-  }
-
-  mark.addEventListener('click', () => change('marcar'));
-  undo.addEventListener('click', () => change('deshacer'));
-  refresh();
-  actions.append(mark, undo);
-  row.append(status, note, actions);
-  return {row, refresh};
-}
-
 async function loadOrders() {
   const list = document.querySelector('#order-list');
   try {
@@ -216,9 +54,7 @@ async function loadOrders() {
       const item = document.createElement('p');
       const link = document.createElement('a');
       link.href = `/pedidos/${order.id}`;
-      link.textContent = order.etiqueta === null
-        ? `Pedido ${order.id} · sin etiqueta`
-        : `Pedido ${order.id} · ${order.codigos.join(', ')}`;
+      link.textContent = `Pedido ${order.id}`;
       item.append(link);
       list.append(item);
     }
@@ -237,61 +73,13 @@ async function openOrder(id) {
     const response = await fetch(`/api/pedidos/${encodeURIComponent(id)}`);
     if (!response.ok) throw new Error(response.status === 404 ? 'Pedido no encontrado.' : 'No se pudo consultar el pedido.');
     const order = await response.json();
-    document.querySelector('#order-title').textContent = order.etiqueta === null
-      ? `Pedido ${order.id} · sin etiqueta`
-      : `Pedido ${order.id} · ${order.etiqueta}`;
-    clientForm.dataset.orderId = order.id;
-    for (const field of ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion']) {
-      clientForm.elements[field].value = order.cliente?.[field] ?? '';
-    }
-    clientForm.elements.notas.value = order.notas;
-    document.querySelector('#client-status').textContent = order.cliente
-      ? 'Datos del cliente guardados. Puedes corregirlos aquí.'
-      : 'Faltan los datos del cliente.';
-    clientForm.querySelector('button[type="submit"]').textContent = order.cliente
-      ? 'Guardar correcciones' : 'Guardar datos del cliente';
+    document.querySelector('#order-title').textContent = `Pedido ${order.id}`;
     const content = document.querySelector('#order-content');
     content.replaceChildren();
     for (const window of order.ventanas) {
       const item = document.createElement('p');
-      item.textContent = `Ventana ${window.codigo ?? window.numero}: ${window.ancho} × ${window.alto}`;
+      item.textContent = `Ventana ${window.numero}: ${window.ancho} × ${window.alto}`;
       content.append(item);
-      const assembly = assemblyRow(window, order.id);
-      content.append(assembly.row);
-      if (!window.plan_aluminio.length) {
-        const notice = document.createElement('p');
-        notice.textContent = 'Plan de aluminio no disponible para este pedido anterior.';
-        content.append(notice);
-      } else if (window.plan_aluminio.length !== 10 || window.avance_aluminio.length !== 10) {
-        const notice = document.createElement('p');
-        notice.textContent = 'El plan de aluminio está incompleto.';
-        content.append(notice);
-      } else {
-        const heading = document.createElement('h3');
-        heading.textContent = 'Plan de aluminio';
-        content.append(heading);
-        const note = document.createElement('p');
-        note.textContent = 'Cortado indica que el corte físico se realizó.';
-        content.append(note);
-        const plan = document.createElement('ul');
-        const labels = [
-          'Jamba', 'Mulio', 'Vertical fijo', 'Aleta', 'Horizontal fijo',
-          'Horizontal corredizo', 'Guía', 'Riel', 'Screen horizontal', 'Screen vertical',
-        ];
-        for (const [index, label] of labels.entries()) {
-          const line = document.createElement('li');
-          line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], label, assembly.refresh));
-          plan.append(line);
-        }
-        content.append(plan);
-      }
-      if (window.plan_vidrio && window.avance_vidrio) {
-        content.append(glassCutRow(window, assembly.refresh));
-      } else {
-        const notice = document.createElement('p');
-        notice.textContent = 'Plan de vidrio no disponible para este pedido anterior.';
-        content.append(notice);
-      }
     }
     detail.hidden = false;
   } catch (error) {
@@ -299,42 +87,6 @@ async function openOrder(id) {
     errorReturn.hidden = false;
   }
 }
-
-clientForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  message.hidden = true;
-  const button = clientForm.querySelector('button[type="submit"]');
-  button.disabled = true;
-  try {
-    const details = Object.fromEntries(
-      ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion', 'notas']
-        .map((field) => [field, clientForm.elements[field].value.trim()]),
-    );
-    for (const [field, label] of [
-      ['nombre', 'nombre'], ['apellido_1', 'primer apellido'], ['apellido_2', 'segundo apellido'],
-    ]) {
-      if (/\p{N}/u.test(details[field])) {
-        clientForm.elements[field].focus();
-        showError(`El ${label} no puede contener números.`);
-        return;
-      }
-    }
-    const response = await fetch(`/api/pedidos/${clientForm.dataset.orderId}/cliente`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(details),
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudieron guardar los datos del cliente.');
-    }
-    await openOrder(clientForm.dataset.orderId);
-  } catch (error) {
-    showError(error.message);
-  } finally {
-    button.disabled = false;
-  }
-});
 
 document.querySelector('#order-form').addEventListener('submit', async (event) => {
   event.preventDefault();

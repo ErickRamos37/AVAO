@@ -1,4 +1,4 @@
-"""Prepara el esquema SQLite sin borrar los pedidos existentes."""
+"""Aplica el esquema inicial de HU-01 a un archivo SQLite local."""
 
 from contextlib import closing
 from pathlib import Path
@@ -12,48 +12,5 @@ SCHEMA = Path(__file__).resolve().parents[2] / "docs" / "technical" / "HU01-mode
 if __name__ == "__main__":
     database_path().parent.mkdir(parents=True, exist_ok=True)
     with closing(connect_db()) as connection:
-        if connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'pedidos'"
-        ).fetchone():
-            columns = {row[1] for row in connection.execute("PRAGMA table_info(pedidos)")}
-            if "etiqueta" not in columns:
-                connection.execute("ALTER TABLE pedidos ADD COLUMN etiqueta TEXT")
-                connection.commit()
-            if "cliente_id" not in columns:
-                connection.execute("ALTER TABLE pedidos ADD COLUMN cliente_id INTEGER REFERENCES clientes (id)")
-                connection.commit()
-            if "notas" not in columns:
-                connection.execute("ALTER TABLE pedidos ADD COLUMN notas TEXT")
-                connection.commit()
-        if connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'ventanas'"
-        ).fetchone():
-            columns = {row[1] for row in connection.execute("PRAGMA table_info(ventanas)")}
-            if "ensamblada" not in columns:
-                connection.execute(
-                    "ALTER TABLE ventanas ADD COLUMN ensamblada INTEGER NOT NULL DEFAULT 0 "
-                    "CHECK (ensamblada IN (0, 1))"
-                )
-                connection.commit()
-        if connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'plan_aluminio'"
-        ).fetchone():
-            columns = {row[1] for row in connection.execute("PRAGMA table_info(plan_aluminio)")}
-            if "cortadas" not in columns:
-                connection.execute(
-                    "ALTER TABLE plan_aluminio ADD COLUMN cortadas INTEGER NOT NULL DEFAULT 0 "
-                    "CHECK (cortadas >= 0 AND cortadas <= cantidad)"
-                )
-                connection.commit()
-        if connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'plan_vidrio'"
-        ).fetchone():
-            columns = {row[1] for row in connection.execute("PRAGMA table_info(plan_vidrio)")}
-            if "cortadas" not in columns:
-                connection.execute(
-                    "ALTER TABLE plan_vidrio ADD COLUMN cortadas INTEGER NOT NULL DEFAULT 0 "
-                    "CHECK (cortadas >= 0 AND cortadas <= cantidad)"
-                )
-                connection.commit()
         connection.executescript(SCHEMA.read_text(encoding="utf-8"))
-    print("Esquema de pedidos preparado.")
+    print("Esquema HU-01 aplicado.")
