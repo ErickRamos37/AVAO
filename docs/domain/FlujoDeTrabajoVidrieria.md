@@ -38,7 +38,9 @@ Los empleados necesitan **consultar y cambiar entre pedidos**. La secuencia de a
 
 **Trabajo actual.** Al terminar las medidas y acordar el tipo de ventana, se anotan nombre, teléfono, una dirección simplificada y las especificaciones del cliente. Se obtiene el precio de cada ventana y el total, y se presenta el presupuesto al cliente.
 
-**Idea para AVAO y mejora esperada.** En el **flujo final previsto**, el empleado captura las medidas de todas las ventanas y después pulsa **Calcular precio**. La aplicación muestra el precio calculado de las ventanas más los servicios aplicables, como visita a domicilio o instalación, y el total que se comunica al cliente. Si acepta, el empleado introduce los datos del cliente y su anticipo; al pulsar **Confirmar** se guarda el pedido para empezar el trabajo. Esta secuencia describe la intención final, no el orden obligado de las primeras integraciones. Asociar cliente, ventanas, servicios, presupuesto y anticipo permitiría consultar qué se ofreció y cuál es el saldo.
+**Idea para AVAO y mejora esperada.** En la **secuencia funcional acordada**, el empleado captura y guarda las medidas de todas las ventanas y después completa los datos de un cliente nuevo en ese pedido. Luego calcula y muestra el precio de las ventanas y los servicios aplicables, como visita a domicilio o instalación, y comunica el total. Si el cliente acepta, registra el anticipo y confirma el pedido para empezar el trabajo. AVAO hoy guarda el pedido al guardar las medidas; queda por definir cómo evolucionará ese guardado hacia la confirmación comercial. Asociar cliente, ventanas, servicios, presupuesto y anticipo permitiría consultar qué se ofreció y cuál es el saldo.
+
+**Datos para la primera entrega.** Nombre, primer apellido y celular de diez dígitos son obligatorios para completar el cliente; segundo apellido y dirección son opcionales. Las notas son especificaciones opcionales **del pedido**, compartidas con los trabajadores, por ejemplo horarios o un teléfono alternativo. El empleado puede corregir después los datos del cliente y esas notas. Los pedidos ya guardados sin cliente pueden completarse más tarde; mientras tanto siguen consultables. No se han definido el modo de introducir o validar el celular ni el formato de la dirección. Al inicio solo se crea un cliente nuevo; elegir uno existente queda para después.
 
 El usuario plantea una función de precios más completa: catálogo de perfiles, vidrios y accesorios extra, con precios según **medida, tramo o unidad**. Cuando se use un precio por tramo, habría que registrar también su longitud estándar. La intención es calcular el precio de una ventana de cualquier medida y aplicar un **porcentaje de ganancia deseado por ventana**. Actualizar el precio de un solo perfil o de una hoja de vidrio debería permitir cotizar con los valores nuevos sin rehacer manualmente todos los cálculos.
 
@@ -50,7 +52,7 @@ El usuario plantea una función de precios más completa: catálogo de perfiles,
 
 **Trabajo actual.** Si el cliente acepta, se le solicita un anticipo. Las cifras principales son **total, anticipo(s) y saldo pendiente**.
 
-**Idea para AVAO y mejora esperada.** Tras comunicar el total y recibir la aceptación, el empleado registra los datos del cliente y el anticipo y **confirma el pedido**. Registrar cada anticipo junto al total haría visible cuánto falta por cobrar y reduciría la búsqueda entre notas. La idea del borrador incluye mostrar productos, cantidades, precios individuales, total, anticipos y saldo al cobrar.
+**Idea para AVAO y mejora esperada.** Los datos del cliente se registran después de las medidas y antes del precio. Tras comunicar el total y recibir la aceptación, el empleado registra el anticipo y **confirma el pedido**. Registrar cada anticipo junto al total haría visible cuánto falta por cobrar y reduciría la búsqueda entre notas. La idea del borrador incluye mostrar productos, cantidades, precios individuales, total, anticipos y saldo al cobrar.
 
 **Por decidir.** Si puede haber varios anticipos y pagos parciales, en qué momento se considera aceptado o cancelado un pedido, qué cambios se permiten después de recibir dinero y qué comprobantes se necesitan. No se asume una regla automática de descuentos o impuestos.
 
@@ -117,7 +119,7 @@ El usuario plantea una función de precios más completa: catálogo de perfiles,
 ## Secuencia de aprendizaje propuesta, sujeta a decisión del usuario
 
 1. **Primer MVP de taller:** comprobar que la dimensión de fabricación indicada tras medir cada hueco llega al cálculo y produce longitudes y cantidades correctas y legibles para aluminio y vidrio de la California por mitad; permitir marcar cortes y ventanas ensambladas.
-2. **Cierre comercial básico:** conocer y aplicar la fórmula sencilla actual de precio, añadir los servicios, registrar datos del cliente, anticipo, instalación y último pago. Así se completa el recorrido del pedido sin esperar al catálogo más amplio.
+2. **Cierre comercial básico:** registrar datos del cliente tras las medidas, conocer y aplicar la fórmula sencilla actual de precio, añadir servicios y registrar anticipo, instalación y último pago. Así se completa el recorrido del pedido sin esperar al catálogo más amplio.
 3. **Control de precios posterior:** estudiar el catálogo de perfiles, vidrios y accesorios y las reglas de cobro por medida, tramo o unidad y porcentaje de ganancia, para facilitar actualizaciones de insumos.
 4. Evaluar tablero completo, previsión de materiales, permisos, sincronización y otros diseños según problemas observados al usar el flujo anterior.
 
