@@ -212,13 +212,13 @@ async function loadOrders() {
       list.textContent = 'Aún no hay pedidos.';
       return;
     }
-    for (const order of data.pedidos) {
+    for (const [index, order] of data.pedidos.entries()) {
       const item = document.createElement('p');
       const link = document.createElement('a');
       link.href = `/pedidos/${order.id}`;
       link.textContent = order.etiqueta === null
-        ? `Pedido ${order.id} · sin etiqueta`
-        : `Pedido ${order.id} · ${order.codigos.join(', ')}`;
+        ? `${index + 1}. Pedido ${order.id} · sin etiqueta`
+        : `${index + 1}. Pedido ${order.etiqueta}`;
       item.append(link);
       list.append(item);
     }
@@ -239,7 +239,7 @@ async function openOrder(id) {
     const order = await response.json();
     document.querySelector('#order-title').textContent = order.etiqueta === null
       ? `Pedido ${order.id} · sin etiqueta`
-      : `Pedido ${order.id} · ${order.etiqueta}`;
+      : `Pedido ${order.etiqueta}`;
     clientForm.dataset.orderId = order.id;
     for (const field of ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion']) {
       clientForm.elements[field].value = order.cliente?.[field] ?? '';
