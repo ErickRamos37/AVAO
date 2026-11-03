@@ -43,6 +43,15 @@ class AssemblyMark(BaseModel):
     accion: Literal["marcar", "deshacer"]
 
 
+class OrderClient(BaseModel):
+    nombre: StrictStr
+    apellido_1: StrictStr
+    apellido_2: StrictStr = ""
+    celular: StrictStr
+    direccion: StrictStr = ""
+    notas: StrictStr = ""
+
+
 def database_path() -> Path:
     return Path(os.environ.get("AVAO_DB_PATH", ROOT / "data" / "avao.sqlite3"))
 
@@ -137,12 +146,14 @@ def list_orders():
 @app.get("/api/pedidos/{order_id}")
 def get_order(order_id: int):
     with closing(connect_db()) as connection:
-        order = connection.execute(
-            "SELECT id, etiqueta FROM pedidos WHERE id = ?", (order_id,)
+        order_row = connection.execute(
+            "SELECT p.id, p.etiqueta, p.notas, c.nombre, c.apellido_1, c.apellido_2, "
+            "c.celular, c.direccion FROM pedidos AS p "
+            "LEFT JOIN clientes AS c ON c.id = p.cliente_id WHERE p.id = ?", (order_id,)
         ).fetchone()
-        if order is None:
+        if order_row is None:
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
-        label = order[1]
+        label = order_row[1]
         windows = connection.execute(
             "SELECT id, numero_en_pedido, ancho_16, alto_16, ensamblada "
             "FROM ventanas WHERE pedido_id = ? ORDER BY numero_en_pedido",
@@ -186,6 +197,11 @@ def get_order(order_id: int):
     return {
         "id": order_id,
         "etiqueta": label,
+        "cliente": None if order_row[3] is None else {
+            "nombre": order_row[3], "apellido_1": order_row[4], "apellido_2": order_row[5] or "",
+            "celular": order_row[6], "direccion": order_row[7] or "",
+        },
+        "notas": order_row[2] or "",
         "ventanas": [
             {
                 "id": window_id,
@@ -202,6 +218,44 @@ def get_order(order_id: int):
             for window_id, number, width, height, assembled in windows
         ],
     }
+
+
+@app.put("/api/pedidos/{order_id}/cliente")
+def save_order_client(order_id: int, details: OrderClient):
+    name = details.nombre.strip()
+    first_surname = details.apellido_1.strip()
+    phone = details.celular.strip()
+    if not name or not first_surname:
+        raise HTTPException(status_code=422, detail="Completa nombre y primer apellido del cliente.")
+    if len(phone) != 10 or not phone.isascii() or not phone.isdigit():
+        raise HTTPException(status_code=422, detail="El celular debe tener diez dígitos.")
+
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            order = connection.execute("SELECT cliente_id FROM pedidos WHERE id = ?", (order_id,)).fetchone()
+            if order is None:
+                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+            client_values = (name, first_surname, details.apellido_2.strip() or None,
+                             phone, details.direccion.strip() or None)
+            if order[0] is None:
+                cursor = connection.execute(
+                    "INSERT INTO clientes (nombre, apellido_1, apellido_2, celular, direccion) "
+                    "VALUES (?, ?, ?, ?, ?)", client_values,
+                )
+                connection.execute(
+                    "UPDATE pedidos SET cliente_id = ?, notas = ? WHERE id = ?",
+                    (cursor.lastrowid, details.notas.strip() or None, order_id),
+                )
+            else:
+                connection.execute(
+                    "UPDATE clientes SET nombre = ?, apellido_1 = ?, apellido_2 = ?, "
+                    "celular = ?, direccion = ? WHERE id = ?",
+                    (*client_values, order[0]),
+                )
+                connection.execute("UPDATE pedidos SET notas = ? WHERE id = ?",
+                                   (details.notas.strip() or None, order_id))
+    return {"id": order_id}
 
 
 @app.post("/api/ventanas/{window_id}/aluminio/{order}/marcas")
