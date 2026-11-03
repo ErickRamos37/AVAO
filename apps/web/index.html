@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
-    <link rel="stylesheet" href="/static/styles.css?v=hu03-layout">
-    <script src="/static/app.js?v=hu23-cola" defer></script>
+    <link rel="stylesheet" href="/static/styles.css?v=hu24-vistas">
+    <script src="/static/app.js?v=hu24-vistas" defer></script>
   </head>
   <body>
     <main>
@@ -36,20 +36,44 @@
 
       <section id="detail" hidden>
         <h1 id="order-title"></h1>
-        <h2>Cliente y notas del pedido</h2>
-        <p id="client-status"></p>
-        <form id="client-form">
-          <p><label>Nombre <input name="nombre" required autocomplete="off"></label></p>
-          <p><label>Primer apellido <input name="apellido_1" required autocomplete="off"></label></p>
-          <p><label>Segundo apellido (opcional) <input name="apellido_2" autocomplete="off"></label></p>
-          <p><label>Celular <input name="celular" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required autocomplete="off"></label></p>
-          <p><label>Dirección (opcional) <input name="direccion" autocomplete="off"></label></p>
-          <p><label>Notas del pedido para el taller (opcional) <textarea name="notas"></textarea></label></p>
-          <button type="submit">Guardar datos del cliente</button>
-        </form>
-        <h2>Ventanas</h2>
-        <p>Medidas de fabricación en pulgadas</p>
-        <div id="order-content"></div>
+        <details id="client-details">
+          <summary>Cliente y notas del pedido</summary>
+          <p id="client-status"></p>
+          <form id="client-form">
+            <p><label>Nombre <input name="nombre" required autocomplete="off"></label></p>
+            <p><label>Primer apellido <input name="apellido_1" required autocomplete="off"></label></p>
+            <p><label>Segundo apellido (opcional) <input name="apellido_2" autocomplete="off"></label></p>
+            <p><label>Celular <input name="celular" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required autocomplete="off"></label></p>
+            <p><label>Dirección (opcional) <input name="direccion" autocomplete="off"></label></p>
+            <p><label>Notas del pedido para el taller (opcional) <textarea name="notas"></textarea></label></p>
+            <button type="submit">Guardar datos del cliente</button>
+          </form>
+        </details>
+        <nav id="area-nav" aria-label="Áreas del pedido">
+          <button type="button" data-area="medidas" aria-pressed="true">Medidas</button>
+          <button type="button" data-area="aluminio" aria-pressed="false">Aluminio</button>
+          <button type="button" data-area="vidrio" aria-pressed="false">Vidrio</button>
+          <button type="button" data-area="ensamble" aria-pressed="false">Ensamble</button>
+        </nav>
+        <div id="order-content">
+          <section id="area-medidas" data-area-panel>
+            <h2>Medidas</h2>
+            <p>Medidas de fabricación en pulgadas</p>
+            <div id="order-measures"></div>
+          </section>
+          <section id="area-aluminio" data-area-panel hidden>
+            <h2>Aluminio</h2>
+            <div id="order-aluminum"></div>
+          </section>
+          <section id="area-vidrio" data-area-panel hidden>
+            <h2>Vidrio</h2>
+            <div id="order-glass"></div>
+          </section>
+          <section id="area-ensamble" data-area-panel hidden>
+            <h2>Ensamble</h2>
+            <div id="order-assembly"></div>
+          </section>
+        </div>
         <a href="/">Crear otro pedido</a>
       </section>
 
