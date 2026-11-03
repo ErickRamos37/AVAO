@@ -19,6 +19,12 @@ if __name__ == "__main__":
             if "etiqueta" not in columns:
                 connection.execute("ALTER TABLE pedidos ADD COLUMN etiqueta TEXT")
                 connection.commit()
+            if "cliente_id" not in columns:
+                connection.execute("ALTER TABLE pedidos ADD COLUMN cliente_id INTEGER REFERENCES clientes (id)")
+                connection.commit()
+            if "notas" not in columns:
+                connection.execute("ALTER TABLE pedidos ADD COLUMN notas TEXT")
+                connection.commit()
         if connection.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'ventanas'"
         ).fetchone():

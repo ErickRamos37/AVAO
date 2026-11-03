@@ -6,9 +6,20 @@
 -- Al consultar, la aplicación reconstruye una fracción simplificada:
 -- 389 -> 24 5/16. No se conserva la escritura original de la entrada.
 
+CREATE TABLE IF NOT EXISTS clientes (
+    id INTEGER PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    apellido_1 TEXT NOT NULL,
+    apellido_2 TEXT,
+    celular TEXT NOT NULL,
+    direccion TEXT
+);
+
 CREATE TABLE IF NOT EXISTS pedidos (
     id INTEGER PRIMARY KEY,
-    etiqueta TEXT
+    etiqueta TEXT,
+    cliente_id INTEGER REFERENCES clientes (id),
+    notas TEXT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS pedidos_etiqueta_unica ON pedidos (etiqueta);
@@ -56,5 +67,5 @@ CREATE TABLE IF NOT EXISTS plan_vidrio (
 -- La conexión activa PRAGMA foreign_keys para hacer cumplir la referencia.
 -- Los pedidos anteriores a HU-22 conservan etiqueta NULL hasta que el usuario
 -- decida reiniciar sus datos de prueba; los pedidos nuevos reciben A, B, ...
--- HU-13 añadirá datos del cliente.
+-- HU-13 completa el cliente y las notas después de guardar medidas.
 -- No hay tabla de catálogo: solo se registra California por mitad en HU-01.

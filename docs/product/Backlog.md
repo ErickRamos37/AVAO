@@ -144,6 +144,7 @@ Secuencia funcional acordada: **empleado captura medidas de las ventanas → reg
 
 ### HU-13 — Datos del cliente y notas del pedido, siguiente entrega
 
+- **Issue:** [AVAO #33](https://github.com/ErickRamos37/AVAO/issues/33); **subtarea:** [#34](https://github.com/ErickRamos37/AVAO/issues/34).
 - **Secuencia y campos confirmados:** primero se guardan las medidas del pedido; después se completan los datos del cliente y, más adelante, se mostrará el precio. Nombre, primer apellido y celular son obligatorios; segundo apellido y dirección son opcionales. Según la definición previa, el celular tiene diez dígitos. Las notas son especificaciones **del pedido** para los trabajadores, como horarios o teléfono alternativo, y son opcionales. En esta entrega solo se crea un cliente nuevo; elegir uno ya registrado queda fuera.
 - **Criterios de aceptación propuestos:**
   1. Desde un pedido ya guardado, incluso uno anterior sin cliente, se pueden registrar nombre, primer apellido y celular de un cliente nuevo; segundo apellido y dirección pueden omitirse. Las notas opcionales se guardan en ese pedido y se muestran al consultar el trabajo.

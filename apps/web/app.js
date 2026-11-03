@@ -4,6 +4,7 @@ const message = document.querySelector('#message');
 const errorReturn = document.querySelector('#error-return');
 const rows = document.querySelector('#window-rows');
 const rowTemplate = document.querySelector('#window-template');
+const clientForm = document.querySelector('#client-form');
 let nextRowId = 1;
 
 function numberRows() {
@@ -239,6 +240,16 @@ async function openOrder(id) {
     document.querySelector('#order-title').textContent = order.etiqueta === null
       ? `Pedido ${order.id} · sin etiqueta`
       : `Pedido ${order.id} · ${order.etiqueta}`;
+    clientForm.dataset.orderId = order.id;
+    for (const field of ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion']) {
+      clientForm.elements[field].value = order.cliente?.[field] ?? '';
+    }
+    clientForm.elements.notas.value = order.notas;
+    document.querySelector('#client-status').textContent = order.cliente
+      ? 'Datos del cliente guardados. Puedes corregirlos aquí.'
+      : 'Faltan los datos del cliente.';
+    clientForm.querySelector('button[type="submit"]').textContent = order.cliente
+      ? 'Guardar correcciones' : 'Guardar datos del cliente';
     const content = document.querySelector('#order-content');
     content.replaceChildren();
     for (const window of order.ventanas) {
@@ -288,6 +299,33 @@ async function openOrder(id) {
     errorReturn.hidden = false;
   }
 }
+
+clientForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  message.hidden = true;
+  const button = clientForm.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const details = Object.fromEntries(
+      ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion', 'notas']
+        .map((field) => [field, clientForm.elements[field].value.trim()]),
+    );
+    const response = await fetch(`/api/pedidos/${clientForm.dataset.orderId}/cliente`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(details),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudieron guardar los datos del cliente.');
+    }
+    await openOrder(clientForm.dataset.orderId);
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 document.querySelector('#order-form').addEventListener('submit', async (event) => {
   event.preventDefault();
