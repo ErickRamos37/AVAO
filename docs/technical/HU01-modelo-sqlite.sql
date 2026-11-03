@@ -1,14 +1,28 @@
--- Esquema inicial ejecutable para HU-01 en SQLite.
--- apps.api.init_db lo aplica; no contiene migraciones de versiones posteriores.
+-- Esquema ejecutable de pedidos, ventanas y etiqueta de taller en SQLite.
+-- apps.api.init_db agrega la columna a bases anteriores sin modificar sus pedidos.
 -- Unidad de ancho_16 y alto_16: dieciseisavos de pulgada.
 -- Ejemplos: 24 -> 384; 26 1/2 -> 424; 24 1/4 1/16 -> 389.
 -- El backend valida la entrada fraccionaria y la convierte a esta unidad.
 -- Al consultar, la aplicación reconstruye una fracción simplificada:
 -- 389 -> 24 5/16. No se conserva la escritura original de la entrada.
 
-CREATE TABLE IF NOT EXISTS pedidos (
-    id INTEGER PRIMARY KEY
+CREATE TABLE IF NOT EXISTS clientes (
+    id INTEGER PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    apellido_1 TEXT NOT NULL,
+    apellido_2 TEXT,
+    celular TEXT NOT NULL,
+    direccion TEXT
 );
+
+CREATE TABLE IF NOT EXISTS pedidos (
+    id INTEGER PRIMARY KEY,
+    etiqueta TEXT,
+    cliente_id INTEGER REFERENCES clientes (id),
+    notas TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS pedidos_etiqueta_unica ON pedidos (etiqueta);
 
 CREATE TABLE IF NOT EXISTS ventanas (
     id INTEGER PRIMARY KEY,
@@ -16,7 +30,29 @@ CREATE TABLE IF NOT EXISTS ventanas (
     numero_en_pedido INTEGER NOT NULL CHECK (numero_en_pedido > 0),
     ancho_16 INTEGER NOT NULL CHECK (ancho_16 > 0),
     alto_16 INTEGER NOT NULL CHECK (alto_16 > 0),
+    ensamblada INTEGER NOT NULL DEFAULT 0 CHECK (ensamblada IN (0, 1)),
     CONSTRAINT ventanas_numero_por_pedido UNIQUE (pedido_id, numero_en_pedido)
+);
+
+-- Se crea al guardar el pedido. Cada fila es un tipo/orientación de perfil;
+-- cantidad indica cuántas piezas iguales necesita esa ventana.
+CREATE TABLE IF NOT EXISTS plan_aluminio (
+    ventana_id INTEGER NOT NULL REFERENCES ventanas (id),
+    orden INTEGER NOT NULL CHECK (orden BETWEEN 1 AND 10),
+    perfil TEXT NOT NULL,
+    longitud_16 INTEGER NOT NULL CHECK (longitud_16 > 0),
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    cortadas INTEGER NOT NULL DEFAULT 0 CHECK (cortadas >= 0 AND cortadas <= cantidad),
+    PRIMARY KEY (ventana_id, orden)
+);
+
+-- Dos vidrios iguales por ventana, calculados y guardados con el pedido.
+CREATE TABLE IF NOT EXISTS plan_vidrio (
+    ventana_id INTEGER PRIMARY KEY REFERENCES ventanas (id),
+    ancho_16 INTEGER NOT NULL CHECK (ancho_16 > 0),
+    alto_16 INTEGER NOT NULL CHECK (alto_16 > 0),
+    cantidad INTEGER NOT NULL CHECK (cantidad = 2),
+    cortadas INTEGER NOT NULL DEFAULT 0 CHECK (cortadas >= 0 AND cortadas <= cantidad)
 );
 
 -- Guardar pedido y ventanas juntos en una transacción de la aplicación.
@@ -29,5 +65,7 @@ CREATE TABLE IF NOT EXISTS ventanas (
 -- Ejemplo: 753 / 2 -> 376.5 -> 377 (= 23 9/16).
 -- El índice de UNIQUE (pedido_id, numero_en_pedido) cubre búsquedas por pedido.
 -- La conexión activa PRAGMA foreign_keys para hacer cumplir la referencia.
--- HU-13 añadirá datos del cliente; HU-22 añadirá el código con letra.
+-- Los pedidos anteriores a HU-22 conservan etiqueta NULL hasta que el usuario
+-- decida reiniciar sus datos de prueba; los pedidos nuevos reciben A, B, ...
+-- HU-13 completa el cliente y las notas después de guardar medidas.
 -- No hay tabla de catálogo: solo se registra California por mitad en HU-01.

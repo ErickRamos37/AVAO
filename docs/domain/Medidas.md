@@ -1,10 +1,10 @@
 # Medidas de ventanas California por mitad
 
-> Estado: recopilación de la práctica descrita por el usuario y de tres ejemplos. Las fórmulas de `screen` corresponden al cálculo base. Ya se confirmaron las cantidades de piezas y que un resultado de 1/32″ se sube al siguiente 1/16″. El usuario confirmó la corrección del segundo ejemplo conforme a esa regla. La posible holgura de instalación sigue pendiente.
+> Estado: recopilación de la práctica descrita por el usuario y de tres ejemplos. Las fórmulas de `screen` corresponden al cálculo base. Ya se confirmaron las cantidades de piezas y que un resultado de 1/32″ se sube al siguiente 1/16″. El usuario confirmó la corrección del segundo ejemplo conforme a esa regla. El vidriero ya incorpora su criterio de ajuste al indicar las dimensiones de fabricación; AVAO no resta una holgura adicional.
 
 ## Alcance y origen
 
-La ventana base es una California por mitad: una hoja fija y una hoja corrediza. `anchoVentana` y `altoVentana` son las medidas del **hueco donde se instalará la ventana**, tomadas con cinta en pulgadas. Según la descripción recibida, representan el ancho y alto previstos de la ventana ensamblada. Falta confirmar si se aplica alguna holgura de instalación antes de calcular los cortes.
+La ventana base es una California por mitad: una hoja fija y una hoja corrediza. `anchoVentana` y `altoVentana` son las medidas **de fabricación de la ventana**, en pulgadas. No son las dimensiones brutas del hueco; representan el ancho y alto a los que debe fabricarse la ventana. El vidriero los define tras medir el hueco irregular con su cinta y su criterio; AVAO recibe esas dimensiones finales, no la dimensión bruta del hueco, y no descuenta otra holgura.
 
 El primer resultado a comprobar es el paso de esas dos medidas a las medidas de corte de perfiles y vidrios. El flujo más amplio del pedido va desde la visita y la toma de medidas hasta el registro del último pago. En el negocio una misma persona puede desempeñar varias tareas; **Negocio** y **Taller** son las dos áreas iniciales propuestas para la aplicación. Los permisos por rol quedan para una etapa posterior.
 
@@ -12,10 +12,10 @@ El primer resultado a comprobar es el paso de esas dos medidas a las medidas de 
 
 1. Se identifica cada ventana con un número o una letra para relacionar sus perfiles y vidrios con ella. Las medidas de ventanas de un pedido normalmente varían entre sí.
 2. Se hace un dibujo de baja fidelidad: un rectángulo dividido por una línea vertical central que va del borde superior al inferior y forma dos rectángulos menores.
-3. Se anota el **ancho del hueco** debajo del dibujo y, después de medirlo, también sobre su borde superior. El **alto del hueco** se anota a uno de los lados; izquierda o derecha es indiferente.
+3. Se anota el **ancho indicado para fabricar la ventana** debajo del dibujo y, después de determinarlo, también sobre su borde superior. El **alto indicado para fabricarla** se anota a uno de los lados; izquierda o derecha es indiferente.
 4. El dibujo y la identificación pueden orientar una interfaz posterior. Primero se busca comprobar el cálculo y el flujo.
 
-**Identificación para varios pedidos:** cada pedido y ventana tendrán un **identificador lógico interno** en el sistema. Aparte, una letra inglesa distingue cada pedido activo y un número correlativo distingue sus ventanas: `A1`, `A2`, …; `B1`, `B2`, …. El código corto se **escribe a mano sobre las piezas de aluminio y vidrio** para reconocer a qué ventana pertenecen sin copiar identificadores largos. La letra se libera **cuando el pedido ya está instalado y pagado por completo**; entonces puede volver a usarse. Hasta ese momento no debe asignarse a otro pedido, para evitar piezas con la misma letra dentro del taller. El identificador interno conserva la identidad de los registros históricos aunque el código visible se reutilice. Véase [FlujoDeTrabajoVidrieria.md](FlujoDeTrabajoVidrieria.md).
+**Identificación para varios pedidos:** cada pedido y ventana tendrán un **identificador lógico interno** en el sistema. Aparte, una etiqueta de letras inglesas distingue cada pedido activo (secuencia `A`…`Z`, `AA`, `AB`…) y un número correlativo distingue sus ventanas: `A1`, `A2`, …; `B1`, `B2`, …. El código corto se **escribe a mano sobre las piezas de aluminio y vidrio** para reconocer a qué ventana pertenecen sin copiar identificadores largos. La etiqueta se libera **cuando el pedido ya está instalado y pagado por completo**; entonces puede volver a usarse. Hasta ese momento no debe asignarse a otro pedido, para evitar piezas con la misma etiqueta dentro del taller. El identificador interno conserva la identidad de los registros históricos aunque el código visible se reutilice. Véase [FlujoDeTrabajoVidrieria.md](FlujoDeTrabajoVidrieria.md).
 
 ## Unidad y escritura de fracciones
 
@@ -29,7 +29,7 @@ Dividir entre dos un ancho medido en dieciseisavos puede producir matemáticamen
 
 Estas son las fórmulas del cálculo base para la ventana California por mitad. Las referencias de abajo presentan `anchoScreen` y `altoScreen` con las etiquetas ya corregidas.
 
-| Resultado | Fórmula a partir del hueco |
+| Resultado | Fórmula a partir de las dimensiones de fabricación |
 | --- | --- |
 | `centro` | `anchoVentana / 2`; si resulta en 1/32″, subir al siguiente 1/16″ antes de calcular los cortes dependientes |
 | `anchoVidrio` | `centro - 2` |
@@ -73,7 +73,7 @@ Esas líneas identifican medidas por ventana. **De cada línea se cortan dos vid
 
 ## Tres referencias para comprobar el cálculo
 
-Las entradas son **ancho × alto del hueco**. La ventana 2 se recalculó con la regla de subir `centro` al siguiente 1/16″; el usuario confirmó esta corrección de la primera hoja manual. Las filas de `screen` muestran los nombres correctos y el cálculo base.
+Las entradas son **ancho × alto indicados para fabricar la ventana**. La ventana 2 se recalculó con la regla de subir `centro` al siguiente 1/16″; el usuario confirmó esta corrección de la primera hoja manual. Las filas de `screen` muestran los nombres correctos y el cálculo base.
 
 | Resultado anotado | Ventana 1: `48 × 36` | Ventana 2: `47 1/16 × 35 7/8 1/16` | Ventana 3: `50 3/4 × 38 1/2` |
 | --- | --- | --- | --- |
@@ -94,9 +94,9 @@ Las entradas son **ancho × alto del hueco**. La ventana 2 se recalculó con la 
 
 1. **Ajuste práctico de la ventana 2:** `47 1/16 ÷ 2 = 23 17/32` como resultado matemático. Al subir al siguiente 1/16″, `centro = 23 9/16`. De ese centro se obtienen `anchoVidrio = 21 9/16`, `horizontalFijo = 21 1/16`, `horizontalCorredizo = 22 11/16` y `anchoScreen = 21 15/16`. La primera hoja manual había usado `23 1/2` como centro; esos resultados quedaron sustituidos tras la aclaración y confirmación del usuario.
 2. **Screen base:** `anchoScreen = centro - 1 5/8` y `altoScreen = altoVentana - 1 1/4 = verticalFijo`. El ancho se escribe antes del alto en `Esc.`. Los tres ejemplos de la tabla usan estas fórmulas.
-3. **Holgura:** no se ha confirmado si se aplica una holgura previa a estas fórmulas para instalar la ventana en el hueco medido.
+3. **Ajuste al hueco:** el vidriero entrega las dimensiones de fabricación ya decididas tras medir el hueco; AVAO no aplica una holgura previa a estas fórmulas. Los ajustes que pueda requerir la instalación por defectos de obra quedan fuera de este cálculo.
 
-Las cifras de las tres referencias concuerdan con las fórmulas base al aplicar el centro ajustado indicado para la ventana 2. Son referencias para validar la implementación; la holgura y otros detalles de instalación siguen abiertos.
+Las cifras de las tres referencias concuerdan con las fórmulas base al aplicar el centro ajustado indicado para la ventana 2. Son referencias para validar la implementación; los posibles ajustes durante la instalación por defectos de obra no forman parte de estas fórmulas.
 
 ## Notas previas de desarrollo
 

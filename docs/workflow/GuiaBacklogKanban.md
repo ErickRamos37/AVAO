@@ -68,6 +68,7 @@ La [Guía Kanban de mayo de 2025](https://kanbanguides.org/the-kanban-guide) pid
 
 - **Checklist de aceptación en la HU:** comprueba lo que debe observar el usuario. No sustituye las subtareas de desarrollo.
 - [Sub-issues de GitHub](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues): tareas concretas para construir, integrar o verificar la HU; su estado viaja por el tablero. La barra de progreso cuenta subtareas terminadas, **no garantiza que el resultado ya cumpla la HU**.
+- **Redacción de subtareas:** título con verbo y resultado, sin prefijo `HU` si la incidencia padre ya está enlazada; cuerpo breve con trabajo observable, comprobación y límite solo cuando haga falta.
 - Al cerrar las subtareas, comprobar los criterios de aceptación de la HU. Si faltan, añadir la subtarea necesaria o corregir el trabajo; cerrar la HU solo después de aceptar el resultado. Una solicitud de cambio (PR) enlazada aporta evidencia, pero su cierre tampoco basta por sí solo.
 - Si una HU se divide en `HU5.1` y `HU5.2`, esas nuevas incidencias son **HU**, no subtareas técnicas de `HU5`; cada una tendrá sus propios criterios y subtareas cuando llegue su turno.
 
