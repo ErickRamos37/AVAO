@@ -128,19 +128,30 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 - **Límites:** no reúne pendientes de todos los pedidos (HU-09), no agrega cálculos, marcas o estados nuevos a HU-01, HU-03, HU-04 y HU-05, no introduce permisos por área ni fija un diseño visual detallado.
 - **Pregunta abierta:** decidir si «Medidas» será solo consulta de las ventanas ya guardadas o también contendrá la captura de un pedido nuevo. Esta HU no presupone cambiar el flujo de captura aceptado en HU-01.
 
-## Siguiente etapa: precio sencillo, instalación y liquidación
+## Siguiente etapa: datos del cliente, precio sencillo, instalación y liquidación
 
-Flujo final: **empleado captura ventanas → calcula precio y servicios → comunica total → registra datos del cliente y anticipo si acepta → confirma pedido → taller fabrica → se instala → se liquida saldo**. No hay interfaz del cliente prevista. La fórmula sencilla actual de precios aún debe documentarse con ejemplos; la antigua tabla de rangos de medidas no se adopta porque las ventanas varían mucho. Estas HU no reciben puntos todavía.
+Secuencia funcional acordada: **empleado captura medidas de las ventanas → registra datos del cliente → calcula y muestra precio y servicios → comunica el total → registra anticipo si el cliente acepta → confirma el pedido → taller fabrica → se instala → se liquida saldo**. Hoy AVAO guarda el pedido al guardar las medidas; cómo evolucionar ese guardado hacia la confirmación comercial queda por refinar, sin alterar la entrega existente. No hay interfaz del cliente prevista. La fórmula sencilla actual de precios aún debe documentarse con ejemplos; la antigua tabla de rangos de medidas no se adopta porque las ventanas varían mucho. Estimar estas HU cuando se acerquen al trabajo.
 
 | ID | Área · Épica | Historia | Regla pendiente |
 | --- | --- | --- | --- |
+| HU-13 | Pedidos y medidas · E3 | **Como** empleado, **necesito** completar, consultar y corregir los datos del cliente y las notas del pedido cuyas ventanas ya guardé, **para** conservar la información de contacto y las especificaciones de trabajo antes de calcular el precio. | Nombre, primer apellido y celular obligatorios; segundo apellido, dirección y notas opcionales. Las notas pertenecen al pedido y las consultan los trabajadores. |
 | HU-11 | Precios y cobros · E3 | **Como** empleado, **necesito** calcular el precio de las ventanas registradas con el método sencillo actual, **para** comunicar al cliente el total calculado. | Fórmula, insumos y ejemplos reales. |
 | HU-12 | Precios y cobros · E3 | **Como** empleado, **necesito** añadir servicios aplicables, como visita a domicilio e instalación, **para** comunicar un total que incluya el trabajo ofrecido. | Reglas de cobro por servicio. |
-| HU-13 | Pedidos y medidas · E3 | **Como** empleado, **necesito** registrar nombre, teléfono, dirección simplificada y especificaciones del cliente en su pedido, **para** conservar los datos del trabajo aceptado. | Datos obligatorios y faltantes. |
 | HU-14 | Precios y cobros · E3 | **Como** empleado, **necesito** registrar anticipo y confirmar el pedido aceptado, **para** iniciar el trabajo con total y saldo visibles. | Varios anticipos, cancelación y cambios posteriores. |
 | HU-15 | Instalación · E3 | **Como** empleado, **necesito** registrar día y, si se acuerda, hora de instalación, **para** coordinar la visita con el cliente. | Reprogramación e instalación parcial. |
 | HU-16 | Instalación · E3 | **Como** instalador, **necesito** marcar el pedido instalado, **para** distinguir la entrega física de la liquidación del saldo. | Criterio de instalación completa. |
 | HU-17 | Precios y cobros · E3 | **Como** empleado, **necesito** registrar pagos posteriores y la liquidación final, **para** conocer el saldo y cerrar el pedido cuando esté instalado y pagado por completo. | Pagos parciales, ajustes y comprobantes. Su estado de cierre habilita la liberación de la etiqueta definida en HU-22. |
+
+### HU-13 — Datos del cliente y notas del pedido, siguiente entrega
+
+- **Secuencia y campos confirmados:** primero se guardan las medidas del pedido; después se completan los datos del cliente y, más adelante, se mostrará el precio. Nombre, primer apellido y celular son obligatorios; segundo apellido y dirección son opcionales. Según la definición previa, el celular tiene diez dígitos. Las notas son especificaciones **del pedido** para los trabajadores, como horarios o teléfono alternativo, y son opcionales. En esta entrega solo se crea un cliente nuevo; elegir uno ya registrado queda fuera.
+- **Criterios de aceptación propuestos:**
+  1. Desde un pedido ya guardado, incluso uno anterior sin cliente, se pueden registrar nombre, primer apellido y celular de un cliente nuevo; segundo apellido y dirección pueden omitirse. Las notas opcionales se guardan en ese pedido y se muestran al consultar el trabajo.
+  2. Tras guardar, el empleado puede corregir los datos del cliente y las notas del pedido. Al reabrirlo se muestran los valores corregidos, sin alterar sus ventanas, planes de corte ni marcas.
+  3. Los datos del cliente y las notas de un pedido no aparecen como datos de otro. Los pedidos todavía sin cliente siguen siendo consultables mientras se completa la captura.
+- **Subtarea vertical propuesta — Registrar, consultar y corregir datos del cliente y notas del pedido:** incorporar captura y consulta en el pedido ya guardado, con corrección posterior y campos obligatorios acordados; comprobar persistencia y separación entre dos pedidos sin alterar medidas ni avances.
+- **Fuera de alcance:** cálculo o visualización de precios, anticipo, selección de clientes existentes y diseño detallado de la dirección. No convertir la secuencia futura en un bloqueo del flujo actual de taller.
+- **Detalle aún abierto:** cómo introducir y validar el celular de diez dígitos y qué formato de dirección resulta útil; no se define una estructura o regla adicional por anticipación.
 
 ## Etapa posterior: precios flexibles y otras capacidades
 
