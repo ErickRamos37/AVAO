@@ -6,6 +6,8 @@ const rows = document.querySelector('#window-rows');
 const rowTemplate = document.querySelector('#window-template');
 const clientForm = document.querySelector('#client-form');
 const measures = document.querySelector('#order-measures');
+const discardedSection = document.querySelector('#discarded-windows');
+const discardedList = document.querySelector('#discarded-window-list');
 const measureEditButton = document.querySelector('#edit-measures');
 const measureEditForm = document.querySelector('#measure-edit-form');
 const measureEditRows = document.querySelector('#measure-edit-rows');
@@ -407,14 +409,25 @@ async function openOrder(id) {
     const aluminum = document.querySelector('#order-aluminum');
     const glass = document.querySelector('#order-glass');
     const assemblyList = document.querySelector('#order-assembly');
-    for (const panel of [measures, aluminum, glass, assemblyList]) panel.replaceChildren();
+    for (const panel of [measures, discardedList, aluminum, glass, assemblyList]) panel.replaceChildren();
+    discardedSection.hidden = !order.ventanas_descartadas.length;
+    if (!order.ventanas.length) {
+      measures.textContent = 'No hay ventanas activas en este pedido.';
+      for (const panel of [aluminum, glass, assemblyList]) {
+        panel.textContent = 'No hay ventanas activas en este pedido.';
+      }
+    }
     for (const window of order.ventanas) {
       const measureSection = document.createElement('section');
       const measureHeading = document.createElement('h3');
       measureHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
       const measureValue = document.createElement('p');
       measureValue.textContent = `${window.ancho} × ${window.alto}`;
-      measureSection.append(measureHeading, measureValue);
+      const discardButton = document.createElement('button');
+      discardButton.type = 'button';
+      discardButton.textContent = `Descartar ventana ${window.codigo ?? window.numero}`;
+      discardButton.addEventListener('click', () => changeWindowDiscard(window, true, discardButton));
+      measureSection.append(measureHeading, measureValue, discardButton);
       measures.append(measureSection);
       const assembly = assemblyRow(window, order.id);
       const refreshWindowProgress = () => {
@@ -462,11 +475,50 @@ async function openOrder(id) {
         glass.append(notice);
       }
     }
+    for (const window of order.ventanas_descartadas) {
+      const section = document.createElement('section');
+      const heading = document.createElement('h4');
+      heading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      const measures = document.createElement('p');
+      measures.textContent = `${window.ancho} × ${window.alto}`;
+      const restoreButton = document.createElement('button');
+      restoreButton.type = 'button';
+      restoreButton.textContent = `Reincorporar ventana ${window.codigo ?? window.numero}`;
+      restoreButton.addEventListener('click', () => changeWindowDiscard(window, false, restoreButton));
+      section.append(heading, measures, restoreButton);
+      discardedList.append(section);
+    }
     updateMeasureEditButton(order);
     detail.hidden = false;
   } catch (error) {
     showError(error.message);
     errorReturn.hidden = false;
+  }
+}
+
+async function changeWindowDiscard(item, discard, button) {
+  message.hidden = true;
+  if (discard) {
+    const aluminumCuts = item.avance_aluminio.reduce((total, cut) => total + cut.cortadas, 0);
+    const glassCuts = item.avance_vidrio?.cortadas ?? 0;
+    const assembly = item.ensamblada ? ' Sí está marcada como ensamblada.' : ' No está marcada como ensamblada.';
+    if (!window.confirm(`¿Descartar la ventana ${item.codigo ?? item.numero}? Tiene ${aluminumCuts} cortes de aluminio y ${glassCuts} cortes de vidrio marcados.${assembly} Se conservarán sus datos y marcas.`)) return;
+  }
+  button.disabled = true;
+  try {
+    const response = await fetch(`/api/ventanas/${item.id}/descarte`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ descartada: discard, confirmar_descarte: discard }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo actualizar la ventana.');
+    }
+    await openOrder(currentOrderId);
+  } catch (error) {
+    showError(error.message);
+    button.disabled = false;
   }
 }
 
