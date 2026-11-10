@@ -52,6 +52,23 @@ class OrderClient(BaseModel):
     notas: StrictStr = ""
 
 
+class WindowCorrection(BaseModel):
+    ancho: StrictStr
+    alto: StrictStr
+    confirmar_correccion: bool = False
+
+
+class WindowMeasureUpdate(BaseModel):
+    id: int
+    ancho: StrictStr
+    alto: StrictStr
+
+
+class OrderWindowCorrection(BaseModel):
+    ventanas: list[WindowMeasureUpdate]
+    confirmar_correccion: bool = False
+
+
 def database_path() -> Path:
     return Path(os.environ.get("AVAO_DB_PATH", ROOT / "data" / "avao.sqlite3"))
 
@@ -217,6 +234,134 @@ def get_order(order_id: int):
             }
             for window_id, number, width, height, assembled in windows
         ],
+    }
+
+
+@app.put("/api/ventanas/{window_id}/medidas")
+def correct_window_measures(window_id: int, correction: WindowCorrection):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            return _apply_window_measure_correction(
+                connection,
+                window_id,
+                correction.ancho,
+                correction.alto,
+                correction.confirmar_correccion,
+            )
+
+
+@app.put("/api/pedidos/{order_id}/medidas")
+def correct_order_window_measures(order_id: int, correction: OrderWindowCorrection):
+    if not correction.ventanas:
+        raise HTTPException(status_code=422, detail="Selecciona al menos una ventana para corregir.")
+    window_ids = [item.id for item in correction.ventanas]
+    if len(window_ids) != len(set(window_ids)):
+        raise HTTPException(status_code=422, detail="No repitas una ventana en la corrección.")
+    if not correction.confirmar_correccion:
+        raise HTTPException(status_code=409, detail="Confirma las ventanas que vas a corregir antes de guardar.")
+
+    results = []
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
+                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+            for item in correction.ventanas:
+                results.append(_apply_window_measure_correction(
+                    connection, item.id, item.ancho, item.alto, True, order_id=order_id,
+                ))
+    return {"pedido_id": order_id, "resultados": results}
+
+
+def _apply_window_measure_correction(
+    connection: sqlite3.Connection,
+    window_id: int,
+    width_text: str,
+    height_text: str,
+    confirmed: bool,
+    order_id: int | None = None,
+):
+    try:
+        width = parse_measure(width_text.strip())
+        height = parse_measure(height_text.strip())
+        aluminum = calcular_plan_aluminio(width, height)
+        glass_width, glass_height, glass_quantity = calcular_plan_vidrio(width, height)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=f"Ventana {window_id}: {error}") from error
+
+    query = "SELECT ancho_16, alto_16, ensamblada FROM ventanas WHERE id = ?"
+    if order_id is not None:
+        query = "SELECT ancho_16, alto_16, ensamblada FROM ventanas WHERE id = ? AND pedido_id = ?"
+        window = connection.execute(query, (window_id, order_id)).fetchone()
+    else:
+        window = connection.execute(query, (window_id,)).fetchone()
+    if window is None:
+        raise HTTPException(status_code=404, detail=f"Ventana {window_id} no encontrada en este pedido.")
+    if (window[0], window[1]) == (width, height):
+        raise HTTPException(status_code=422, detail=f"Ventana {window_id}: las medidas nuevas son iguales a las actuales.")
+
+    old_aluminum = connection.execute(
+        "SELECT orden, perfil, longitud_16, cantidad, cortadas "
+        "FROM plan_aluminio WHERE ventana_id = ? ORDER BY orden",
+        (window_id,),
+    ).fetchall()
+    old_glass = connection.execute(
+        "SELECT ancho_16, alto_16, cantidad, cortadas FROM plan_vidrio WHERE ventana_id = ?",
+        (window_id,),
+    ).fetchone()
+    if (len(old_aluminum) != 10 or {row[0] for row in old_aluminum} != set(range(1, 11))
+            or old_glass is None):
+        raise HTTPException(status_code=409, detail="No se puede corregir: el plan de corte está incompleto.")
+
+    aluminum_cut_count = sum(row[4] for row in old_aluminum)
+    glass_cut_count = old_glass[3]
+    if not confirmed:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"La ventana tiene {aluminum_cut_count} cortes de aluminio y "
+                    f"{glass_cut_count} cortes de vidrio marcados. Confirma para recalcular el plan."),
+        )
+
+    old_marks_by_piece = {}
+    for _, profile, length, _, cut in old_aluminum:
+        key = (profile, length)
+        old_marks_by_piece[key] = old_marks_by_piece.get(key, 0) + cut
+
+    preserved_aluminum = 0
+    updated_aluminum = []
+    for order, (profile, length, quantity) in enumerate(aluminum, start=1):
+        preserved = min(old_marks_by_piece.get((profile, length), 0), quantity)
+        preserved_aluminum += preserved
+        updated_aluminum.append((window_id, order, profile, length, quantity, preserved))
+
+    glass_unchanged = (old_glass[0], old_glass[1]) == (glass_width, glass_height)
+    preserved_glass = min(old_glass[3], glass_quantity) if glass_unchanged else 0
+    cleared_marks = aluminum_cut_count + glass_cut_count - preserved_aluminum - preserved_glass
+    assembly_was_marked = bool(window[2])
+
+    connection.execute(
+        "UPDATE ventanas SET ancho_16 = ?, alto_16 = ?, ensamblada = 0 WHERE id = ?",
+        (width, height, window_id),
+    )
+    connection.execute("DELETE FROM plan_aluminio WHERE ventana_id = ?", (window_id,))
+    connection.executemany(
+        "INSERT INTO plan_aluminio "
+        "(ventana_id, orden, perfil, longitud_16, cantidad, cortadas) VALUES (?, ?, ?, ?, ?, ?)",
+        updated_aluminum,
+    )
+    connection.execute(
+        "UPDATE plan_vidrio SET ancho_16 = ?, alto_16 = ?, cantidad = ?, cortadas = ? WHERE ventana_id = ?",
+        (glass_width, glass_height, glass_quantity, preserved_glass, window_id),
+    )
+    return {
+        "id": window_id,
+        "ancho": format_measure(width),
+        "alto": format_measure(height),
+        "marcas_aluminio_conservadas": preserved_aluminum,
+        "marcas_vidrio_conservadas": preserved_glass,
+        "marcas_retiradas": cleared_marks,
+        "ensamble_reiniciado": assembly_was_marked,
     }
 
 

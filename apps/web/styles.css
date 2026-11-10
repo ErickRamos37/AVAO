@@ -5,6 +5,7 @@ header { display: flex; align-items: center; justify-content: space-between; bor
 .brand { color: #176a42; font-size: 24px; font-weight: 750; text-decoration: none; }
 h1 { font-size: 28px; margin-bottom: 8px; }
 form { display: grid; gap: 8px; margin-top: 24px; }
+form[hidden] { display: none; }
 label { font-weight: 650; }
 input { border: 1px solid #8e9b90; border-radius: 6px; background: white; padding: 12px; font: inherit; margin-bottom: 10px; }
 input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #5fac7d; outline-offset: 2px; }
@@ -13,6 +14,11 @@ button:disabled { opacity: .6; cursor: wait; }
 .hint { color: #4a5c50; font-size: 14px; }
 #message { padding: 12px; background: #ffe9e5; border-left: 4px solid #b53426; }
 #order-content { padding: 8px 16px; background: white; border: 1px solid #c9d3ca; border-radius: 6px; margin: 20px 0; }
+.measure-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.measure-heading h2 { margin: 0; }
+.measure-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.window-measure-edit { display: grid; gap: 8px; margin: 0 0 16px; }
+.window-measure-edit input { display: block; width: 100%; max-width: 280px; }
 #area-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 #area-nav button[aria-pressed="true"] { outline: 2px solid #18231e; }
 .cut-row { margin: 4px 0 12px; }
