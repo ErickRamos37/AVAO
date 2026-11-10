@@ -69,6 +69,11 @@ class OrderWindowCorrection(BaseModel):
     confirmar_correccion: bool = False
 
 
+class WindowDiscard(BaseModel):
+    descartada: bool
+    confirmar_descarte: bool = False
+
+
 def database_path() -> Path:
     return Path(os.environ.get("AVAO_DB_PATH", ROOT / "data" / "avao.sqlite3"))
 
@@ -148,7 +153,7 @@ def list_orders():
     with closing(connect_db()) as connection:
         rows = connection.execute(
             "SELECT p.id, p.etiqueta, v.numero_en_pedido "
-            "FROM pedidos AS p LEFT JOIN ventanas AS v ON v.pedido_id = p.id "
+            "FROM pedidos AS p LEFT JOIN ventanas AS v ON v.pedido_id = p.id AND v.descartada = 0 "
             "ORDER BY p.id ASC, v.numero_en_pedido ASC"
         ).fetchall()
     orders = {}
@@ -172,7 +177,7 @@ def get_order(order_id: int):
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
         label = order_row[1]
         windows = connection.execute(
-            "SELECT id, numero_en_pedido, ancho_16, alto_16, ensamblada "
+            "SELECT id, numero_en_pedido, ancho_16, alto_16, ensamblada, descartada "
             "FROM ventanas WHERE pedido_id = ? ORDER BY numero_en_pedido",
             (order_id,),
         ).fetchall()
@@ -211,6 +216,23 @@ def get_order(order_id: int):
         for window_id, _, _, quantity, cut in glass_rows
     }
 
+    window_details = [
+        {
+            "id": window_id,
+            "numero": number,
+            "codigo": f"{label}{number}" if label is not None else None,
+            "ancho": format_measure(width),
+            "alto": format_measure(height),
+            "ensamblada": bool(assembled),
+            "descartada": bool(discarded),
+            "plan_aluminio": plans[window_id],
+            "avance_aluminio": progress[window_id],
+            "plan_vidrio": glass_plans.get(window_id),
+            "avance_vidrio": glass_progress.get(window_id),
+        }
+        for window_id, number, width, height, assembled, discarded in windows
+    ]
+
     return {
         "id": order_id,
         "etiqueta": label,
@@ -219,21 +241,37 @@ def get_order(order_id: int):
             "celular": order_row[6], "direccion": order_row[7] or "",
         },
         "notas": order_row[2] or "",
-        "ventanas": [
-            {
-                "id": window_id,
-                "numero": number,
-                "codigo": f"{label}{number}" if label is not None else None,
-                "ancho": format_measure(width),
-                "alto": format_measure(height),
-                "ensamblada": bool(assembled),
-                "plan_aluminio": plans[window_id],
-                "avance_aluminio": progress[window_id],
-                "plan_vidrio": glass_plans.get(window_id),
-                "avance_vidrio": glass_progress.get(window_id),
-            }
-            for window_id, number, width, height, assembled in windows
-        ],
+        "ventanas": [window for window in window_details if not window["descartada"]],
+        "ventanas_descartadas": [window for window in window_details if window["descartada"]],
+    }
+
+
+@app.put("/api/ventanas/{window_id}/descarte")
+def set_window_discard(window_id: int, change: WindowDiscard):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            row = connection.execute(
+                "SELECT v.pedido_id, v.numero_en_pedido, v.descartada, p.etiqueta "
+                "FROM ventanas AS v JOIN pedidos AS p ON p.id = v.pedido_id WHERE v.id = ?",
+                (window_id,),
+            ).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Ventana no encontrada.")
+            order_id, number, discarded, label = row
+            if bool(discarded) == change.descartada:
+                raise HTTPException(status_code=409, detail="La ventana ya tiene ese estado.")
+            if change.descartada and not change.confirmar_descarte:
+                raise HTTPException(status_code=409, detail="Confirma el descarte de esta ventana.")
+            connection.execute(
+                "UPDATE ventanas SET descartada = ? WHERE id = ?",
+                (int(change.descartada), window_id),
+            )
+    return {
+        "pedido_id": order_id,
+        "ventana_id": window_id,
+        "codigo": f"{label}{number}" if label is not None else None,
+        "descartada": change.descartada,
     }
 
 
@@ -290,14 +328,16 @@ def _apply_window_measure_correction(
     except ValueError as error:
         raise HTTPException(status_code=422, detail=f"Ventana {window_id}: {error}") from error
 
-    query = "SELECT ancho_16, alto_16, ensamblada FROM ventanas WHERE id = ?"
+    query = "SELECT ancho_16, alto_16, ensamblada, descartada FROM ventanas WHERE id = ?"
     if order_id is not None:
-        query = "SELECT ancho_16, alto_16, ensamblada FROM ventanas WHERE id = ? AND pedido_id = ?"
+        query = "SELECT ancho_16, alto_16, ensamblada, descartada FROM ventanas WHERE id = ? AND pedido_id = ?"
         window = connection.execute(query, (window_id, order_id)).fetchone()
     else:
         window = connection.execute(query, (window_id,)).fetchone()
     if window is None:
         raise HTTPException(status_code=404, detail=f"Ventana {window_id} no encontrada en este pedido.")
+    if window[3]:
+        raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de corregir sus medidas.")
     if (window[0], window[1]) == (width, height):
         raise HTTPException(status_code=422, detail=f"Ventana {window_id}: las medidas nuevas son iguales a las actuales.")
 
@@ -420,9 +460,12 @@ def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
             ).fetchone()
             if row is None:
                 raise HTTPException(status_code=404, detail="Corte de aluminio no encontrado.")
-            if difference < 0 and connection.execute(
-                "SELECT ensamblada FROM ventanas WHERE id = ?", (window_id,)
-            ).fetchone()[0]:
+            assembled, discarded = connection.execute(
+                "SELECT ensamblada, descartada FROM ventanas WHERE id = ?", (window_id,)
+            ).fetchone()
+            if discarded:
+                raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de registrar cortes.")
+            if difference < 0 and assembled:
                 raise HTTPException(status_code=409, detail="Deshaz primero la marca de ensamble de esta ventana.")
             required, cut = row
             updated = cut + difference
@@ -447,9 +490,12 @@ def mark_glass(window_id: int, mark: GlassMark):
             ).fetchone()
             if row is None:
                 raise HTTPException(status_code=404, detail="Plan de vidrio no encontrado.")
-            if difference < 0 and connection.execute(
-                "SELECT ensamblada FROM ventanas WHERE id = ?", (window_id,)
-            ).fetchone()[0]:
+            assembled, discarded = connection.execute(
+                "SELECT ensamblada, descartada FROM ventanas WHERE id = ?", (window_id,)
+            ).fetchone()
+            if discarded:
+                raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de registrar cortes.")
+            if difference < 0 and assembled:
                 raise HTTPException(status_code=409, detail="Deshaz primero la marca de ensamble de esta ventana.")
             required, cut = row
             updated = cut + difference
@@ -468,10 +514,12 @@ def mark_assembly(window_id: int, mark: AssemblyMark):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             row = connection.execute(
-                "SELECT ensamblada FROM ventanas WHERE id = ?", (window_id,)
+                "SELECT ensamblada, descartada FROM ventanas WHERE id = ?", (window_id,)
             ).fetchone()
             if row is None:
                 raise HTTPException(status_code=404, detail="Ventana no encontrada.")
+            if row[1]:
+                raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de marcar su ensamble.")
             assembled = bool(row[0])
             if (mark.accion == "marcar") == assembled:
                 raise HTTPException(status_code=409, detail="La ventana ya tiene ese estado de ensamble.")

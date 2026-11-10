@@ -35,6 +35,12 @@ if __name__ == "__main__":
                     "CHECK (ensamblada IN (0, 1))"
                 )
                 connection.commit()
+            if "descartada" not in columns:
+                connection.execute(
+                    "ALTER TABLE ventanas ADD COLUMN descartada INTEGER NOT NULL DEFAULT 0 "
+                    "CHECK (descartada IN (0, 1))"
+                )
+                connection.commit()
         if connection.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'plan_aluminio'"
         ).fetchone():

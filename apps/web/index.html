@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu24-vistas">
-    <script src="/static/app.js?v=hu06-medidas" defer></script>
+    <script src="/static/app.js?v=hu06-descarte" defer></script>
   </head>
   <body>
     <main>
@@ -63,6 +63,10 @@
             </div>
             <p>Medidas de fabricación en pulgadas</p>
             <div id="order-measures"></div>
+            <section id="discarded-windows" hidden>
+              <h3>Ventanas descartadas</h3>
+              <div id="discarded-window-list"></div>
+            </section>
             <form id="measure-edit-form" hidden>
               <div id="measure-edit-rows"></div>
               <div class="measure-actions">
