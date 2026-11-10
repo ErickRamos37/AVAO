@@ -347,7 +347,7 @@ function assemblyRow(window, orderId) {
 async function loadOrders() {
   const list = document.querySelector('#order-list');
   try {
-    const response = await fetch('/api/pedidos');
+    const response = await fetch('/api/pedidos/avance');
     if (!response.ok) throw new Error();
     const data = await response.json();
     list.replaceChildren();
@@ -356,13 +356,55 @@ async function loadOrders() {
       return;
     }
     for (const [index, order] of data.pedidos.entries()) {
-      const item = document.createElement('p');
+      const item = document.createElement('article');
+      item.className = 'order-card';
+      const heading = document.createElement('h3');
       const link = document.createElement('a');
       link.href = `/pedidos/${order.id}`;
       link.textContent = order.etiqueta === null
         ? `${index + 1}. Pedido ${order.id} · sin etiqueta`
         : `${index + 1}. Pedido ${order.etiqueta}`;
-      item.append(link);
+      heading.append(link);
+      item.append(heading);
+      const summary = document.createElement('p');
+      summary.textContent = order.sin_ventanas ? 'Sin ventanas activas'
+        : order.sin_plan ? 'Sin plan de corte completo'
+        : `Avance general: ${order.porcentaje} %`;
+      item.append(summary);
+      if (order.porcentaje !== null) {
+        const progress = document.createElement('progress');
+        progress.max = 100;
+        progress.value = order.porcentaje;
+        progress.setAttribute('aria-label', `Avance general del pedido ${order.etiqueta ?? order.id}`);
+        item.append(progress);
+      }
+      if (order.listo_instalacion) {
+        const ready = document.createElement('p');
+        ready.textContent = 'Listo para instalación';
+        item.append(ready);
+      }
+      if (!order.sin_ventanas) {
+        const details = document.createElement('details');
+        const detailsHeading = document.createElement('summary');
+        detailsHeading.textContent = 'Ver avance por área';
+        details.append(detailsHeading);
+        for (const [name, area] of [
+          ['Aluminio', order.aluminio], ['Vidrio', order.vidrio], ['Ensamble', order.ensamble],
+        ]) {
+          const status = document.createElement('p');
+          status.textContent = `${name}: ${area.hechas} de ${area.requeridas}`
+            + (area.porcentaje === null ? ' · sin plan' : ` · ${area.porcentaje} %`);
+          details.append(status);
+          if (area.porcentaje !== null) {
+            const progress = document.createElement('progress');
+            progress.max = 100;
+            progress.value = area.porcentaje;
+            progress.setAttribute('aria-label', `Avance de ${name.toLowerCase()} del pedido ${order.etiqueta ?? order.id}`);
+            details.append(progress);
+          }
+        }
+        item.append(details);
+      }
       list.append(item);
     }
   } catch {
@@ -490,6 +532,7 @@ async function openOrder(id) {
     }
     updateMeasureEditButton(order);
     detail.hidden = false;
+    await loadOrders();
   } catch (error) {
     showError(error.message);
     errorReturn.hidden = false;

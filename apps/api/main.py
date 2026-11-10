@@ -165,6 +165,55 @@ def list_orders():
     return {"pedidos": list(orders.values())}
 
 
+@app.get("/api/pedidos/avance")
+def list_order_progress():
+    """Summarize active workshop work without storing a second progress state."""
+    orders = []
+    for order in list_orders()["pedidos"]:
+        windows = get_order(order["id"])["ventanas"]
+        aluminum_done = sum(
+            cut["cortadas"] for window in windows for cut in window["avance_aluminio"]
+        )
+        aluminum_required = sum(
+            cut["cantidad"] for window in windows for cut in window["plan_aluminio"]
+        )
+        glass_done = sum(window["avance_vidrio"]["cortadas"] for window in windows if window["avance_vidrio"])
+        glass_required = sum(window["plan_vidrio"]["cantidad"] for window in windows if window["plan_vidrio"])
+        assembly_done = sum(window["ensamblada"] for window in windows)
+        assembly_required = len(windows)
+        has_aluminum = bool(windows) and all(window["plan_aluminio"] for window in windows)
+        has_glass = bool(windows) and all(window["plan_vidrio"] for window in windows)
+        has_plan = has_aluminum and has_glass
+
+        def area(done: int, required: int, available: bool):
+            return {
+                "hechas": done,
+                "requeridas": required,
+                "porcentaje": round(done / required * 100) if available and required else None,
+            }
+
+        aluminum = area(aluminum_done, aluminum_required, has_aluminum)
+        glass = area(glass_done, glass_required, has_glass)
+        assembly = area(assembly_done, assembly_required, bool(windows))
+        ratios = [
+            aluminum_done / aluminum_required if aluminum["porcentaje"] is not None else None,
+            glass_done / glass_required if glass["porcentaje"] is not None else None,
+            assembly_done / assembly_required if assembly["porcentaje"] is not None else None,
+        ]
+        orders.append({
+            "id": order["id"],
+            "etiqueta": order["etiqueta"],
+            "sin_ventanas": not windows,
+            "sin_plan": bool(windows) and not has_plan,
+            "porcentaje": round(sum(ratios) / 3 * 100) if all(value is not None for value in ratios) else None,
+            "listo_instalacion": bool(windows) and assembly_done == assembly_required and has_plan,
+            "aluminio": aluminum,
+            "vidrio": glass,
+            "ensamble": assembly,
+        })
+    return {"pedidos": orders}
+
+
 @app.get("/api/pedidos/{order_id}")
 def get_order(order_id: int):
     with closing(connect_db()) as connection:

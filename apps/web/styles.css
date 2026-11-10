@@ -24,3 +24,7 @@ button:disabled { opacity: .6; cursor: wait; }
 .cut-row { margin: 4px 0 12px; }
 .cut-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
 .cut-actions button { padding: 6px 8px; }
+.order-card { border: 1px solid #c9d3ca; border-radius: 6px; padding: 12px 16px; margin: 12px 0; background: white; }
+.order-card h3 { margin: 0; }
+.order-card p { margin: 8px 0; }
+.order-card progress { display: block; width: 100%; }
