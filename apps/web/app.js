@@ -5,12 +5,18 @@ const errorReturn = document.querySelector('#error-return');
 const rows = document.querySelector('#window-rows');
 const rowTemplate = document.querySelector('#window-template');
 const clientForm = document.querySelector('#client-form');
+const measures = document.querySelector('#order-measures');
+const measureEditButton = document.querySelector('#edit-measures');
+const measureEditForm = document.querySelector('#measure-edit-form');
+const measureEditRows = document.querySelector('#measure-edit-rows');
 const areaButtons = [...document.querySelectorAll('#area-nav button')];
 const areaPanels = [...document.querySelectorAll('[data-area-panel]')];
 let currentOrderId = null;
+let currentOrderData = null;
 let nextRowId = 1;
 
 function showArea(area) {
+  if (area !== 'medidas') exitMeasureEdit();
   for (const button of areaButtons) {
     button.setAttribute('aria-pressed', String(button.dataset.area === area));
   }
@@ -55,6 +61,125 @@ function showError(text) {
   message.textContent = text;
   message.hidden = false;
 }
+
+function updateMeasureEditButton(order = currentOrderData) {
+  const visible = Boolean(order?.ventanas.length);
+  measureEditButton.hidden = !visible || !measureEditForm.hidden;
+}
+
+function exitMeasureEdit() {
+  if (!measureEditForm) return;
+  measureEditForm.hidden = true;
+  measureEditForm.style.display = 'none';
+  measureEditRows.replaceChildren();
+  measures.hidden = false;
+  updateMeasureEditButton();
+}
+
+function enterMeasureEdit() {
+  if (!currentOrderData) return;
+  measureEditRows.replaceChildren();
+  for (const window of currentOrderData.ventanas) {
+    const fieldset = document.createElement('fieldset');
+    fieldset.className = 'window-measure-edit';
+    fieldset.dataset.windowId = window.id;
+    fieldset.dataset.originalWidth = window.ancho;
+    fieldset.dataset.originalHeight = window.alto;
+    const legend = document.createElement('legend');
+    legend.textContent = `Ventana ${window.codigo ?? window.numero}`;
+    const widthLabel = document.createElement('label');
+    widthLabel.textContent = 'Ancho nuevo';
+    const widthInput = document.createElement('input');
+    widthInput.name = 'ancho';
+    widthInput.required = true;
+    widthInput.autocomplete = 'off';
+    widthInput.value = window.ancho;
+    widthLabel.append(widthInput);
+    const heightLabel = document.createElement('label');
+    heightLabel.textContent = 'Alto nuevo';
+    const heightInput = document.createElement('input');
+    heightInput.name = 'alto';
+    heightInput.required = true;
+    heightInput.autocomplete = 'off';
+    heightInput.value = window.alto;
+    heightLabel.append(heightInput);
+    fieldset.append(legend, widthLabel, heightLabel);
+    measureEditRows.append(fieldset);
+  }
+  measureEditForm.hidden = false;
+  measureEditForm.style.display = 'grid';
+  measures.hidden = true;
+  measureEditButton.hidden = true;
+}
+
+measureEditButton.addEventListener('click', enterMeasureEdit);
+document.querySelector('#cancel-measure-edit').addEventListener('click', exitMeasureEdit);
+
+measureEditForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  message.hidden = true;
+  const submit = measureEditForm.querySelector('button[type="submit"]');
+  const cancel = document.querySelector('#cancel-measure-edit');
+  const changes = [...measureEditRows.children].map((fieldset) => ({
+    id: Number(fieldset.dataset.windowId),
+    ancho: fieldset.querySelector('[name="ancho"]').value.trim(),
+    alto: fieldset.querySelector('[name="alto"]').value.trim(),
+    anchoAnterior: fieldset.dataset.originalWidth,
+    altoAnterior: fieldset.dataset.originalHeight,
+  })).filter((item) => item.ancho !== item.anchoAnterior || item.alto !== item.altoAnterior);
+
+  if (!changes.length) {
+    exitMeasureEdit();
+    message.textContent = 'No hay medidas modificadas.';
+    message.hidden = false;
+    return;
+  }
+
+  const summaries = changes.map((item) => {
+    const window = currentOrderData.ventanas.find((candidate) => candidate.id === item.id);
+    const aluminumCuts = window.avance_aluminio.reduce((total, cut) => total + cut.cortadas, 0);
+    const glassCuts = window.avance_vidrio?.cortadas ?? 0;
+    const assembly = window.ensamblada ? '; se quitará la marca de ensamble' : '';
+    return `• ${window.codigo ?? `Ventana ${window.numero}`}: ${item.anchoAnterior} × ${item.altoAnterior} → ${item.ancho} × ${item.alto} (${aluminumCuts} cortes de aluminio y ${glassCuts} de vidrio marcados${assembly})`;
+  });
+  const confirmed = globalThis.confirm(
+    `Vas a corregir ${changes.length} ventana(s):\n\n${summaries.join('\n')}\n\n`
+    + 'AVAO recalculará los planes de aluminio y vidrio. Conservará las marcas de las piezas del mismo tipo/perfil y medida, '
+    + 'y quitará las marcas que ya no correspondan. Los códigos de ventana se conservan. ¿Guardar cambios?',
+  );
+  if (!confirmed) return;
+
+  submit.disabled = true;
+  cancel.disabled = true;
+  try {
+    const orderId = currentOrderData.id;
+    const response = await fetch(`/api/pedidos/${orderId}/medidas`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ventanas: changes.map(({ id, ancho, alto }) => ({ id, ancho, alto })),
+        confirmar_correccion: true,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudieron corregir las medidas.');
+    }
+    const result = await response.json();
+    exitMeasureEdit();
+    await openOrder(orderId);
+    const keptAluminum = result.resultados.reduce((total, item) => total + item.marcas_aluminio_conservadas, 0);
+    const keptGlass = result.resultados.reduce((total, item) => total + item.marcas_vidrio_conservadas, 0);
+    const cleared = result.resultados.reduce((total, item) => total + item.marcas_retiradas, 0);
+    message.textContent = `Se actualizaron ${result.resultados.length} ventana(s). Se conservaron ${keptAluminum} marcas de aluminio y ${keptGlass} de vidrio; se retiraron ${cleared}.`;
+    message.hidden = false;
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    submit.disabled = false;
+    cancel.disabled = false;
+  }
+});
 
 function aluminumCutRow(window, cut, progress, label, onProgressChange) {
   const row = document.createElement('div');
@@ -244,6 +369,12 @@ async function loadOrders() {
 }
 
 async function openOrder(id) {
+  const requestedOrderId = Number(id);
+  if (currentOrderId !== requestedOrderId) {
+    exitMeasureEdit();
+    currentOrderId = null;
+    currentOrderData = null;
+  }
   capture.hidden = true;
   detail.hidden = true;
   message.hidden = true;
@@ -258,6 +389,8 @@ async function openOrder(id) {
       showArea('medidas');
       document.querySelector('#client-details').open = false;
     }
+    currentOrderData = order;
+    exitMeasureEdit();
     document.querySelector('#order-title').textContent = order.etiqueta === null
       ? `Pedido ${order.id} · sin etiqueta`
       : `Pedido ${order.etiqueta}`;
@@ -271,16 +404,23 @@ async function openOrder(id) {
       : 'Faltan los datos del cliente.';
     clientForm.querySelector('button[type="submit"]').textContent = order.cliente
       ? 'Guardar correcciones' : 'Guardar datos del cliente';
-    const measures = document.querySelector('#order-measures');
     const aluminum = document.querySelector('#order-aluminum');
     const glass = document.querySelector('#order-glass');
     const assemblyList = document.querySelector('#order-assembly');
     for (const panel of [measures, aluminum, glass, assemblyList]) panel.replaceChildren();
     for (const window of order.ventanas) {
-      const item = document.createElement('p');
-      item.textContent = `Ventana ${window.codigo ?? window.numero}: ${window.ancho} × ${window.alto}`;
-      measures.append(item);
+      const measureSection = document.createElement('section');
+      const measureHeading = document.createElement('h3');
+      measureHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      const measureValue = document.createElement('p');
+      measureValue.textContent = `${window.ancho} × ${window.alto}`;
+      measureSection.append(measureHeading, measureValue);
+      measures.append(measureSection);
       const assembly = assemblyRow(window, order.id);
+      const refreshWindowProgress = () => {
+        assembly.refresh();
+        updateMeasureEditButton(order);
+      };
       const assemblyHeading = document.createElement('h3');
       assemblyHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
       assemblyList.append(assemblyHeading, assembly.row);
@@ -306,7 +446,7 @@ async function openOrder(id) {
         ];
         for (const [index, label] of labels.entries()) {
           const line = document.createElement('li');
-          line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], label, assembly.refresh));
+          line.append(aluminumCutRow(window, window.plan_aluminio[index], window.avance_aluminio[index], label, refreshWindowProgress));
           plan.append(line);
         }
         aluminum.append(plan);
@@ -315,13 +455,14 @@ async function openOrder(id) {
       glassHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
       glass.append(glassHeading);
       if (window.plan_vidrio && window.avance_vidrio) {
-        glass.append(glassCutRow(window, assembly.refresh));
+        glass.append(glassCutRow(window, refreshWindowProgress));
       } else {
         const notice = document.createElement('p');
         notice.textContent = 'Plan de vidrio no disponible para este pedido anterior.';
         glass.append(notice);
       }
     }
+    updateMeasureEditButton(order);
     detail.hidden = false;
   } catch (error) {
     showError(error.message);
@@ -408,6 +549,9 @@ window.addEventListener('popstate', () => {
   const match = location.pathname.match(/^\/pedidos\/(\d+)$/);
   if (match) openOrder(match[1]);
   else {
+    exitMeasureEdit();
+    currentOrderId = null;
+    currentOrderData = null;
     detail.hidden = true;
     capture.hidden = false;
     message.hidden = true;
@@ -418,3 +562,4 @@ window.addEventListener('popstate', () => {
 const match = location.pathname.match(/^\/pedidos\/(\d+)$/);
 loadOrders();
 if (match) openOrder(match[1]);
+else exitMeasureEdit();
