@@ -109,17 +109,17 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 | --- | --- | --- | --- | --- |
 | HU-06 | Pedidos y medidas · E1 | Alta en Ciclo 2 | 3, inicial | **Como** empleado, **necesito** corregir las medidas de una ventana guardada antes de iniciar sus cortes, o descartarla mientras el pedido siga activo, **para** mantener correctos el plan y el precio del pedido. **Abierta:** la corrección, el descarte y la reincorporación están aceptados; queda pendiente el ajuste de precio. Véase [#45](https://github.com/ErickRamos37/AVAO/issues/45). |
 | HU-07 | Cortes y taller · E2 | Media en Ciclo 2 | 8, provisional | **Como** trabajador del taller, **necesito** corregir las medidas de una ventana después de iniciar sus cortes, **para** continuar su fabricación con el plan actualizado y conservar las marcas que aún aplican. **Terminada:** el usuario aceptó la subtarea [#49](https://github.com/ErickRamos37/AVAO/issues/49); no incluye registrar daños ni decidir si se reutiliza una pieza. Véase [#47](https://github.com/ErickRamos37/AVAO/issues/47). |
-| HU-08 | Cortes y taller · E2 | Media | Pendiente | **Como** trabajador del taller, **necesito** señalar que todas las ventanas del pedido están ensambladas, **para** distinguir un pedido listo para coordinar instalación de una sola ventana terminada. Al refinarla, comprobar si basta derivar este dato del estado de cada ventana en HU-05, sin crear un segundo estado manual divergente. |
-| HU-09 | Cortes y taller · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos del taller y sus pendientes de corte y ensamble, **para** retomar el trabajo que corresponde. Se acordaron tarjetas por pedido con progreso general y desglose por área; véase la subtarea [#53](https://github.com/ErickRamos37/AVAO/issues/53). |
-| HU-10 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** cambiar entre pedidos pendientes sin perder su avance, **para** continuar con otro cuando falta material para el actual. Un cliente puede tener varios pedidos y cada pedido varias ventanas. |
+| HU-08 | Cortes y taller · E2 | Media | Cubierta | **Como** trabajador del taller, **necesito** señalar que todas las ventanas del pedido están ensambladas, **para** distinguir un pedido listo para coordinar instalación de una sola ventana terminada. El flujo actual deriva este resultado del ensamble registrado en sus ventanas (HU-05); el usuario confirmó que está cubierto. |
+| HU-09 | Cortes y taller · E2 | Media | Terminada | **Como** empleado, **necesito** consultar el avance de los pedidos activos del taller, **para** identificar rápidamente qué trabajo sigue pendiente. Tarjetas por pedido, progreso general con tres áreas de igual peso y desglose; subtarea [#53](https://github.com/ErickRamos37/AVAO/issues/53) aceptada e integrada. |
+| HU-10 | Pedidos y medidas · E2 | Media | Cubierta | **Como** empleado, **necesito** cambiar entre pedidos pendientes sin perder su avance, **para** continuar con otro cuando falta material para el actual. El flujo actual permite abrir otro pedido y conserva el avance; el usuario confirmó que está cubierto. |
 | HU-23 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos en orden de llegada a AVAO, **para** reconocer cuál se registró primero y abrir el que convenga atender. [Issue #17](https://github.com/ErickRamos37/AVAO/issues/17); alcance de esta entrega debajo. |
 
 ### HU-06 — Corrección, descarte y reincorporación de ventanas guardadas
 
 - **Subtarea [#48](https://github.com/ErickRamos37/AVAO/issues/48), aceptada — Corregir medidas guardadas antes del primer corte:** cambiar las medidas de cualquiera de las ventanas de un pedido, recalcular su plan y conservar código y posición. La edición puede cancelarse sin guardar. El usuario comprobó el recorrido con varias ventanas.
 - **Subtarea [#51](https://github.com/ErickRamos37/AVAO/issues/51), aceptada — Descartar y reincorporar una ventana guardada:** mientras el pedido siga activo, pedir confirmación antes de descartar e indicar si hay cortes marcados o ensamble. Conservar la ventana en una sección de descartadas con sus medidas, plan, marcas, código y posición; permitir reincorporarla con la misma identidad. Una ventana descartada se excluye de cortes, ensamble y progreso pendientes, pero conserva sus marcas. Puede quedar un pedido con cero ventanas activas. El usuario comprobó el recorrido; no incluye borrar definitivamente la ventana ni ajustar el precio.
-- **Subtarea posterior [#52](https://github.com/ErickRamos37/AVAO/issues/52) — Actualizar total y saldo al descartar o reincorporar:** restar o sumar el precio de la ventana y actualizar total y saldo del pedido. Depende de disponer del cálculo de precio y el registro comercial en HU-11/HU-14; el trato con el cliente corresponde al encargado. No se fija aquí una fórmula de precio.
-- **Límite:** HU-07 cubre correcciones después de iniciar cortes. HU-06 permanece abierta mientras falte la subtarea #52; el descarte no elimina piezas o marcas de trabajo ya realizado.
+- **Trabajo futuro [#52](https://github.com/ErickRamos37/AVAO/issues/52) — Actualizar total y saldo al descartar o reincorporar:** restar o sumar el precio de la ventana y actualizar total y saldo del pedido. Depende de disponer del cálculo de precio y el registro comercial en HU-11/HU-14; queda fuera del Ciclo 2 y no es ejecutable hasta que esas capacidades existan. El trato con el cliente corresponde al encargado; no se fija aquí una fórmula de precio.
+- **Límite:** HU-07 cubre correcciones después de iniciar cortes. La corrección, descarte y reincorporación están aceptados; el ajuste de precio permanece diferido por su dependencia comercial. El descarte no elimina piezas o marcas de trabajo ya realizado.
 
 ### HU-07 — Corrección después de iniciar cortes
 
@@ -127,7 +127,7 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 
 ### HU-09 — Consulta del avance entre pedidos
 
-- **Subtarea [#53](https://github.com/ErickRamos37/AVAO/issues/53) — Mostrar avance de pedidos activos en la cola:** presentar una tarjeta por pedido en orden de llegada, con avance general y desglose desplegable de aluminio, vidrio y ensamble. Para cada área, mostrar cantidad terminada frente a cantidad requerida: piezas de aluminio cortadas / piezas de aluminio requeridas; vidrios cortados / vidrios requeridos; ventanas ensambladas / ventanas activas del pedido. El progreso general combina esas tres proporciones con igual peso, sin sumar directamente unidades distintas. Excluir las ventanas descartadas de los pendientes y denominadores de progreso sin perder sus marcas. Identificar los pedidos con todas sus ventanas activas ensambladas como listos para instalación. Comprobar un pedido parcial y otro completamente ensamblado sin mezclar sus avances.
+- **Subtarea [#53](https://github.com/ErickRamos37/AVAO/issues/53), aceptada — Mostrar avance de pedidos activos en la cola:** presentar una tarjeta por pedido en orden de llegada, con avance general y desglose desplegable de aluminio, vidrio y ensamble. Para cada área, mostrar cantidad terminada frente a cantidad requerida: piezas de aluminio cortadas / piezas de aluminio requeridas; vidrios cortados / vidrios requeridos; ventanas ensambladas / ventanas activas del pedido. El progreso general combina esas tres proporciones con igual peso, sin sumar directamente unidades distintas. Excluir las ventanas descartadas de los pendientes y denominadores de progreso sin perder sus marcas. Identificar los pedidos con todas sus ventanas activas ensambladas como listos para instalación. La subtarea se integró y se cerró.
 - **Dependencia y caso sin ventanas activas:** excluir pedidos solo cuando estén instalados y liquidados depende de HU-16/HU-17. Si un pedido tiene cero ventanas activas, mostrar «Sin ventanas activas», sin porcentaje general ni marca de listo para instalación.
 
 ### HU-23 — Orden de llegada visible
@@ -152,21 +152,129 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 - **Subtarea [#43](https://github.com/ErickRamos37/AVAO/issues/43) — Separar la consulta del pedido en cuatro vistas de trabajo:** reorganizar la información y los controles existentes por área dentro del pedido abierto, mantener el acceso a cliente y notas y comprobar navegación y marcas con dos ventanas. No añadir estados, cálculos ni pasos de captura.
 - **Límites:** no reúne pendientes de todos los pedidos (HU-09), no agrega cálculos, marcas o estados nuevos a HU-01, HU-03, HU-04 y HU-05, no introduce permisos por área ni fija un diseño visual detallado. Mantener visibles los avisos existentes si un pedido anterior carece de plan de corte.
 
-## Siguiente etapa: datos del cliente, precio sencillo, instalación y liquidación
+## Ciclo 2: medidas y seguimiento de fabricación
 
-Secuencia funcional acordada: **empleado captura medidas de las ventanas → registra datos del cliente → calcula y muestra precio y servicios → comunica el total → registra anticipo si el cliente acepta → confirma el pedido → taller fabrica → se instala → se liquida saldo**. Hoy AVAO guarda el pedido al guardar las medidas; cómo evolucionar ese guardado hacia la confirmación comercial queda por refinar, sin alterar la entrega existente. No hay interfaz del cliente prevista. La fórmula sencilla actual de precios aún debe documentarse con ejemplos; la antigua tabla de rangos de medidas no se adopta porque las ventanas varían mucho. Estimar estas HU cuando se acerquen al trabajo.
+HU-07 y HU-09 están terminadas; el usuario confirmó que HU-08 y HU-10 están cubiertas por el flujo actual. En HU-06 queda la subtarea futura #52, bloqueada hasta que existan cálculo de precios y registro comercial de HU-11/HU-14. No debe tratarse como trabajo ejecutable del Ciclo 3. Los algoritmos de corte 1D/2D y la PWA/aplicación móvil siguen como propuestas posteriores, no compromisos de este ciclo.
+
+## Ciclo 3 propuesto: costos y precios de ventanas
+
+El usuario decidió omitir la fórmula sencilla. Este ciclo prepara el costo real de materiales desde el inventario flexible, aplica ganancia al costo total de materiales de cada ventana y muestra el total de ventanas activas del pedido. La aceptación del presupuesto, anticipos y otros cobros quedan para un ciclo posterior. Las prioridades y esfuerzos siguientes son **propuestas iniciales**, no compromisos definitivos.
+
+| Orden | HU | Prioridad propuesta | Esfuerzo inicial propuesto | Dependencias y límites |
+| --- | --- | --- | ---: | --- |
+| 1 | HU-18 — Mantener costos de compra de insumos de California por mitad | Alta | 3 | Perfiles, vidrio y accesorios ya utilizados en el plan. Registrar/consultar/actualizar costo de compra. Sin existencias, órdenes de compra ni otros productos. |
+| 2 | HU-11 — Calcular costo exacto de materiales por ventana | Alta | 5 | Usa cantidades y medidas del plan de corte y costos de HU-18. Valora medidas exactas usadas, sin redondear a tramos comerciales. No recupera desperdicio ni optimiza cortes. |
+| 3 | HU-19 — Aplicar ganancia al costo de materiales de una ventana | Alta | 3, provisional | Aplica el porcentaje definido por el usuario sobre el costo total de materiales de la ventana, no por perfil. No incluye servicios ni cobros. Un ejemplo numérico debe confirmar la interpretación antes de fijar aceptación. |
+| 4 | HU-25 — Mostrar total de ventanas activas del pedido | Alta | 2 | Suma los precios por ventana y excluye descartadas. No incluye aceptar presupuesto, registrar anticipo o calcular saldo. |
+| 5 | HU-12 — Agregar servicios opcionales al pedido | Media, propuesta | Por estimar | Instalación y visita a domicilio como conceptos separados de materiales, asociados al pedido. La visita depende principalmente de distancia. No incluye cotización independiente, mantenimiento, reparaciones ni cobro de recorte/ensamble por separado. Sin regla de importe no está lista para estimarse. |
+| 6 | HU-26 — Recuperar desperdicio de perfiles de aluminio según umbral | Media, propuesta | 3, provisional | Depende de HU-18/HU-11. Regla configurable y cobro distribuido entre ventanas del pedido; se limita a aluminio y no implementa optimización 1D. Falta fijar longitud comercial y aplicación del umbral. |
+
+### Fuera del Ciclo 3
+
+| HU | Prioridad | Alcance conocido y dependencia |
+| --- | --- | --- |
+| HU-27 — Recuperar y distribuir costo de desperdicio de vidrio entre ventanas | Futura, sin asignar | Depende de los costos de HU-18/HU-11. Usa umbrales configurables de consumo de hoja y distribuye el costo recuperado entre ventanas del pedido. No implementa optimización 2D. Quedan por definir dimensiones comerciales de hoja, medida de consumo y ejemplos del umbral. |
+| HU-14 — Registrar anticipo y confirmar pedido; HU-15 a HU-17 — instalación y liquidación | Ciclo posterior, sin estimar | Cierre comercial después de que precio y total estén disponibles. |
+
+**Reglas confirmadas:** el inventario guarda costo real de compra; se calcula material por ventana y se aplica ganancia al costo total de materiales de esa ventana; el total suma ventanas activas; el error humano lo asume el negocio y no se cobra como desperdicio. Para perfiles y vidrio se valora la medida exacta utilizada, sin redondear a barras u hojas enteras. Los porcentajes/umbrales de desperdicio son ajustables por el usuario, incluido 0 % para no recuperar desperdicio. El costo que se recupere se distribuye equitativamente entre las ventanas del pedido e integra su costo/precio; no aparece como concepto independiente para el cliente.
+
+**Pendiente de concretar antes de cerrar criterios:** ejemplo numérico del porcentaje de ganancia; qué longitud comercial de perfil se usa para evaluar sobrantes aunque no se optimicen cortes; qué medida comercial de hoja y cálculo de consumo aplican al umbral del vidrio; cómo se asigna recuperación cuando no todas las ventanas comparten el mismo tipo de material. No convertir estos vacíos en reglas supuestas.
+
+HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en este ciclo algoritmos 1D/2D, PWA/aplicación móvil, mantenimiento, reparación, aceptación del presupuesto ni anticipo.
+
+### HU-18 — Mantener costos reales de compra de insumos
+
+- **Área:** Precios y cobros · **Épica:** E4 · **Prioridad/esfuerzo:** Alta / 3 propuestos para Ciclo 3.
+- **Historia:** **Como** encargado del negocio, **necesito** registrar, consultar y actualizar el costo real de compra de los insumos usados por la ventana California por mitad, **para** calcular sus costos de materiales con valores vigentes.
+- **Criterios de aceptación propuestos:**
+  1. El encargado puede consultar y actualizar el costo de cada insumo que usa el plan vigente de California por mitad, incluidos perfiles, vidrio y accesorios definidos para esa ventana.
+  2. El sistema conserva para cada valor el insumo al que pertenece y la unidad en que se registra, de modo que HU-11 pueda valorar la cantidad exacta usada.
+  3. Cambiar un costo no cambia los cortes ni las marcas de fabricación.
+- **Dependencias/límites:** habilita HU-11; no incluye existencias, compras, proveedores, otros tipos de ventana/producto ni el precio final del cliente.
+- **Preguntas abiertas:** unidad de compra registrada por cada tipo de insumo y conversión a costo por unidad de cálculo. En perfiles por longitud y vidrio por hoja/área se necesitan datos del proveedor antes de fijar criterios completos.
+
+### HU-11 — Calcular costo exacto de materiales por ventana
+
+- **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Alta / 5 propuestos para Ciclo 3.
+- **Historia:** **Como** empleado, **necesito** consultar el costo de los materiales requeridos por cada ventana según su plan de corte y los costos de compra vigentes, **para** conocer la base del precio de esa ventana.
+- **Criterios de aceptación propuestos:**
+  1. Para una ventana California por mitad con plan de HU-02, el sistema valora las cantidades y longitudes requeridas de perfiles, vidrios y los accesorios que se confirmen en HU-18.
+  2. El costo por perfil y vidrio corresponde a la medida exacta usada, sin redondear a un tramo o una hoja comercial entera.
+  3. El resultado presenta un desglose de costo de materiales por ventana y el subtotal de materiales.
+  4. El cambio de costo de un insumo afecta los cálculos nuevos; no altera plan de corte, medidas ni avance del taller.
+- **Dependencias/límites:** depende de unidades y costos configurados en HU-18. No aplica ganancia (HU-19), recupera desperdicio (HU-26/HU-27), incluye servicios ni optimiza cortes 1D/2D.
+- **Preguntas abiertas:** conversión de unidades de compra de perfiles/vidrio al costo de medida consumida; ejemplo real para validar costo de una ventana.
+
+### HU-19 — Aplicar ganancia al costo de materiales de la ventana
+
+- **Área:** Precios y cobros · **Épica:** E4 · **Prioridad/esfuerzo:** Alta / 3 propuestos para Ciclo 3.
+- **Historia:** **Como** encargado del negocio, **necesito** aplicar un porcentaje de ganancia al costo total de materiales de cada ventana, **para** obtener su precio antes de agregar servicios.
+- **Criterios de aceptación propuestos:**
+  1. El porcentaje se aplica al costo total de materiales de la ventana obtenido por HU-11, no a cada perfil por separado.
+  2. El resultado muestra costo de materiales, ganancia aplicada y precio de la ventana de forma distinguible.
+  3. Cambiar el porcentaje configura cálculos posteriores y no altera las medidas ni planes de corte.
+- **Dependencias/límites:** depende de HU-11. No incorpora servicios, aceptación, anticipos ni pagos.
+- **Pregunta abierta:** ejemplo numérico aprobado por el usuario para validar cómo se aplica el porcentaje y el redondeo monetario.
+
+### HU-25 — Consultar el total de ventanas activas del pedido
+
+- **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Alta / 2 propuestos para Ciclo 3.
+- **Historia:** **Como** empleado, **necesito** consultar el total de los precios de ventana de un pedido, **para** conocer el importe de los productos antes de agregar servicios o registrar pagos.
+- **Criterios de aceptación propuestos:**
+  1. Muestra el precio de cada ventana activa y la suma del pedido.
+  2. Las ventanas descartadas no se suman; reincorporarlas vuelve a incluirlas conforme a HU-06.
+  3. Si no hay ventanas activas, no presenta un importe como si hubiera productos vigentes.
+- **Dependencias/límites:** depende de HU-19; no incluye servicios (HU-12), aceptación de presupuesto, anticipo ni saldo.
+
+### HU-12 — Agregar servicios opcionales al pedido
+
+- **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Media propuesta / por estimar en Ciclo 3.
+- **Historia:** **Como** empleado, **necesito** agregar visita a domicilio e instalación como conceptos separados de los materiales en un pedido, **para** mostrar por separado el importe de esos servicios.
+- **Criterios de aceptación propuestos:**
+  1. El empleado puede indicar los servicios aplicables al pedido y verlos separados del precio de las ventanas.
+  2. El total presenta los servicios aplicados junto al total de ventanas.
+- **Dependencias/límites:** depende de HU-25 y de reglas de tarifa confirmadas. No permite cotizaciones de visita independientes del pedido. Recorte y ensamble son parte del precio de ventana y no se agregan como servicios separados. Mantenimiento y reparaciones quedan fuera.
+- **Preguntas abiertas:** regla o ejemplos de tarifa de instalación y de visita según distancia; si se requiere capturar la distancia o solo seleccionar el importe calculado por el encargado.
+
+### HU-26 — Recuperar costo de desperdicio de perfiles de aluminio
+
+- **Área:** Precios y cobros · **Épica:** E4 · **Prioridad/esfuerzo:** Media propuesta / 3 provisional para Ciclo 3.
+- **Historia:** **Como** encargado del negocio, **necesito** configurar un umbral de recuperación de sobrantes de aluminio y distribuir su costo permitido entre las ventanas del pedido, **para** reflejar el desperdicio de material sin cobrar los errores humanos del negocio.
+- **Criterios de aceptación propuestos:**
+  1. El encargado puede configurar el umbral para perfiles de aluminio.
+  2. El usuario puede ajustar el umbral, incluido 0 % para no recuperar desperdicio.
+  3. Cuando la regla de recuperación aplica, el importe se distribuye equitativamente entre ventanas activas y forma parte del costo/precio de cada ventana; no se presenta al cliente como concepto separado. Puede mostrarse en un desglose interno comprobable.
+  4. Un error de medición o fabricación del negocio no aumenta el importe cobrado al cliente.
+- **Dependencias/límites:** depende de HU-18, HU-11 y HU-25. Solo valoración de aluminio; no incluye optimización 1D, reutilización automática de sobrantes ni vidrio.
+- **Preguntas abiertas:** longitud comercial de cada perfil y ejemplo concreto que defina cómo se interpreta el umbral sin optimizar cortes.
+
+### HU-27 — Recuperar y distribuir desperdicio de hojas de vidrio (futura)
+
+- **Área:** Precios y cobros · **Épica:** E4 · **Prioridad/esfuerzo:** Sin asignar; fuera del Ciclo 3.
+- **Historia:** **Como** encargado del negocio, **necesito** configurar un umbral para recuperar el costo de desperdicio de vidrio y distribuirlo entre ventanas del pedido, **para** reflejar el uso de hojas comerciales sin cobrar errores humanos del negocio.
+- **Criterios de aceptación propuestos:**
+  1. El sistema permite configurar el umbral y presenta el costo recuperado separado del material exacto utilizado.
+  2. El umbral puede ajustarse, incluido 0 % para no recuperar desperdicio.
+  3. Cuando la regla de recuperación aplica, el importe se distribuye equitativamente entre ventanas activas y forma parte del costo/precio de cada ventana; no se presenta al cliente como concepto separado. Puede mostrarse en un desglose interno comprobable.
+  4. Los errores del negocio no se cobran como desperdicio.
+- **Dependencias/límites:** depende de HU-18, HU-11 y HU-25; futuro respecto del Ciclo 3. No incluye algoritmo de optimización 2D ni reutilización automática de sobrantes.
+- **Preguntas abiertas:** dimensiones comerciales de hoja, medida de consumo contra el umbral y ejemplo numérico que determine la regla.
+
+## Secuencia comercial prevista: datos, precios, aceptación y liquidación
+
+Secuencia funcional prevista: **empleado captura medidas → completa datos de cliente → calcula precio de ventanas e incorpora servicios opcionales → comunica total → si cliente acepta, registra anticipo y confirma pedido → taller fabrica → se instala → se liquida saldo**. El Ciclo 3 cubre solo el precio de las ventanas, el total de pedido y servicios opcionales acotados; la aceptación, anticipo y cierre comercial siguen para después. No hay interfaz del cliente prevista.
 
 | ID | Área · Épica | Historia | Regla pendiente |
 | --- | --- | --- | --- |
 | HU-13 | Pedidos y medidas · E3 | **Como** empleado, **necesito** completar, consultar y corregir los datos del cliente y las notas del pedido cuyas ventanas ya guardé, **para** conservar la información de contacto y las especificaciones de trabajo antes de calcular el precio. | Nombre, primer apellido y celular obligatorios; segundo apellido, dirección y notas opcionales. Las notas pertenecen al pedido y las consultan los trabajadores. |
-| HU-11 | Precios y cobros · E3 | **Como** empleado, **necesito** calcular el precio de las ventanas registradas con el método sencillo actual, **para** comunicar al cliente el total calculado. | Fórmula, insumos y ejemplos reales. |
-| HU-12 | Precios y cobros · E3 | **Como** empleado, **necesito** añadir servicios aplicables, como visita a domicilio e instalación, **para** comunicar un total que incluya el trabajo ofrecido. | Reglas de cobro por servicio. |
+| HU-11 | Precios y cobros · E3 | **Como** empleado, **necesito** calcular el costo de los materiales requeridos por cada ventana según sus medidas y el inventario, **para** conocer la base del precio de venta. | HU-18, unidades y exactitud del valor de insumo. |
+| HU-12 | Precios y cobros · E3 | **Como** empleado, **necesito** añadir servicios opcionales al pedido, como visita e instalación, **para** presentar por separado su importe junto al precio de las ventanas. | Importe de visita por distancia, tarifa de instalación y vigencia del servicio. |
 | HU-14 | Precios y cobros · E3 | **Como** empleado, **necesito** registrar anticipo y confirmar el pedido aceptado, **para** iniciar el trabajo con total y saldo visibles. | Varios anticipos, cancelación y cambios posteriores. |
 | HU-15 | Instalación · E3 | **Como** empleado, **necesito** registrar día y, si se acuerda, hora de instalación, **para** coordinar la visita con el cliente. | Reprogramación e instalación parcial. |
 | HU-16 | Instalación · E3 | **Como** instalador, **necesito** marcar el pedido instalado, **para** distinguir la entrega física de la liquidación del saldo. | Criterio de instalación completa. |
 | HU-17 | Precios y cobros · E3 | **Como** empleado, **necesito** registrar pagos posteriores y la liquidación final, **para** conocer el saldo y cerrar el pedido cuando esté instalado y pagado por completo. | Pagos parciales, ajustes y comprobantes. Su estado de cierre habilita la liberación de la etiqueta definida en HU-22. |
 
-### HU-13 — Datos del cliente y notas del pedido, siguiente entrega
+### HU-13 — Datos del cliente y notas del pedido, cubierta
 
 - **Issue:** [AVAO #33](https://github.com/ErickRamos37/AVAO/issues/33); **subtarea:** [#34](https://github.com/ErickRamos37/AVAO/issues/34).
 - **Secuencia y campos confirmados:** primero se guardan las medidas del pedido; después se completan los datos del cliente y, más adelante, se mostrará el precio. Nombre, primer apellido y celular son obligatorios; segundo apellido y dirección son opcionales. Según la definición previa, el celular tiene diez dígitos. Las notas son especificaciones **del pedido** para los trabajadores, como horarios o teléfono alternativo, y son opcionales. En esta entrega solo se crea un cliente nuevo; elegir uno ya registrado queda fuera.
@@ -180,14 +288,17 @@ Secuencia funcional acordada: **empleado captura medidas de las ventanas → reg
 
 ## Etapa posterior: precios flexibles y otras capacidades
 
-Sin prioridad ni esfuerzo asignados hasta comprobar medidas, taller y cierre comercial con la fórmula sencilla.
+La recuperación de desperdicio de vidrio se registra en HU-27 para un ciclo posterior, separada de la futura optimización de cortes. No duplicar las capacidades del Ciclo 3 en esta sección.
 
 | ID | Área · Épica | Historia | Regla pendiente |
 | --- | --- | --- | --- |
-| HU-18 | Precios y cobros · E4 | **Como** encargado del negocio, **necesito** mantener precios de perfiles, vidrios y accesorios por medida, tramo o unidad, **para** actualizar un insumo sin rehacer manualmente todos los presupuestos. | Costo frente a venta, longitud del tramo, unidades y desperdicio. |
-| HU-19 | Precios y cobros · E4 | **Como** encargado del negocio, **necesito** aplicar a cada ventana un porcentaje de ganancia elegido, **para** calcular su precio a partir de insumos actualizados. | Recargo sobre costo frente a margen sobre venta; mano de obra y servicios. |
+| HU-18 | Precios y cobros · E4 | **Como** encargado del negocio, **necesito** mantener y actualizar el costo real de compra de los perfiles, vidrio y accesorios usados por California por mitad, **para** calcular el costo de sus materiales con valores vigentes. | Catálogo y unidades mínimas del primer caso; otros productos y existencias quedan fuera. |
+| HU-19 | Precios y cobros · E4 | **Como** encargado del negocio, **necesito** aplicar un porcentaje de ganancia al costo total de materiales de cada ventana, **para** obtener su precio antes de agregar servicios. | Ejemplo del porcentaje; no aplicar ganancia independiente por perfil. |
 | HU-20 | Visibilidad · Sin épica | **Como** encargado del negocio, **necesito** ver pedidos pendientes, en fabricación, listos, instalados y liquidados, **para** consultar su situación desde un lugar. | Estados confiables e indicador de avance verificable. |
 | HU-21 | Materiales · Sin épica | **Como** encargado de materiales, **necesito** estimar perfiles y hojas de vidrio requeridos por los pedidos actuales, **para** anticipar compras cuando hagan falta. | Demanda frente a faltantes, existencias, unidades de compra, sobrantes y desperdicio. |
+| HU-25 | Precios y cobros · E3 | **Como** empleado, **necesito** consultar el total de las ventanas activas de un pedido, **para** comunicar el importe de sus productos antes de agregar servicios o registrar pagos. | Excluir ventanas descartadas; no implica aceptación del presupuesto ni saldo. |
+| HU-26 | Precios y cobros · E4 | **Como** encargado del negocio, **necesito** definir una regla configurable para recuperar costo de sobrantes de aluminio, **para** distribuir el desperdicio permitido entre las ventanas del pedido. | Longitud de perfil comercial, umbral y ejemplo de distribución; sin optimización 1D. Ciclo 3, prioridad menor propuesta. |
+| HU-27 | Precios y cobros · E4 | **Como** encargado del negocio, **necesito** definir una regla configurable para recuperar costo de sobrantes de vidrio y distribuirlo entre ventanas, **para** reflejar el desperdicio según el uso de hojas. | Tamaño comercial de hoja, métrica del umbral y ejemplo numérico; ciclo posterior, sin prioridad ni esfuerzo asignados. Sin optimización 2D. |
 
 ## Reglas transversales confirmadas
 
