@@ -1,14 +1,14 @@
 # Backlog de producto AVAO
 
-> Definición de las HU. Cuando se trasladen a GitHub Projects, allí se llevará el estado diario. Las seis HU altas son el próximo grupo de trabajo; las demás conservan solo el detalle conocido para evitar refinamiento prematuro.
+> Definición y registro histórico de las HU. GitHub Projects conserva el estado diario; este archivo conserva ciclos, historias, estimaciones de esfuerzo y resultados. Al cerrar un ciclo, se retira la prioridad operativa, pero se mantienen sus HU y estimaciones como historial.
 
 ## Organización y reglas
 
 - **Área** clasifica por asunto: **Pedidos y medidas**, **Cortes y taller**, **Precios y cobros**, **Instalación**, **Materiales** o **Visibilidad**. No es una HU ni un entregable.
 - **Épica** agrupa varias HU hacia un resultado amplio. No se crea para una sola HU ni se le asignan puntos. Puede representarse por un campo `Épica` en GitHub Projects; solo se crea una incidencia padre cuando seguir su progreso o decisiones propias aporte valor. El área es una clasificación temática. Véase [GuiaBacklogKanban.md](../workflow/GuiaBacklogKanban.md).
 - **HU** expresa una capacidad comprobable con **Como**, **necesito** y **para**. **Quiero** puede señalar una mejora opcional expresamente clasificada así por el usuario; el verbo por sí solo no define prioridad ni MVP. Sus criterios de aceptación prueban el resultado; las subtareas describirán el trabajo del programador. Una HU próxima debe entregar un recorrido utilizable, no una capa técnica aislada.
-- **Esfuerzo** usa la escala relativa `1, 2, 3, 5, 8`. Se estima solo el grupo alto próximo. Si al refinar una HU supera 8, se sustituye por dos o más HU menores que juntas cubran el alcance; se enlaza, cierra y archiva la original sin borrar su historia. Las HU lejanas esperan sin estimaciones inventadas.
-- **Prioridad** y **esfuerzo** son distintos. Las seis altas forman el siguiente grupo; las medias completan el primer MVP de medidas y taller. Las HU de etapas posteriores se priorizarán cuando se acerquen.
+- **Esfuerzo** usa la escala relativa `1, 2, 3, 5, 8`. Las estimaciones ya registradas se conservan como dato histórico aunque el ciclo termine. Si al refinar una HU supera 8, se sustituye por dos o más HU menores que juntas cubran el alcance; se enlaza, cierra y archiva la original sin borrar su historia.
+- **Prioridad** y **esfuerzo** son distintos. La prioridad se usa para ordenar trabajo pendiente dentro del ciclo actual; al terminar el ciclo se limpia ese campo, sin borrar el ciclo ni la estimación histórica.
 
 ## Épicas de resultado
 
@@ -21,15 +21,26 @@
 
 HU-20, HU-21 y HU-24 quedan independientes hasta que su alcance justifique agruparlas. El progreso de una épica no reemplaza la aceptación de cada HU.
 
-## Primer MVP: medidas y taller
+## Ciclo 1 completado: medidas y taller
 
 El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse la ventana**, en pulgadas. El empleado captura esas dimensiones finales; AVAO no calcula una holgura adicional a partir del hueco. Se calculan cortes para la ventana California por mitad, con una hoja fija y una corrediza, y se sigue corte y ensamble. Cada pedido y ventana conserva identidad interna estable. Primero se guardan y consultan las medidas (HU-01); después se asigna el código corto de taller `A1`, `A2`, `B1` (HU-22), que el trabajador escribirá a mano en aluminio y vidrio. La etiqueta del pedido se liberará solo cuando esté **instalado y pagado por completo**; automatizar esa liberación depende del registro posterior de instalación y pagos.
 
-### Seis HU altas para preparar ahora
+### Resumen histórico del Ciclo 1
+
+| Orden | HU | Épica | Prioridad actual | Esfuerzo histórico | Resultado |
+| --- | --- | --- | --- | ---: | --- |
+| 1 | HU-01 | E1 | — | 5 | Completada |
+| 2 | HU-22 | E1 | — | 5 | Completada |
+| 3 | HU-02 | E1 | — | 8 | Completada |
+| 4 | HU-03 | E2 | — | 5 | Completada |
+| 5 | HU-04 | E2 | — | 3 | Completada |
+| 6 | HU-05 | E2 | — | 3 | Completada |
+
+Las HU completas se conservan a continuación como especificación e historial del ciclo.
 
 #### HU-01 — Registrar ventanas medidas en un pedido
 
-- **Área:** Pedidos y medidas · **Épica:** E1 · **Prioridad:** Alta · **Esfuerzo inicial:** **5**. Alcance acotado a guardar y consultar medidas sin datos del cliente ni generación de códigos; revisar al preparar la implementación.
+- **Área:** Pedidos y medidas · **Épica:** E1 · **Esfuerzo histórico:** **5**. Alcance acotado a guardar y consultar medidas sin datos del cliente ni generación de códigos.
 - **Historia:** **Como** empleado que mide, **necesito** registrar y volver a consultar el ancho y alto indicados para fabricar una o más ventanas California dentro de un pedido, **para** conservar las medidas de cada trabajo.
 - **Criterios de aceptación:**
   1. Desde un formulario sencillo se puede crear un pedido con una o más ventanas California, cada una con el ancho y alto de fabricación indicados por el vidriero en pulgadas. La entrada admite entero solo o una suma de fracciones como `26 1/2` y `24 1/4 1/16`.
@@ -43,7 +54,7 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 
 #### HU-22 — Identificar pedidos y ventanas con códigos cortos de taller
 
-- **Área:** Pedidos y medidas · **Épica:** E1 · **Prioridad:** Alta · **Esfuerzo inicial:** **5**. Incluye asignación y consulta estable de etiquetas y números sin repetir etiquetas entre pedidos activos; la liberación automática requiere HU-16 y HU-17.
+- **Área:** Pedidos y medidas · **Épica:** E1 · **Esfuerzo histórico:** **5**. Incluye asignación y consulta estable de etiquetas y números sin repetir etiquetas entre pedidos activos; la liberación automática requiere HU-16 y HU-17.
 - **Historia:** **Como** trabajador del taller, **necesito** ver un código corto para cada ventana de los pedidos activos, **para** escribirlo a mano en sus piezas y distinguirlas durante la fabricación.
 - **Criterios de aceptación:**
   1. Al guardar pedidos nuevos se asigna una etiqueta en orden de creación: `A`, `B`, …, `Z`, `AA`, `AB` y así sucesivamente. Cada ventana muestra esa etiqueta seguida de su número existente dentro del pedido, como `A1`, `A2` y `B1`; no se crea una segunda numeración de ventanas.
@@ -54,7 +65,7 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 
 #### HU-02 — Obtener el plan de corte de una ventana California
 
-- **Área:** Cortes y taller · **Épica:** E1 · **Prioridad:** Alta · **Esfuerzo inicial:** **8**.
+- **Área:** Cortes y taller · **Épica:** E1 · **Esfuerzo histórico:** **8**.
 - **Historia:** **Como** trabajador del taller, **necesito** obtener la lista de cortes de aluminio y vidrio a partir de las medidas registradas, **para** preparar las piezas sin repetir los cálculos a mano.
 - **Criterios de aceptación:**
   1. Para cada ventana, se muestran perfil, longitud y cantidad de **17 piezas de aluminio** y **dos vidrios iguales** según [Medidas.md](../domain/Medidas.md).
@@ -68,7 +79,7 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 
 #### HU-03 — Registrar cortes de aluminio
 
-- **Área:** Cortes y taller · **Épica:** E2 · **Prioridad:** Alta · **Esfuerzo inicial:** **5**.
+- **Área:** Cortes y taller · **Épica:** E2 · **Esfuerzo histórico:** **5**.
 - **Historia:** **Como** quien corta aluminio, **necesito** marcar las piezas realizadas de cada perfil y medida, **para** ver cuántas faltan sin tachar una hoja.
 - **Criterios de aceptación:**
   1. Cada corte muestra cantidad requerida, cortada físicamente y pendiente de corte, asociado al pedido y al código corto de su ventana generado en HU-22, como `A1` o `A2`.
@@ -80,7 +91,7 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 
 #### HU-04 — Registrar cortes de vidrio
 
-- **Área:** Cortes y taller · **Épica:** E2 · **Prioridad:** Alta · **Esfuerzo inicial:** **3**.
+- **Área:** Cortes y taller · **Épica:** E2 · **Esfuerzo histórico:** **3**.
 - **Historia:** **Como** quien corta vidrio, **necesito** marcar los dos vidrios iguales de cada ventana conforme se cortan, **para** ver cuántos faltan sin contarlos en papel.
 - **Criterios de aceptación:**
   1. Se muestran el pedido y el código corto de su ventana generado en HU-22, como `A1` o `A2`, medidas `ancho × alto`, cantidad requerida `2`, cortada físicamente y pendiente de corte.
@@ -92,7 +103,7 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 
 #### HU-05 — Marcar ventanas ensambladas
 
-- **Área:** Cortes y taller · **Épica:** E2 · **Prioridad:** Alta · **Esfuerzo inicial:** **3**.
+- **Área:** Cortes y taller · **Épica:** E2 · **Esfuerzo histórico:** **3**.
 - **Historia:** **Como** ensamblador, **necesito** indicar qué ventanas están ensambladas y cuáles faltan, **para** conocer el avance real del pedido.
 - **Criterios de aceptación:**
   1. En el pedido abierto se muestran el código y el estado de ensamble de cada una de sus ventanas; se distinguen las ensambladas de las pendientes sin mostrar ventanas de otros pedidos.
@@ -103,16 +114,35 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 - **Subtarea #27 — Registrar y deshacer el ensamble de ventanas del pedido:** mostrar el estado por ventana en el pedido abierto, permitir marcarla ensamblada solo sin cortes pendientes y conservar el avance al reabrir. Permitir deshacer una marca de ensamble accidental y bloquear la reversión de marcas de corte mientras siga ensamblada. Comprobar con dos ventanas que el estado y los bloqueos afectan solo a la ventana correspondiente.
 - **Límites confirmados:** AVAO comprueba las marcas de cortes registrados; el ensamblador verifica físicamente screen, accesorios y extras aplicables. No se añade seguimiento de esas partes ni se automatiza la declaración de pedido listo (HU-08). Las correcciones por retrabajo quedan fuera de esta entrega. Una sección mínima de ensamble pertenece a HU-05; separar por completo medidas, aluminio, vidrio y ensamble en vistas propias sigue como posible mejora independiente, sin prioridad asignada.
 
-### Otras HU del primer MVP, por refinar cuando se acerquen
+## Ciclo 2: correcciones y seguimiento del taller
 
-| ID | Área · Épica | Prioridad | Esfuerzo | Historia y límite conocido |
+HU-07 y HU-09 se completaron; HU-08 y HU-10 quedaron cubiertas por el flujo implementado. HU-13, HU-23 y HU-24 también se incorporaron para completar la captura y consulta del flujo. La única subtarea pendiente de este ciclo es la #52, dependiente de las funciones de precios y registro comercial; por ello HU-06 queda funcionalmente aceptada, con ese ajuste aplazado.
+
+### Resumen histórico del Ciclo 2
+
+| HU | Épica | Prioridad actual | Esfuerzo histórico | Resultado |
+| --- | --- | --- | ---: | --- |
+| HU-06 | E1 | — | 3 | Implementada; subtarea #52 pendiente por dependencia de precios |
+| HU-07 | E2 | — | 8 | Completada y aceptada |
+| HU-08 | E2 | — | No consta en el backlog | Cubierta por el ensamble de HU-05 |
+| HU-09 | E2 | — | No consta en el backlog | Completada y aceptada (#53) |
+| HU-10 | E2 | — | No consta en el backlog | Cubierta por el flujo actual |
+| HU-13 | E3 | — | No consta en el backlog | Completada y probada por el usuario |
+| HU-23 | E2 | — | No consta en el backlog | Implementada en el flujo de pedidos |
+| HU-24 | Sin épica | — | No consta en el backlog | Vistas por área implementadas y aceptadas |
+
+Las HU completas y sus criterios permanecen en las secciones siguientes y en sus apartados específicos; los esfuerzos que no aparecen en el registro disponible se identifican como no documentados, sin estimarlos retrospectivamente.
+
+### HU del primer MVP incorporadas o completadas en el Ciclo 2
+
+| ID | Área · Épica | Prioridad actual | Esfuerzo histórico | Historia y límite conocido |
 | --- | --- | --- | --- | --- |
-| HU-06 | Pedidos y medidas · E1 | Alta en Ciclo 2 | 3, inicial | **Como** empleado, **necesito** corregir las medidas de una ventana guardada antes de iniciar sus cortes, o descartarla mientras el pedido siga activo, **para** mantener correctos el plan y el precio del pedido. **Abierta:** la corrección, el descarte y la reincorporación están aceptados; queda pendiente el ajuste de precio. Véase [#45](https://github.com/ErickRamos37/AVAO/issues/45). |
-| HU-07 | Cortes y taller · E2 | Media en Ciclo 2 | 8, provisional | **Como** trabajador del taller, **necesito** corregir las medidas de una ventana después de iniciar sus cortes, **para** continuar su fabricación con el plan actualizado y conservar las marcas que aún aplican. **Terminada:** el usuario aceptó la subtarea [#49](https://github.com/ErickRamos37/AVAO/issues/49); no incluye registrar daños ni decidir si se reutiliza una pieza. Véase [#47](https://github.com/ErickRamos37/AVAO/issues/47). |
-| HU-08 | Cortes y taller · E2 | Media | Cubierta | **Como** trabajador del taller, **necesito** señalar que todas las ventanas del pedido están ensambladas, **para** distinguir un pedido listo para coordinar instalación de una sola ventana terminada. El flujo actual deriva este resultado del ensamble registrado en sus ventanas (HU-05); el usuario confirmó que está cubierto. |
-| HU-09 | Cortes y taller · E2 | Media | Terminada | **Como** empleado, **necesito** consultar el avance de los pedidos activos del taller, **para** identificar rápidamente qué trabajo sigue pendiente. Tarjetas por pedido, progreso general con tres áreas de igual peso y desglose; subtarea [#53](https://github.com/ErickRamos37/AVAO/issues/53) aceptada e integrada. |
-| HU-10 | Pedidos y medidas · E2 | Media | Cubierta | **Como** empleado, **necesito** cambiar entre pedidos pendientes sin perder su avance, **para** continuar con otro cuando falta material para el actual. El flujo actual permite abrir otro pedido y conserva el avance; el usuario confirmó que está cubierto. |
-| HU-23 | Pedidos y medidas · E2 | Media | Pendiente | **Como** empleado, **necesito** consultar los pedidos en orden de llegada a AVAO, **para** reconocer cuál se registró primero y abrir el que convenga atender. [Issue #17](https://github.com/ErickRamos37/AVAO/issues/17); alcance de esta entrega debajo. |
+| HU-06 | Pedidos y medidas · E1 | — | 3 | **Como** empleado, **necesito** corregir las medidas de una ventana guardada antes de iniciar sus cortes, o descartarla mientras el pedido siga activo, **para** mantener correctos el plan y el precio del pedido. La corrección, el descarte y la reincorporación están aceptados; queda pendiente el ajuste de precio en la subtarea [#52](https://github.com/ErickRamos37/AVAO/issues/52). Véase [#45](https://github.com/ErickRamos37/AVAO/issues/45). |
+| HU-07 | Cortes y taller · E2 | — | 8 | **Como** trabajador del taller, **necesito** corregir las medidas de una ventana después de iniciar sus cortes, **para** continuar su fabricación con el plan actualizado y conservar las marcas que aún aplican. **Terminada:** el usuario aceptó la subtarea [#49](https://github.com/ErickRamos37/AVAO/issues/49); no incluye registrar daños ni decidir si se reutiliza una pieza. Véase [#47](https://github.com/ErickRamos37/AVAO/issues/47). |
+| HU-08 | Cortes y taller · E2 | — | Cubierta | **Como** trabajador del taller, **necesito** señalar que todas las ventanas del pedido están ensambladas, **para** distinguir un pedido listo para coordinar instalación de una sola ventana terminada. El flujo actual deriva este resultado del ensamble registrado en sus ventanas (HU-05); el usuario confirmó que está cubierto. |
+| HU-09 | Cortes y taller · E2 | — | Terminada | **Como** empleado, **necesito** consultar el avance de los pedidos activos del taller, **para** identificar rápidamente qué trabajo sigue pendiente. Tarjetas por pedido, progreso general con tres áreas de igual peso y desglose; subtarea [#53](https://github.com/ErickRamos37/AVAO/issues/53) aceptada e integrada. |
+| HU-10 | Pedidos y medidas · E2 | — | Cubierta | **Como** empleado, **necesito** cambiar entre pedidos pendientes sin perder su avance, **para** continuar con otro cuando falta material para el actual. El flujo actual permite abrir otro pedido y conserva el avance; el usuario confirmó que está cubierto. |
+| HU-23 | Pedidos y medidas · E2 | — | Pendiente | **Como** empleado, **necesito** consultar los pedidos en orden de llegada a AVAO, **para** reconocer cuál se registró primero y abrir el que convenga atender. [Issue #17](https://github.com/ErickRamos37/AVAO/issues/17); alcance de esta entrega debajo. |
 
 ### HU-06 — Corrección, descarte y reincorporación de ventanas guardadas
 
@@ -137,12 +167,12 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
 - **Subtarea [#41](https://github.com/ErickRamos37/AVAO/issues/41) — Mostrar pedidos con posición de llegada y etiqueta de taller:** adaptar la lista y el encabezado del pedido usando los datos ya guardados; comprobar el recorrido con al menos dos pedidos y el regreso desde el segundo. No persistir una segunda posición si basta calcularla al consultar.
 - **Límites:** por ahora se muestran todos los pedidos guardados. Sacar uno de la cola solo cuando esté instalado **y** pagado depende de HU-16 y HU-17; entonces se recalcularán las posiciones visibles. No incluye reordenación manual, resumen de pendientes de corte o ensamble (HU-09) ni cambios al avance al abrir otro pedido (HU-10).
 
-## HU transversal siguiente, por preparar
+### HU-24 — Consultar un pedido por área de trabajo, completada en Ciclo 2
 
 ### HU-24 — Consultar un pedido por área de trabajo
 
 - **Issue:** [AVAO #30](https://github.com/ErickRamos37/AVAO/issues/30).
-- **Área:** Visibilidad · **Épica:** sin asignar · **Prioridad y esfuerzo:** por acordar al preparar la subtarea.
+- **Área:** Visibilidad · sin épica asignada. Esfuerzo no documentado en la versión histórica disponible.
 - **Historia:** **Como** empleado que trabaja en un pedido, **necesito** consultar por separado sus medidas, cortes de aluminio, cortes de vidrio y ensamble, **para** concentrarme en la información pertinente a la tarea que realizo.
 - **Alcance de esta entrega:** las cuatro vistas pertenecen solo al pedido abierto. «Medidas» consulta las ventanas ya guardadas; la captura de un pedido nuevo sigue en el flujo actual. Los datos del cliente y las notas del pedido deben seguir accesibles, en particular las notas compartidas con los trabajadores; su ubicación exacta no se fija aquí.
 - **Criterios de aceptación propuestos:**
@@ -151,10 +181,6 @@ El vidriero mide el hueco y entrega el ancho y alto **a los que debe fabricarse 
   3. Marcar o deshacer un corte o ensamble conserva las reglas ya aceptadas. Cambiar de vista y reabrir el pedido no altera medidas, planes ni avances; los datos del cliente y las notas siguen disponibles.
 - **Subtarea [#43](https://github.com/ErickRamos37/AVAO/issues/43) — Separar la consulta del pedido en cuatro vistas de trabajo:** reorganizar la información y los controles existentes por área dentro del pedido abierto, mantener el acceso a cliente y notas y comprobar navegación y marcas con dos ventanas. No añadir estados, cálculos ni pasos de captura.
 - **Límites:** no reúne pendientes de todos los pedidos (HU-09), no agrega cálculos, marcas o estados nuevos a HU-01, HU-03, HU-04 y HU-05, no introduce permisos por área ni fija un diseño visual detallado. Mantener visibles los avisos existentes si un pedido anterior carece de plan de corte.
-
-## Ciclo 2: medidas y seguimiento de fabricación
-
-HU-07 y HU-09 están terminadas; el usuario confirmó que HU-08 y HU-10 están cubiertas por el flujo actual. En HU-06 queda la subtarea futura #52, bloqueada hasta que existan cálculo de precios y registro comercial de HU-11/HU-14. No debe tratarse como trabajo ejecutable del Ciclo 3. Los algoritmos de corte 1D/2D y la PWA/aplicación móvil siguen como propuestas posteriores, no compromisos de este ciclo.
 
 ## Ciclo 3 propuesto: costos y precios de ventanas
 
