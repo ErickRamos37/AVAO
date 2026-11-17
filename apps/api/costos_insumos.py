@@ -63,5 +63,5 @@ def serialize_cost(item: tuple, cents: int | None) -> dict:
         return result
     purchase_cost = Decimal(cents) / 100
     if divisor is not None:
-        result["costo_derivado"] = f"{(purchase_cost / divisor):.6f}"
+        result["costo_derivado"] = f"{(purchase_cost / divisor):.2f}"
     return result

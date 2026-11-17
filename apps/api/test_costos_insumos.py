@@ -32,9 +32,9 @@ class CostCatalogTests(unittest.TestCase):
     def test_catalog_has_confirmed_costs_and_pending_values_without_zero_substitution(self):
         costs = {item["codigo"]: item for item in list_costs()["insumos"]}
         self.assertEqual(costs["jamba"]["costo_compra"], "428.00")
-        self.assertEqual(costs["jamba"]["costo_derivado"], "20.380952")
+        self.assertEqual(costs["jamba"]["costo_derivado"], "20.38")
         self.assertEqual(costs["jamba"]["unidad_derivada"], "$ / pie lineal")
-        self.assertEqual(costs["moldura_screen"]["costo_derivado"], "9.583333")
+        self.assertEqual(costs["moldura_screen"]["costo_derivado"], "9.58")
         self.assertEqual(costs["vidrio_doble_fuerza"]["unidad_derivada"], "$ / pie cuadrado")
         self.assertIsNone(costs["tela_mosquitera"]["costo_compra"])
         self.assertIsNone(costs["vinil_doble_fuerza"]["costo_compra"])
@@ -45,7 +45,7 @@ class CostCatalogTests(unittest.TestCase):
         self.migrate()
         jamba = next(item for item in list_costs()["insumos"] if item["codigo"] == "jamba")
         self.assertEqual(jamba["costo_compra"], "500.25")
-        self.assertEqual(jamba["costo_derivado"], "23.821429")
+        self.assertEqual(jamba["costo_derivado"], "23.82")
 
     def test_pending_cost_can_be_entered_and_unknown_cost_code_is_rejected(self):
         update_cost("tela_mosquitera", CostUpdate(costo="12.34"))
