@@ -56,6 +56,13 @@ CREATE TABLE IF NOT EXISTS plan_vidrio (
     cortadas INTEGER NOT NULL DEFAULT 0 CHECK (cortadas >= 0 AND cortadas <= cantidad)
 );
 
+-- HU-18: catálogo sencillo de costos de compra. La clave identifica insumos
+-- conocidos; NULL indica costo pendiente, y los importes se guardan en centavos.
+CREATE TABLE IF NOT EXISTS costos_insumos (
+    codigo TEXT PRIMARY KEY,
+    costo_centavos INTEGER CHECK (costo_centavos IS NULL OR costo_centavos >= 0)
+);
+
 -- Guardar pedido y ventanas juntos en una transacción de la aplicación.
 -- La aplicación exige al menos una ventana con ambas medidas completas.
 -- Una fila vacía se omite; una fila parcial se rechaza antes de guardar.
@@ -69,4 +76,4 @@ CREATE TABLE IF NOT EXISTS plan_vidrio (
 -- Los pedidos anteriores a HU-22 conservan etiqueta NULL hasta que el usuario
 -- decida reiniciar sus datos de prueba; los pedidos nuevos reciben A, B, ...
 -- HU-13 completa el cliente y las notas después de guardar medidas.
--- No hay tabla de catálogo: solo se registra California por mitad en HU-01.
+-- No hay catálogo de productos configurable: solo se registra California por mitad.

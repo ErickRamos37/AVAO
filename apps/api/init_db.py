@@ -4,6 +4,7 @@ from contextlib import closing
 from pathlib import Path
 
 from apps.api.main import connect_db, database_path
+from apps.api.costos_insumos import INSUMOS
 
 
 SCHEMA = Path(__file__).resolve().parents[2] / "docs" / "technical" / "HU01-modelo-sqlite.sql"
@@ -62,4 +63,9 @@ if __name__ == "__main__":
                 )
                 connection.commit()
         connection.executescript(SCHEMA.read_text(encoding="utf-8"))
+        with connection:
+            connection.executemany(
+                "INSERT OR IGNORE INTO costos_insumos (codigo, costo_centavos) VALUES (?, ?)",
+                ((item[0], item[6]) for item in INSUMOS),
+            )
     print("Esquema de pedidos preparado.")
