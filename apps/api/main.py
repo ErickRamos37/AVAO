@@ -1,5 +1,6 @@
 """Primer recorrido vertical de HU-01: guardar y reabrir un pedido."""
 
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -13,6 +14,7 @@ from pydantic import BaseModel, StrictStr
 
 from apps.api.medidas import format_measure, parse_measure
 from apps.api.costos_insumos import INSUMOS, INSUMOS_POR_CODIGO, cents_from_input, serialize_cost
+from apps.api.costos_ventana import calculate_window_material_cost
 from apps.api.plan_aluminio import calcular_plan_aluminio
 from apps.api.plan_vidrio import calcular_plan_vidrio
 
@@ -89,6 +91,10 @@ def connect_db() -> sqlite3.Connection:
     return connection
 
 
+def window_plan_fingerprint(aluminum: list[dict], glass: dict | None) -> str:
+    return json.dumps({"aluminio": aluminum, "vidrio": glass}, sort_keys=True, ensure_ascii=False)
+
+
 @app.get("/api/costos-insumos")
 def list_costs():
     with closing(connect_db()) as connection:
@@ -115,6 +121,45 @@ def update_cost(codigo: str, update: CostUpdate):
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=503, detail="Inicializa la base de datos antes de guardar costos.")
     return serialize_cost(item, cents)
+
+
+@app.post("/api/ventanas/{window_id}/costo-materiales")
+def calculate_window_cost(window_id: int):
+    with closing(connect_db()) as connection:
+        window = connection.execute(
+            "SELECT id FROM ventanas WHERE id = ?", (window_id,)
+        ).fetchone()
+        if window is None:
+            raise HTTPException(status_code=404, detail="Ventana no encontrada.")
+        aluminum = [
+            {"perfil": profile, "longitud_16": length, "cantidad": quantity}
+            for profile, length, quantity in connection.execute(
+                "SELECT perfil, longitud_16, cantidad FROM plan_aluminio "
+                "WHERE ventana_id = ? ORDER BY orden", (window_id,)
+            ).fetchall()
+        ]
+        glass_row = connection.execute(
+            "SELECT ancho_16, alto_16, cantidad FROM plan_vidrio WHERE ventana_id = ?",
+            (window_id,),
+        ).fetchone()
+        glass = None if glass_row is None else {
+            "ancho_16": glass_row[0], "alto_16": glass_row[1], "cantidad": glass_row[2],
+        }
+        costs = dict(connection.execute(
+            "SELECT codigo, costo_centavos FROM costos_insumos"
+        ).fetchall())
+        result = calculate_window_material_cost(aluminum, glass, costs)
+        if not result["completo"]:
+            return result
+        fingerprint = window_plan_fingerprint(aluminum, glass)
+        with connection:
+            connection.execute(
+                "INSERT INTO costos_ventana (ventana_id, plan_fingerprint, resultado_json) "
+                "VALUES (?, ?, ?) ON CONFLICT(ventana_id) DO UPDATE SET "
+                "plan_fingerprint = excluded.plan_fingerprint, resultado_json = excluded.resultado_json",
+                (window_id, fingerprint, json.dumps(result, ensure_ascii=False)),
+            )
+    return {**result, "vigente": True}
 
 
 def following_label(current: str | None) -> str:
@@ -275,6 +320,11 @@ def get_order(order_id: int):
             "WHERE v.pedido_id = ?",
             (order_id,),
         ).fetchall()
+        cost_rows = connection.execute(
+            "SELECT c.ventana_id, c.plan_fingerprint, c.resultado_json "
+            "FROM costos_ventana AS c JOIN ventanas AS v ON v.id = c.ventana_id "
+            "WHERE v.pedido_id = ?", (order_id,)
+        ).fetchall()
 
     plans = {window_id: [] for window_id, *_ in windows}
     progress = {window_id: [] for window_id, *_ in windows}
@@ -297,6 +347,19 @@ def get_order(order_id: int):
         window_id: {"cortadas": cut, "pendientes": quantity - cut}
         for window_id, _, _, quantity, cut in glass_rows
     }
+    aluminum_for_cost = {window_id: [] for window_id, *_ in windows}
+    for window_id, _, profile, length, quantity, _ in plan_rows:
+        aluminum_for_cost[window_id].append({
+            "perfil": profile, "longitud_16": length, "cantidad": quantity,
+        })
+    glass_for_cost = {
+        window_id: {"ancho_16": width, "alto_16": height, "cantidad": quantity}
+        for window_id, width, height, quantity, _ in glass_rows
+    }
+    saved_costs = {
+        window_id: (fingerprint, json.loads(result_json))
+        for window_id, fingerprint, result_json in cost_rows
+    }
 
     window_details = [
         {
@@ -311,6 +374,14 @@ def get_order(order_id: int):
             "avance_aluminio": progress[window_id],
             "plan_vidrio": glass_plans.get(window_id),
             "avance_vidrio": glass_progress.get(window_id),
+            "costo_materiales": (
+                None if window_id not in saved_costs else {
+                    **saved_costs[window_id][1],
+                    "vigente": saved_costs[window_id][0] == window_plan_fingerprint(
+                        aluminum_for_cost[window_id], glass_for_cost.get(window_id)
+                    ),
+                }
+            ),
         }
         for window_id, number, width, height, assembled, discarded in windows
     ]

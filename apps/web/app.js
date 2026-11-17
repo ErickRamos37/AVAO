@@ -412,6 +412,86 @@ async function loadOrders() {
   }
 }
 
+function renderWindowCost(window, container) {
+  const panel = document.createElement('section');
+  panel.className = 'window-cost';
+  const heading = document.createElement('h4');
+  heading.textContent = 'Costo base de materiales';
+  const explanation = document.createElement('p');
+  explanation.textContent = 'No incluye ganancia ni servicios.';
+  panel.append(heading, explanation);
+
+  const cost = window.costo_materiales;
+  if (cost) {
+    const total = document.createElement('p');
+    total.textContent = `${cost.vigente ? 'Costo base' : 'Costo anterior'}: $${cost.costo_base}`;
+    panel.append(total);
+    if (!cost.vigente) {
+      const stale = document.createElement('p');
+      stale.textContent = 'Las medidas o el plan cambiaron después de este cálculo. Recalcula antes de usarlo.';
+      panel.append(stale);
+    }
+    const breakdown = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = 'Ver desglose de materiales';
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const header = document.createElement('tr');
+    for (const label of ['Material', 'Consumo', 'Costo']) {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      cell.textContent = label;
+      header.append(cell);
+    }
+    thead.append(header);
+    const tbody = document.createElement('tbody');
+    for (const item of cost.items) {
+      const row = document.createElement('tr');
+      for (const value of [item.nombre, `${item.cantidad} ${item.unidad}`, `$${item.costo}`]) {
+        const cell = document.createElement('td');
+        cell.textContent = value;
+        row.append(cell);
+      }
+      tbody.append(row);
+    }
+    table.append(thead, tbody);
+    breakdown.append(summary, table);
+    panel.append(breakdown);
+  } else {
+    const notice = document.createElement('p');
+    notice.textContent = 'Aún no se ha calculado.';
+    panel.append(notice);
+  }
+
+  const calculate = document.createElement('button');
+  calculate.type = 'button';
+  calculate.textContent = cost ? 'Recalcular con costos actuales' : 'Calcular costo base';
+  calculate.addEventListener('click', async () => {
+    calculate.disabled = true;
+    message.hidden = true;
+    try {
+      const response = await fetch(`/api/ventanas/${window.id}/costo-materiales`, {method: 'POST'});
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.detail ?? 'No se pudo calcular el costo base.');
+      if (!result.completo) {
+        panel.querySelector('.cost-missing')?.remove();
+        const missing = document.createElement('p');
+        missing.className = 'cost-missing';
+        missing.textContent = `Faltan costos de: ${result.faltantes.join(', ')}. No se muestra un subtotal.`;
+        panel.append(missing);
+        return;
+      }
+      await openOrder(currentOrderId);
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      calculate.disabled = false;
+    }
+  });
+  panel.append(calculate);
+  container.append(panel);
+}
+
 async function openOrder(id) {
   const requestedOrderId = Number(id);
   if (currentOrderId !== requestedOrderId) {
@@ -470,6 +550,7 @@ async function openOrder(id) {
       discardButton.textContent = `Descartar ventana ${window.codigo ?? window.numero}`;
       discardButton.addEventListener('click', () => changeWindowDiscard(window, true, discardButton));
       measureSection.append(measureHeading, measureValue, discardButton);
+      renderWindowCost(window, measureSection);
       measures.append(measureSection);
       const assembly = assemblyRow(window, order.id);
       const refreshWindowProgress = () => {
@@ -528,6 +609,7 @@ async function openOrder(id) {
       restoreButton.textContent = `Reincorporar ventana ${window.codigo ?? window.numero}`;
       restoreButton.addEventListener('click', () => changeWindowDiscard(window, false, restoreButton));
       section.append(heading, measures, restoreButton);
+      renderWindowCost(window, section);
       discardedList.append(section);
     }
     updateMeasureEditButton(order);

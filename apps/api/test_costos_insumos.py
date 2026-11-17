@@ -7,12 +7,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from decimal import Decimal
 from unittest.mock import patch
 
 from fastapi import HTTPException
 
 from apps.api.main import (CostUpdate, NewOrder, app, costs_page, create_order,
-                           get_order, list_costs, update_cost)
+                           calculate_window_cost, get_order, list_costs, update_cost)
 
 
 class CostCatalogTests(unittest.TestCase):
@@ -75,6 +76,58 @@ class CostCatalogTests(unittest.TestCase):
         with sqlite3.connect(self.path) as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM costos_insumos").fetchone()[0], 22)
 
+    def test_window_material_cost_is_available_from_order_and_stays_saved_until_recalculation(self):
+        order_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
+        window_id = get_order(order_id)["ventanas"][0]["id"]
+        update_cost("tela_mosquitera", CostUpdate(costo="15.00"))
+        update_cost("vinil_doble_fuerza", CostUpdate(costo="1.50"))
+
+        first = calculate_window_cost(window_id)
+        self.assertTrue(first["completo"])
+        self.assertTrue(first["vigente"])
+        self.assertEqual(len(first["items"]), 22)
+        self.assertEqual(
+            Decimal(first["costo_base"]),
+            sum((Decimal(item["costo"]) for item in first["items"]), Decimal(0)),
+        )
+        saved_first = get_order(order_id)["ventanas"][0]["costo_materiales"]
+        self.assertEqual(saved_first["costo_base"], first["costo_base"])
+
+        update_cost("jamba", CostUpdate(costo="500.00"))
+        self.assertEqual(
+            get_order(order_id)["ventanas"][0]["costo_materiales"]["costo_base"],
+            first["costo_base"],
+        )
+        second = calculate_window_cost(window_id)
+        self.assertNotEqual(second["costo_base"], first["costo_base"])
+
+    def test_measure_correction_marks_saved_material_cost_as_stale(self):
+        order_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
+        window = get_order(order_id)["ventanas"][0]
+        update_cost("tela_mosquitera", CostUpdate(costo="15.00"))
+        update_cost("vinil_doble_fuerza", CostUpdate(costo="1.50"))
+        calculate_window_cost(window["id"])
+
+        from apps.api.main import OrderWindowCorrection, WindowMeasureUpdate, correct_order_window_measures
+        correct_order_window_measures(order_id, OrderWindowCorrection(
+            ventanas=[WindowMeasureUpdate(id=window["id"], ancho="49", alto="36")],
+            confirmar_correccion=True,
+        ))
+
+        saved_cost = get_order(order_id)["ventanas"][0]["costo_materiales"]
+        self.assertFalse(saved_cost["vigente"])
+        self.assertIn("costo_base", saved_cost)
+
+    def test_cost_calculation_reports_missing_rates_without_amounts(self):
+        order_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
+        window_id = get_order(order_id)["ventanas"][0]["id"]
+        result = calculate_window_cost(window_id)
+
+        self.assertFalse(result["completo"])
+        self.assertIn("Tela mosquitera", result["faltantes"])
+        self.assertNotIn("costo_base", result)
+        self.assertIsNone(get_order(order_id)["ventanas"][0]["costo_materiales"])
+
     def test_cost_page_and_api_routes_are_registered(self):
         page = costs_page()
         self.assertTrue(Path(page.path).is_file())
@@ -84,6 +137,7 @@ class CostCatalogTests(unittest.TestCase):
         self.assertIn(("/costos", "GET"), routes)
         self.assertIn(("/api/costos-insumos", "GET"), routes)
         self.assertIn(("/api/costos-insumos/{codigo}", "PUT"), routes)
+        self.assertIn(("/api/ventanas/{window_id}/costo-materiales", "POST"), routes)
 
 
 if __name__ == "__main__":

@@ -63,6 +63,14 @@ CREATE TABLE IF NOT EXISTS costos_insumos (
     costo_centavos INTEGER CHECK (costo_centavos IS NULL OR costo_centavos >= 0)
 );
 
+-- HU-11: último cálculo de costo base consultado para una ventana. Se conserva
+-- aunque cambie el catálogo; una nueva solicitud de cálculo crea una nueva cifra.
+CREATE TABLE IF NOT EXISTS costos_ventana (
+    ventana_id INTEGER PRIMARY KEY REFERENCES ventanas (id),
+    plan_fingerprint TEXT NOT NULL,
+    resultado_json TEXT NOT NULL
+);
+
 -- Guardar pedido y ventanas juntos en una transacción de la aplicación.
 -- La aplicación exige al menos una ventana con ambas medidas completas.
 -- Una fila vacía se omite; una fila parcial se rechaza antes de guardar.

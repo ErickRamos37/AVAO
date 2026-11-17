@@ -11,6 +11,7 @@ input { border: 1px solid #8e9b90; border-radius: 6px; background: white; paddin
 input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #5fac7d; outline-offset: 2px; }
 button { border: 0; border-radius: 6px; background: #176a42; color: white; font: inherit; font-weight: 650; padding: 12px 18px; cursor: pointer; }
 button:disabled { opacity: .6; cursor: wait; }
+.button-link { display: inline-block; border-radius: 6px; background: #176a42; color: white; font-weight: 650; padding: 8px 12px; text-decoration: none; }
 .hint { color: #4a5c50; font-size: 14px; }
 #message { padding: 12px; background: #ffe9e5; border-left: 4px solid #b53426; }
 #order-content { padding: 8px 16px; background: white; border: 1px solid #c9d3ca; border-radius: 6px; margin: 20px 0; }
@@ -32,3 +33,7 @@ button:disabled { opacity: .6; cursor: wait; }
 #cost-list table { border-collapse: collapse; min-width: 720px; }
 #cost-list th, #cost-list td { padding: 8px; border-bottom: 1px solid #c9d3ca; text-align: left; vertical-align: top; }
 #cost-list input { width: 110px; margin: 0; }
+.window-cost { margin: 12px 0; padding: 8px 12px; border-left: 3px solid #8e9b90; background: #f5f6f3; }
+.window-cost h4, .window-cost p { margin: 4px 0 8px; }
+.window-cost table { border-collapse: collapse; width: 100%; }
+.window-cost th, .window-cost td { padding: 6px; border-bottom: 1px solid #c9d3ca; text-align: left; }
