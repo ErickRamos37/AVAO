@@ -28,3 +28,7 @@ button:disabled { opacity: .6; cursor: wait; }
 .order-card h3 { margin: 0; }
 .order-card p { margin: 8px 0; }
 .order-card progress { display: block; width: 100%; }
+#cost-list { overflow-x: auto; }
+#cost-list table { border-collapse: collapse; min-width: 720px; }
+#cost-list th, #cost-list td { padding: 8px; border-bottom: 1px solid #c9d3ca; text-align: left; vertical-align: top; }
+#cost-list input { width: 110px; margin: 0; }

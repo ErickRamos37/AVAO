@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StrictStr
 
 from apps.api.medidas import format_measure, parse_measure
+from apps.api.costos_insumos import INSUMOS, INSUMOS_POR_CODIGO, cents_from_input, serialize_cost
 from apps.api.plan_aluminio import calcular_plan_aluminio
 from apps.api.plan_vidrio import calcular_plan_vidrio
 
@@ -69,6 +70,10 @@ class OrderWindowCorrection(BaseModel):
     confirmar_correccion: bool = False
 
 
+class CostUpdate(BaseModel):
+    costo: StrictStr
+
+
 class WindowDiscard(BaseModel):
     descartada: bool
     confirmar_descarte: bool = False
@@ -82,6 +87,34 @@ def connect_db() -> sqlite3.Connection:
     connection = sqlite3.connect(database_path(), timeout=5)
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
+
+
+@app.get("/api/costos-insumos")
+def list_costs():
+    with closing(connect_db()) as connection:
+        saved = dict(connection.execute(
+            "SELECT codigo, costo_centavos FROM costos_insumos"
+        ).fetchall())
+    return {"insumos": [
+        serialize_cost(item, saved.get(item[0])) for item in INSUMOS
+    ]}
+
+
+@app.put("/api/costos-insumos/{codigo}")
+def update_cost(codigo: str, update: CostUpdate):
+    item = INSUMOS_POR_CODIGO.get(codigo)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Insumo no encontrado.")
+    cents = cents_from_input(update.costo)
+    with closing(connect_db()) as connection:
+        with connection:
+            cursor = connection.execute(
+                "UPDATE costos_insumos SET costo_centavos = ? WHERE codigo = ?",
+                (cents, codigo),
+            )
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=503, detail="Inicializa la base de datos antes de guardar costos.")
+    return serialize_cost(item, cents)
 
 
 def following_label(current: str | None) -> str:
@@ -598,6 +631,11 @@ def mark_assembly(window_id: int, mark: AssemblyMark):
 @app.get("/pedidos/{order_id}", include_in_schema=False)
 def order_page(order_id: int):
     return FileResponse(WEB / "index.html")
+
+
+@app.get("/costos", include_in_schema=False)
+def costs_page():
+    return FileResponse(WEB / "costos.html")
 
 
 @app.get("/", include_in_schema=False)
