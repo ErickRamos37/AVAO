@@ -29,7 +29,7 @@ Este documento reúne los materiales conocidos para una ventana California por m
 | Finger | Medida | $0.44 por pie | Rollo; longitud variable | `2 × horizontal fijo + 2 × vertical fijo` |
 | Felpa | Medida | $0.44 por pie | Rollo; longitud variable | `2 × aleta + 2 × horizontal corredizo` |
 | Rodajas | Unidad | $5.50 por unidad | Empaque; cantidad por confirmar | 2 unidades |
-| Guías plásticas del horizontal corredizo | Unidad | $1.15 por unidad | Empaque; cantidad por confirmar | 4 unidades |
+| Guías plásticas | Unidad | $1.15 por unidad | Empaque; cantidad por confirmar | 4 unidades |
 | Jaladeras | Unidad | $14 por unidad | Empaque; cantidad por confirmar | 1 unidad |
 | Cola de rata | Medida | $1.88 por pie | Rollo; longitud variable | Perímetro del screen |
 | Tela mosquitera | Área | Tarifa por pie cuadrado pendiente; $850 por rollo queda como referencia | Rollo de ancho y largo variables; registrar rollos queda para una etapa futura | `anchoScreen × altoScreen` según las medidas del aluminio |
@@ -43,7 +43,7 @@ Este documento reúne los materiales conocidos para una ventana California por m
 > [!NOTE]
 > Para el costeo actual, cada ventana consume 1.5 tubos de pasta. El silicón y las vistas quedan fuera; se conservan sus datos aquí para una etapa futura.
 
-## Guías plásticas del horizontal corredizo
+## Guías plásticas
 
 Las cuatro guías plásticas por ventana se colocan en los horizontales corredizos. Guían la pieza y evitan el roce directo de aluminio con aluminio; el contacto queda entre aluminio y plástico. Son distintas del perfil de aluminio llamado «Guía».
 

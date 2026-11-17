@@ -24,10 +24,10 @@ INSUMOS = (
     ("felpa", "Felpa", "Pie lineal", "por pie lineal", None, None, 44),
     ("cola_de_rata", "Cola de rata", "Pie lineal", "por pie lineal", None, None, 188),
     ("rodajas", "Rodajas", "Unidad", "por unidad", None, None, 550),
-    ("guias_plasticas", "Guías plásticas del horizontal corredizo", "Unidad", "por unidad", None, None, 115),
+    ("guias_plasticas", "Guías plásticas", "Unidad", "por unidad", None, None, 115),
     ("jaladeras", "Jaladeras", "Unidad", "por unidad", None, None, 1400),
     ("escuadras", "Escuadras", "Unidad", "por unidad", None, None, 300),
-    ("chilillos", "Chilillos (costo común temporal)", "Unidad", "por unidad", None, None, 20),
+    ("chilillos", "Chilillos", "Unidad", "por unidad", None, None, 20),
     ("taquetes", "Taquetes", "Unidad", "por unidad", None, None, 45),
     ("pasta", "Pasta", "Tubo", "por tubo", None, None, 4700),
 )

@@ -36,6 +36,8 @@ class CostCatalogTests(unittest.TestCase):
         self.assertEqual(costs["jamba"]["unidad_derivada"], "$ / pie lineal")
         self.assertEqual(costs["moldura_screen"]["costo_derivado"], "9.58")
         self.assertEqual(costs["vidrio_doble_fuerza"]["unidad_derivada"], "$ / pie cuadrado")
+        self.assertEqual(costs["guias_plasticas"]["nombre"], "Guías plásticas")
+        self.assertEqual(costs["chilillos"]["nombre"], "Chilillos")
         self.assertIsNone(costs["tela_mosquitera"]["costo_compra"])
         self.assertIsNone(costs["vinil_doble_fuerza"]["costo_compra"])
 
