@@ -48,6 +48,7 @@ Si ya tienes una base SQLite de la entrega anterior, ejecuta de nuevo `python -m
 - [Backlog de producto](docs/product/Backlog.md)
 - [Flujo de trabajo de vidriería](docs/domain/FlujoDeTrabajoVidrieria.md)
 - [Medidas de ventana California por mitad](docs/domain/Medidas.md)
+- [Insumos y costos de California por mitad](docs/domain/CostosInsumosCalifornia.md)
 - [Guía del backlog y Kanban](docs/workflow/GuiaBacklogKanban.md)
 - [Esquema inicial de HU-01 (SQLite)](docs/technical/HU01-modelo-sqlite.sql)
 - [Evaluación de la estructura del proyecto](docs/technical/EvaluacionEstructura.md)
