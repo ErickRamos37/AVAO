@@ -31,7 +31,7 @@ class WindowMaterialCostTests(unittest.TestCase):
         aluminum, glass, costs = example_inputs()
         costs["tela_mosquitera"] = None
         costs["vinil_doble_fuerza"] = None
-        result = calculate_window_material_cost(aluminum, glass, costs)
+        result = calculate_window_material_cost(aluminum, glass, costs, width_16=48 * 16, height_16=36 * 16)
 
         self.assertFalse(result["completo"])
         self.assertIn("Tela mosquitera", result["faltantes"])
@@ -41,7 +41,7 @@ class WindowMaterialCostTests(unittest.TestCase):
 
     def test_complete_calculation_uses_purchase_costs_and_exact_quantities(self):
         aluminum, glass, costs = example_inputs()
-        result = calculate_window_material_cost(aluminum, glass, costs)
+        result = calculate_window_material_cost(aluminum, glass, costs, width_16=48 * 16, height_16=36 * 16)
 
         self.assertTrue(result["completo"])
         items = {item["codigo"]: item for item in result["items"]}
@@ -50,8 +50,9 @@ class WindowMaterialCostTests(unittest.TestCase):
         self.assertEqual(jamba_items[0]["cantidad"], "6")
         # $428 / 21 ft is kept unrounded for the calculation, then shown to cents.
         self.assertEqual(Decimal(jamba_items[0]["costo"]), Decimal("122.29"))
-        self.assertEqual(items["pasta"]["cantidad"], "1.5")
-        self.assertEqual(Decimal(items["pasta"]["costo"]), Decimal("70.50"))
+        self.assertEqual(items["pasta"]["cantidad"], "336")
+        self.assertEqual(Decimal(items["pasta"]["costo"]), Decimal("50.62"))
+        self.assertEqual(items["pasta"]["unidad"], "pulgada lineal")
         self.assertEqual(items["chilillos"]["cantidad"], "24")
         self.assertEqual(Decimal(items["chilillos"]["costo"]), Decimal("4.80"))
         self.assertEqual(items["vidrio_doble_fuerza"]["unidad"], "pie cuadrado")
@@ -61,7 +62,7 @@ class WindowMaterialCostTests(unittest.TestCase):
 
     def test_incomplete_cut_plan_does_not_attempt_costing(self):
         aluminum, glass, costs = example_inputs()
-        result = calculate_window_material_cost(aluminum[:-1], glass, costs)
+        result = calculate_window_material_cost(aluminum[:-1], glass, costs, width_16=48 * 16, height_16=36 * 16)
 
         self.assertFalse(result["completo"])
         self.assertEqual(result["faltantes"], ["Plan de corte completo"])

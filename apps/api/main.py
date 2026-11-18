@@ -127,7 +127,7 @@ def update_cost(codigo: str, update: CostUpdate):
 def calculate_window_cost(window_id: int):
     with closing(connect_db()) as connection:
         window = connection.execute(
-            "SELECT id FROM ventanas WHERE id = ?", (window_id,)
+            "SELECT ancho_16, alto_16 FROM ventanas WHERE id = ?", (window_id,)
         ).fetchone()
         if window is None:
             raise HTTPException(status_code=404, detail="Ventana no encontrada.")
@@ -148,7 +148,9 @@ def calculate_window_cost(window_id: int):
         costs = dict(connection.execute(
             "SELECT codigo, costo_centavos FROM costos_insumos"
         ).fetchall())
-        result = calculate_window_material_cost(aluminum, glass, costs)
+        result = calculate_window_material_cost(
+            aluminum, glass, costs, width_16=window[0], height_16=window[1]
+        )
         if not result["completo"]:
             return result
         fingerprint = window_plan_fingerprint(aluminum, glass)

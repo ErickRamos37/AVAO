@@ -26,7 +26,6 @@ UNIDADES_POR_VENTANA = {
     "escuadras": Decimal("4"),
     "chilillos": Decimal("24"),
     "taquetes": Decimal("4"),
-    "pasta": Decimal("1.5"),
 }
 
 
@@ -64,6 +63,9 @@ def _calculate_window_material_cost(
     aluminum_plan: list[dict],
     glass_plan: dict | None,
     costs: dict[str, int | None],
+    *,
+    width_16: int,
+    height_16: int,
 ) -> dict:
     """Return a complete cost, or only missing rates (never partial amounts).
 
@@ -76,7 +78,7 @@ def _calculate_window_material_cost(
 
     row_by_name = {row["perfil"]: row for row in aluminum_plan}
     required_codes = set(UNIDADES_POR_VENTANA)
-    required_codes.update(("finger", "felpa", "cola_de_rata", "vinil_doble_fuerza", "tela_mosquitera", "vidrio_doble_fuerza"))
+    required_codes.update(("finger", "felpa", "cola_de_rata", "vinil_doble_fuerza", "tela_mosquitera", "vidrio_doble_fuerza", "pasta"))
     required_codes.update(PERFILES.values())
     missing = [
         INSUMOS_POR_CODIGO[code][1]
@@ -135,6 +137,11 @@ def _calculate_window_material_cost(
         details.append((code, quantity, Decimal(costs[code]) * quantity,
                         INSUMOS_POR_CODIGO[code][3]))
 
+    # Apply the full perimeter on both faces using the fabrication dimensions.
+    paste_inches = Decimal(4 * (width_16 + height_16)) / Decimal(16)
+    paste_cost_cents = paste_inches * Decimal(costs["pasta"]) / Decimal(26 * 12)
+    details.append(("pasta", paste_inches, paste_cost_cents, "pulgada lineal"))
+
     grouped: dict[str, tuple[Decimal, Decimal, str]] = {}
     for code, quantity, cost_cents, unit in details:
         if code in grouped:
@@ -169,8 +176,13 @@ def calculate_window_material_cost(
     aluminum_plan: list[dict],
     glass_plan: dict | None,
     costs: dict[str, int | None],
+    *,
+    width_16: int,
+    height_16: int,
 ) -> dict:
     """Calculate with enough decimal precision to round currency reliably later."""
     with localcontext() as context:
         context.prec = 50
-        return _calculate_window_material_cost(aluminum_plan, glass_plan, costs)
+        return _calculate_window_material_cost(
+            aluminum_plan, glass_plan, costs, width_16=width_16, height_16=height_16
+        )

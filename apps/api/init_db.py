@@ -68,4 +68,10 @@ if __name__ == "__main__":
                 "INSERT OR IGNORE INTO costos_insumos (codigo, costo_centavos) VALUES (?, ?)",
                 ((item[0], item[6]) for item in INSUMOS),
             )
+            connection.executemany(
+                "UPDATE costos_insumos SET costo_centavos = ? "
+                "WHERE codigo = ? AND costo_centavos IS NULL",
+                ((item[6], item[0]) for item in INSUMOS
+                 if item[0] in {"tela_mosquitera", "vinil_doble_fuerza"}),
+            )
     print("Esquema de pedidos preparado.")
