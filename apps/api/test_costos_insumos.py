@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from fastapi import HTTPException
 
-from apps.api.main import (CostUpdate, NewOrder, app, costs_page, create_order,
+from apps.api.main import (CostUpdate, InventoryUpdate, update_inventory, NewOrder, app, costs_page, create_order,
                            calculate_window_cost, get_order, list_costs, update_cost)
 
 
@@ -132,6 +132,42 @@ class CostCatalogTests(unittest.TestCase):
         self.assertIn("Tela mosquitera", result["faltantes"])
         self.assertNotIn("costo_base", result)
         self.assertIsNone(get_order(order_id)["ventanas"][0]["costo_materiales"])
+
+    def test_inventory_batch_is_atomic_and_percentage_persists(self):
+        self.assertEqual(list_costs()["porcentaje_ganancia"], 25)
+        with self.assertRaises(HTTPException):
+            update_inventory(InventoryUpdate(costos={"jamba": "999", "aleta": "-1"}, porcentaje_ganancia=40))
+        self.assertEqual(list_costs()["insumos"][0]["costo_compra"], "428.00")
+        self.assertEqual(list_costs()["porcentaje_ganancia"], 25)
+        for value in (0, 101):
+            with self.subTest(value=value), self.assertRaises(HTTPException):
+                update_inventory(InventoryUpdate(porcentaje_ganancia=value))
+        from pydantic import ValidationError
+        for value in (1.5, "25", True):
+            with self.subTest(value=value), self.assertRaises(ValidationError):
+                InventoryUpdate(porcentaje_ganancia=value)
+        update_inventory(InventoryUpdate(costos={"jamba": "999.00", "aleta": "500.00"}, porcentaje_ganancia=100))
+        self.migrate()
+        self.assertEqual(list_costs()["porcentaje_ganancia"], 100)
+        self.assertEqual(list_costs()["insumos"][0]["costo_compra"], "999.00")
+        update_inventory(InventoryUpdate(porcentaje_ganancia=1))
+        self.assertEqual(list_costs()["porcentaje_ganancia"], 1)
+
+    def test_profit_is_saved_and_changes_only_after_recalculation(self):
+        order_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
+        window_id = get_order(order_id)["ventanas"][0]["id"]
+        first = calculate_window_cost(window_id)
+        base = Decimal(first["costo_base"])
+        from decimal import ROUND_HALF_UP
+        self.assertEqual(first["porcentaje_ganancia"], 25)
+        self.assertEqual(Decimal(first["ganancia"]), (base * Decimal("0.25")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        self.assertEqual(Decimal(first["precio"]), (base * Decimal("1.25")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        update_inventory(InventoryUpdate(porcentaje_ganancia=50))
+        self.assertEqual(get_order(order_id)["ventanas"][0]["costo_materiales"]["precio"], first["precio"])
+        second = calculate_window_cost(window_id)
+        self.assertEqual(second["porcentaje_ganancia"], 50)
+        self.assertEqual(second["costo_base"], first["costo_base"])
+        self.assertNotEqual(second["precio"], first["precio"])
 
     def test_cost_page_and_api_routes_are_registered(self):
         page = costs_page()

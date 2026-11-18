@@ -6,11 +6,12 @@ from pathlib import Path
 import sqlite3
 from contextlib import closing
 from typing import Literal
+from decimal import Decimal, ROUND_HALF_UP
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, StrictStr
+from pydantic import BaseModel, StrictStr, StrictInt
 
 from apps.api.medidas import format_measure, parse_measure
 from apps.api.costos_insumos import INSUMOS, INSUMOS_POR_CODIGO, cents_from_input, serialize_cost
@@ -76,6 +77,11 @@ class CostUpdate(BaseModel):
     costo: StrictStr
 
 
+class InventoryUpdate(BaseModel):
+    costos: dict[str, StrictStr] = {}
+    porcentaje_ganancia: StrictInt | None = None
+
+
 class WindowDiscard(BaseModel):
     descartada: bool
     confirmar_descarte: bool = False
@@ -101,9 +107,34 @@ def list_costs():
         saved = dict(connection.execute(
             "SELECT codigo, costo_centavos FROM costos_insumos"
         ).fetchall())
+        percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
     return {"insumos": [
         serialize_cost(item, saved.get(item[0])) for item in INSUMOS
-    ]}
+    ], "porcentaje_ganancia": percentage}
+
+
+@app.put("/api/costos-insumos")
+def update_inventory(update: InventoryUpdate):
+    # Validate every change before writing any of them.
+    costs = {}
+    for code, value in update.costos.items():
+        if code not in INSUMOS_POR_CODIGO:
+            raise HTTPException(status_code=404, detail="Insumo no encontrado.")
+        costs[code] = cents_from_input(value)
+    percentage = update.porcentaje_ganancia
+    if ("porcentaje_ganancia" in update.model_fields_set and percentage is None) or (percentage is not None and not 1 <= percentage <= 100):
+        raise HTTPException(status_code=422, detail="La ganancia debe ser un entero de 1 a 100.")
+    with closing(connect_db()) as connection:
+        with connection:
+            for code, cents in costs.items():
+                cursor = connection.execute("UPDATE costos_insumos SET costo_centavos = ? WHERE codigo = ?", (cents, code))
+                if cursor.rowcount != 1:
+                    raise HTTPException(status_code=503, detail="Inicializa la base de datos antes de guardar costos.")
+            if percentage is not None:
+                cursor = connection.execute("UPDATE configuracion_ganancia SET porcentaje = ? WHERE id = 1", (percentage,))
+                if cursor.rowcount != 1:
+                    raise HTTPException(status_code=503, detail="Inicializa la base de datos antes de guardar la ganancia.")
+    return list_costs()
 
 
 @app.put("/api/costos-insumos/{codigo}")
@@ -153,6 +184,11 @@ def calculate_window_cost(window_id: int):
         )
         if not result["completo"]:
             return result
+        percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
+        base = Decimal(result["costo_base"])
+        profit = base * Decimal(percentage) / 100
+        result.update(porcentaje_ganancia=percentage, ganancia=str(profit.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
+                      precio=str((base + profit).quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
         fingerprint = window_plan_fingerprint(aluminum, glass)
         with connection:
             connection.execute(

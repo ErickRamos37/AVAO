@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Costos de insumos</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu18-costos">
-    <script src="/static/costos.js?v=hu18-costos" defer></script>
+    <script src="/static/costos.js?v=hu19-ganancia" defer></script>
   </head>
   <body>
     <main>
@@ -17,7 +17,17 @@
       <h1>Costos de compra</h1>
       <p>Los valores guardados se usarán en cálculos nuevos. Los costos pendientes quedan vacíos hasta que se conozcan.</p>
       <p id="cost-message" role="alert" hidden></p>
-      <div id="cost-list">Cargando costos…</div>
+      <form id="inventory-form">
+        <div id="cost-list">Cargando costos…</div>
+        <p><label for="profit">Ganancia común (%)</label> <input id="profit" type="number" min="1" max="100" step="1" required></p>
+        <button type="submit">Guardar</button>
+      </form>
+      <dialog id="unsaved-dialog">
+        <p>Hay cambios sin guardar. ¿Qué deseas hacer?</p>
+        <button type="button" data-action="save">Guardar y salir</button>
+        <button type="button" data-action="discard">Descartar y salir</button>
+        <button type="button" data-action="stay">Permanecer</button>
+      </dialog>
     </main>
   </body>
 </html>
