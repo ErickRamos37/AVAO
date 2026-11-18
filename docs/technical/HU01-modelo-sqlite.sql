@@ -85,3 +85,10 @@ CREATE TABLE IF NOT EXISTS costos_ventana (
 -- decida reiniciar sus datos de prueba; los pedidos nuevos reciben A, B, ...
 -- HU-13 completa el cliente y las notas después de guardar medidas.
 -- No hay catálogo de productos configurable: solo se registra California por mitad.
+
+-- HU-19: porcentaje común de ganancia.
+CREATE TABLE IF NOT EXISTS configuracion_ganancia (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    porcentaje INTEGER NOT NULL CHECK (porcentaje BETWEEN 1 AND 100)
+);
+INSERT OR IGNORE INTO configuracion_ganancia (id, porcentaje) VALUES (1, 25);

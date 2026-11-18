@@ -430,14 +430,25 @@ function renderWindowCost(window, container) {
   const heading = document.createElement('h4');
   heading.textContent = 'Costo base de materiales';
   const explanation = document.createElement('p');
-  explanation.textContent = 'No incluye ganancia ni servicios.';
+  explanation.textContent = 'No incluye servicios.';
   panel.append(heading, explanation);
 
   const cost = window.costo_materiales;
   if (cost) {
     const total = document.createElement('p');
-    total.textContent = `${cost.vigente ? 'Costo base' : 'Costo anterior'}: $${cost.costo_base}`;
+    total.textContent = `Precio de la ventana: $${cost.costo_base}`;
     panel.append(total);
+    if (cost.porcentaje_ganancia !== undefined) {
+      const profit = document.createElement('p');
+      profit.textContent = `Ganancia (${cost.porcentaje_ganancia}%): $${cost.ganancia}`;
+      const price = document.createElement('p');
+      price.textContent = `Total: $${cost.precio}`;
+      panel.append(profit, price);
+    } else {
+      const notice = document.createElement('p');
+      notice.textContent = 'Este cálculo anterior no incluye ganancia. Recalcula para obtener el precio.';
+      panel.append(notice);
+    }
     if (!cost.vigente) {
       const stale = document.createElement('p');
       stale.textContent = 'Las medidas o el plan cambiaron después de este cálculo. Recalcula antes de usarlo.';
@@ -477,7 +488,7 @@ function renderWindowCost(window, container) {
 
   const calculate = document.createElement('button');
   calculate.type = 'button';
-  calculate.textContent = cost ? 'Recalcular con costos actuales' : 'Calcular costo base';
+  calculate.textContent = cost ? 'Recalcular con costos y ganancia actuales' : 'Calcular precio';
   calculate.addEventListener('click', async () => {
     calculate.disabled = true;
     message.hidden = true;
