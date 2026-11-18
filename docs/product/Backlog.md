@@ -7,7 +7,7 @@
 - **Área** clasifica por asunto: **Pedidos y medidas**, **Cortes y taller**, **Precios y cobros**, **Instalación**, **Materiales** o **Visibilidad**. No es una HU ni un entregable.
 - **Épica** agrupa varias HU hacia un resultado amplio. No se crea para una sola HU ni se le asignan puntos. Puede representarse por un campo `Épica` en GitHub Projects; solo se crea una incidencia padre cuando seguir su progreso o decisiones propias aporte valor. El área es una clasificación temática. Véase [GuiaBacklogKanban.md](../workflow/GuiaBacklogKanban.md).
 - **HU** expresa una capacidad comprobable con **Como**, **necesito** y **para**. **Quiero** puede señalar una mejora opcional expresamente clasificada así por el usuario; el verbo por sí solo no define prioridad ni MVP. Sus criterios de aceptación prueban el resultado; las subtareas describirán el trabajo del programador. Una HU próxima debe entregar un recorrido utilizable, no una capa técnica aislada.
-- **Esfuerzo** usa la escala relativa `1, 2, 3, 5, 8`. Las estimaciones ya registradas se conservan como dato histórico aunque el ciclo termine. Si al refinar una HU supera 8, se sustituye por dos o más HU menores que juntas cubran el alcance; se enlaza, cierra y archiva la original sin borrar su historia.
+- **Esfuerzo** usa la escala relativa `1, 2, 3, 5, 8`. Las estimaciones ya registradas se conservan como dato histórico aunque el ciclo termine. Si al refinar una HU supera 8, se sustituye por dos o más HU menores que juntas cubran el alcance; se enlaza y cierra la original como reemplazada, manteniéndola en Backlog sin borrar su historia.
 - **Prioridad** y **esfuerzo** son distintos. La prioridad se usa para ordenar trabajo pendiente dentro del ciclo actual; al terminar el ciclo se limpia ese campo, sin borrar el ciclo ni la estimación histórica.
 
 ## Épicas de resultado
@@ -20,6 +20,10 @@
 | E4. Actualizar el cálculo comercial desde insumos | Cambiar precios individuales y aplicar ganancia definida. | HU-18, HU-19 |
 
 HU-20, HU-21 y HU-24 quedan independientes hasta que su alcance justifique agruparlas. El progreso de una épica no reemplaza la aceptación de cada HU.
+
+## Ciclos de trabajo
+
+En AVAO, un ciclo agrupa trabajo con un objetivo común dentro del flujo Kanban; no implica un sprint Scrum ni duración fija. Antes de empezar se acuerdan objetivo, prioridad, esfuerzo, dependencias y criterios suficientes. Al terminar se conservan las HU, resultados y esfuerzos históricos; se retira la prioridad de las terminadas. Las HU permanecen en Backlog incluso al cerrar sus incidencias; solo las subtareas recorren el tablero y el usuario mueve sus tarjetas.
 
 ## Ciclo 1 completado: medidas y taller
 
@@ -122,16 +126,16 @@ HU-07 y HU-09 se completaron; HU-08 y HU-10 quedaron cubiertas por el flujo impl
 
 | HU | Épica | Prioridad actual | Esfuerzo histórico | Resultado |
 | --- | --- | --- | ---: | --- |
-| HU-06 | E1 | — | 3 | Implementada; subtarea #52 pendiente por dependencia de precios |
+| HU-06 | E1 | Baja | 3 | Implementada; subtarea #52 pendiente por dependencia de precios |
 | HU-07 | E2 | — | 8 | Completada y aceptada |
 | HU-08 | E2 | — | No consta en el backlog | Cubierta por el ensamble de HU-05 |
-| HU-09 | E2 | — | No consta en el backlog | Completada y aceptada (#53) |
+| HU-09 | E2 | — | 5 | Completada y aceptada (#53) |
 | HU-10 | E2 | — | No consta en el backlog | Cubierta por el flujo actual |
-| HU-13 | E3 | — | No consta en el backlog | Completada y probada por el usuario |
-| HU-23 | E2 | — | No consta en el backlog | Implementada en el flujo de pedidos |
-| HU-24 | Sin épica | — | No consta en el backlog | Vistas por área implementadas y aceptadas |
+| HU-13 | E3 | — | 5 | Completada y probada por el usuario |
+| HU-23 | E2 | — | 2 | Implementada en el flujo de pedidos |
+| HU-24 | Sin épica | — | 3 | Vistas por área implementadas y aceptadas |
 
-Las HU completas y sus criterios permanecen en las secciones siguientes y en sus apartados específicos; los esfuerzos que no aparecen en el registro disponible se identifican como no documentados, sin estimarlos retrospectivamente.
+Las HU completas y sus criterios permanecen en las secciones siguientes y en sus apartados específicos. Se recuperaron las estimaciones históricas de HU-09 (5), HU-13 (5), HU-23 (2) y HU-24 (3) de la copia anterior del backlog; no se estiman retrospectivamente las HU cubiertas sin estimación propia.
 
 ### HU del primer MVP incorporadas o completadas en el Ciclo 2
 
@@ -169,10 +173,8 @@ Las HU completas y sus criterios permanecen en las secciones siguientes y en sus
 
 ### HU-24 — Consultar un pedido por área de trabajo, completada en Ciclo 2
 
-### HU-24 — Consultar un pedido por área de trabajo
-
 - **Issue:** [AVAO #30](https://github.com/ErickRamos37/AVAO/issues/30).
-- **Área:** Visibilidad · sin épica asignada. Esfuerzo no documentado en la versión histórica disponible.
+- **Área:** Visibilidad · sin épica asignada · **Esfuerzo histórico:** 3, recuperado del registro del Ciclo 2.
 - **Historia:** **Como** empleado que trabaja en un pedido, **necesito** consultar por separado sus medidas, cortes de aluminio, cortes de vidrio y ensamble, **para** concentrarme en la información pertinente a la tarea que realizo.
 - **Alcance de esta entrega:** las cuatro vistas pertenecen solo al pedido abierto. «Medidas» consulta las ventanas ya guardadas; la captura de un pedido nuevo sigue en el flujo actual. Los datos del cliente y las notas del pedido deben seguir accesibles, en particular las notas compartidas con los trabajadores; su ubicación exacta no se fija aquí.
 - **Criterios de aceptación propuestos:**
@@ -190,7 +192,7 @@ El usuario decidió omitir la fórmula sencilla. Este ciclo prepara el costo rea
 | --- | --- | --- | ---: | --- |
 | 1 | HU-18 — Mantener costos de compra de insumos de California por mitad | Alta | 3 | Registrar costos documentados de perfiles, moldura de screen, vidrio, tela, consumibles lineales y artículos contables. Sin compras, existencias, rollos, sets, silicón, vistas ni accesorios aún no identificados. |
 | 2 | HU-11 — Calcular costo exacto de materiales por ventana | Alta | 5 | Usa cantidades y medidas del plan de corte y costos de HU-18. Valora medidas exactas usadas, sin redondear a tramos comerciales. No recupera desperdicio ni optimiza cortes. |
-| 3 | HU-19 — Aplicar ganancia al costo de materiales de una ventana | Alta | 3, provisional | Aplica el porcentaje definido por el usuario sobre el costo total de materiales de la ventana, no por perfil. No incluye servicios ni cobros. Un ejemplo numérico debe confirmar la interpretación antes de fijar aceptación. |
+| 3 | HU-19 — Aplicar ganancia al costo de materiales de una ventana | Alta | 3, provisional | Aplica el porcentaje definido por el usuario sobre el costo total de materiales de la ventana, no por perfil. Porcentaje común configurable en inventario (25 % inicial, entero de 1 a 100), aplicado a cada ventana. Los precios guardados cambian solo con Recalcular. No incluye servicios ni cobros. |
 | 4 | HU-25 — Mostrar total de ventanas activas del pedido | Alta | 2 | Suma los precios por ventana y excluye descartadas. No incluye aceptar presupuesto, registrar anticipo o calcular saldo. |
 | 5 | HU-12 — Agregar servicios opcionales al pedido | Media, propuesta | Por estimar | Instalación y visita a domicilio como conceptos separados de materiales, asociados al pedido. La visita depende principalmente de distancia. No incluye cotización independiente, mantenimiento, reparaciones ni cobro de recorte/ensamble por separado. Sin regla de importe no está lista para estimarse. |
 | 6 | HU-26 — Recuperar desperdicio de perfiles de aluminio según umbral | Media, propuesta | 3, provisional | Depende de HU-18/HU-11. Regla configurable y cobro distribuido entre ventanas del pedido; se limita a aluminio y no implementa optimización 1D. Falta fijar longitud comercial y aplicación del umbral. |
@@ -217,6 +219,8 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
   2. El costo por pie lineal de cada perfil y de la moldura de screen se deriva del costo de su tramo (21 pies para perfiles y 12 pies para moldura). El costo por pie cuadrado del vidrio se deriva del precio de una hoja de 71″ × 102″. La tarifa de tela se registra directamente por pie cuadrado; los demás insumos conservan su costo por unidad documentada.
   3. Los costos ingresados permanecen al volver a consultar el catálogo. Actualizar un costo solo afecta cálculos nuevos; no modifica planes de corte, marcas de fabricación ni resultados ya consultados.
 - **Subtarea propuesta — Registrar y consultar costos de compra de los insumos de California por mitad:** permitir consultar e ingresar o actualizar cada costo con la presentación documentada: tramo con su longitud para perfiles y moldura de screen; hoja para vidrio; pie cuadrado para tela; pie lineal para insumos lineales; y unidad para artículos contables, incluida la pasta. Mostrar los costos derivados por pie lineal de perfil y moldura, y por pie cuadrado de vidrio; registrar directamente la tarifa de tela por pie cuadrado. Comprobar que persistan al volver a consultar y que sus cambios afecten solo cálculos nuevos. No incluye costo consumido por ventana (HU-11), rollos o su acomodo, compras en set o paquetes, accesorios aún no identificados, silicón ni vistas.
+- **Subtarea de mejora — Guardar los cambios del inventario en una sola acción:** sustituir los botones individuales por un único botón **Guardar** o **Aplicar**, detectar los campos modificados y persistir esos cambios, incluido el porcentaje de ganancia de HU-19 cuando esté disponible. Al intentar navegar dentro de AVAO con cambios sin guardar, advertir y ofrecer guardar o descartar. Al recargar o cerrar la pestaña con cambios pendientes, activar la advertencia estándar del navegador para salir o permanecer; no guardar automáticamente ni prometer botones personalizados en ese aviso. Comprobar que se conservan los valores al volver a consultar, que descartar no guarda las modificaciones y que la advertencia aparece únicamente cuando hay cambios pendientes.
+- **Clasificación propuesta:** nueva subtarea de mejora de HU-18. Cambia la interacción de una capacidad ya entregada; no es un fallo del comportamiento acordado anteriormente ni requiere una HU independiente. Conservar la subtarea original y su aceptación como historial.
 - **Dependencias/límites:** habilita HU-11; no incluye existencias, compras, proveedores, otros tipos de ventana/producto ni el precio final del cliente.
 
 ### HU-11 — Calcular costo exacto de materiales por ventana
@@ -228,6 +232,7 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
   2. El costo por perfil y vidrio corresponde a la medida exacta usada, sin redondear a un tramo o una hoja comercial entera.
   3. El resultado presenta un desglose de costo de materiales por ventana y el subtotal de materiales.
   4. El cambio de costo de un insumo afecta los cálculos nuevos; no altera plan de corte, medidas ni avance del taller.
+- **Subtarea — Calcular y consultar el costo base completo de una ventana California por mitad:** usar el plan de corte guardado y los costos vigentes para valorar longitudes exactas de perfiles y moldura, áreas exactas de vidrios y tela, consumibles según las fórmulas documentadas y artículos por unidad, incluida la pasta. Mostrar el desglose de cantidades, medidas y costo base solo cuando estén configurados todos los costos requeridos; si falta alguno, indicar cuáles faltan y no mostrar importes ni subtotal parcial. No redondear a tramos u hojas comerciales ni modificar medidas, planes o avances. No incluye ganancia (HU-19), servicios, recuperación de desperdicio ni optimización 1D/2D.
 - **Dependencias/límites:** depende de unidades y costos configurados en HU-18. No aplica ganancia (HU-19), recupera desperdicio (HU-26/HU-27), incluye servicios ni optimiza cortes 1D/2D.
 - **Preguntas abiertas:** conversión de unidades de compra de perfiles/vidrio al costo de medida consumida; ejemplo real para validar costo de una ventana.
 
@@ -236,11 +241,13 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
 - **Área:** Precios y cobros · **Épica:** E4 · **Prioridad/esfuerzo:** Alta / 3 propuestos para Ciclo 3.
 - **Historia:** **Como** encargado del negocio, **necesito** aplicar un porcentaje de ganancia al costo total de materiales de cada ventana, **para** obtener su precio antes de agregar servicios.
 - **Criterios de aceptación propuestos:**
-  1. El porcentaje se aplica al costo total de materiales de la ventana obtenido por HU-11, no a cada perfil por separado.
-  2. El resultado muestra costo de materiales, ganancia aplicada y precio de la ventana de forma distinguible.
-  3. Cambiar el porcentaje configura cálculos posteriores y no altera las medidas ni planes de corte.
-- **Dependencias/límites:** depende de HU-11. No incorpora servicios, aceptación, anticipos ni pagos.
-- **Pregunta abierta:** ejemplo numérico aprobado por el usuario para validar cómo se aplica el porcentaje y el redondeo monetario.
+  1. Un único porcentaje común se configura al final de los materiales del inventario, con valor inicial de 25 %. Se aplica a cada ventana y no se edita individualmente por ventana. Admite únicamente enteros de 1 a 100, ambos incluidos; rechaza valores vacíos, decimales, cero, negativos y mayores que 100.
+  2. El cálculo aplica ese porcentaje al costo total de materiales de cada ventana obtenido por HU-11, no a cada perfil por separado. Presenta costo, porcentaje, ganancia y precio distinguibles.
+  3. Guardar un porcentaje nuevo afecta cálculos nuevos y conserva los precios de las ventanas ya calculadas. El botón **Recalcular** permite actualizar explícitamente el cálculo con la configuración vigente, sin alterar medidas, planes de corte ni avances.
+  4. El precio de cada ventana se muestra en pesos enteros: una fracción de peso menor que $0.50 baja al entero inferior; desde $0.50 sube al siguiente peso.
+- **Subtarea propuesta — Aplicar y consultar la ganancia en el precio de una ventana:** incorporar al final del inventario un único porcentaje común editable, con valor inicial de 25 %, sin edición individual por ventana y persistirlo mediante el guardado del inventario. Aplicarlo al costo completo de materiales de cada ventana y mostrar costo, porcentaje utilizado, ganancia y precio redondeado. Conservar los precios ya calculados al cambiar la configuración; actualizarlos solo mediante **Recalcular**. Comprobar límites, persistencia, conservación del precio previo y recálculo explícito, sin perder medidas, planes ni marcas de fabricación.
+- **Dependencias/límites:** depende de HU-11. Comparte el guardado del inventario con la mejora de HU-18; no incorpora servicios, aceptación, anticipos ni pagos.
+- **Ejemplo de comprobación propuesto:** materiales por $1,000 con el 25 % inicial producen $250 de ganancia y $1,250 de precio. La ganancia es un recargo sobre costo.
 
 ### HU-25 — Consultar el total de ventanas activas del pedido
 
@@ -250,6 +257,7 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
   1. Muestra el precio de cada ventana activa y la suma del pedido.
   2. Las ventanas descartadas no se suman; reincorporarlas vuelve a incluirlas conforme a HU-06.
   3. Si no hay ventanas activas, no presenta un importe como si hubiera productos vigentes.
+- **Subtarea propuesta — Consultar el total de precios de las ventanas activas del pedido:** mostrar el precio de cada ventana activa calculado en HU-19 y sumar esos precios ya redondeados. Excluir las ventanas descartadas y volver a incluirlas al reincorporarlas, conservando su identificación. Comprobar el total con varias ventanas y los cambios al descartar o reincorporar, sin presentar un importe vigente si no quedan ventanas activas. Antes de implementarla, confirmar qué debe mostrarse cuando alguna ventana activa todavía no tenga un precio calculado o tenga un cálculo desactualizado. No incluye servicios, anticipos ni saldo.
 - **Dependencias/límites:** depende de HU-19; no incluye servicios (HU-12), aceptación de presupuesto, anticipo ni saldo.
 
 ### HU-12 — Agregar servicios opcionales al pedido
@@ -285,6 +293,16 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
   4. Los errores del negocio no se cobran como desperdicio.
 - **Dependencias/límites:** depende de HU-18, HU-11 y HU-25; futuro respecto del Ciclo 3. No incluye algoritmo de optimización 2D ni reutilización automática de sobrantes.
 - **Preguntas abiertas:** dimensiones comerciales de hoja, medida de consumo contra el umbral y ejemplo numérico que determine la regla.
+
+### Necesidad nueva por refinar: medidas aproximadas antes del pedido de taller
+
+- **Hecho confirmado:** algunos clientes comparten dimensiones aproximadas para recibir una idea de presupuesto. No son medidas verificadas por el vidriero ni se envían al taller. Si el cliente acepta continuar, el vidriero obtiene medidas de fabricación exactas; deben poder compararse con las aproximadas para explicar una diferencia de precio.
+- **Preferencia expresada por el usuario:** no asignar etiqueta/código ni posición de cola mientras solo existan medidas aproximadas. La cotización admite varias ventanas y usa los datos de cliente de HU-13: nombre, primer apellido y teléfono obligatorios; los demás opcionales. La cotización y su método para estimar el precio quedan fuera del Ciclo 3 y todavía requieren decisión del usuario.
+- **Propuesta del Product Owner:** mantener la cotización preliminar separada del pedido activo de taller. Al aceptarse como trabajo, el encargado podría corregir, agregar o descartar ventanas, capturar medidas exactas y revisar un resumen antes de promoverla. El resumen compararía medidas aproximadas/exactas, precio anterior/nuevo, ventanas agregadas/descartadas y diferencia/total. Solo al promover se asignarían código y posición de cola, manteniendo cotización y medidas originales para explicar el cambio.
+- **Dependencia de precios, todavía propuesta:** podría reutilizarse el inventario y el cálculo de costo/precio de HU-18, HU-11 y HU-19 para estimar ventanas a partir de medidas aproximadas, pero esa reutilización no está aprobada y requiere comprobar que sirve para cotizaciones. Evitar crear dos motores de precio sin una necesidad demostrada; tampoco bloquear la cotización bajo una arquitectura general de catálogo.
+- **Opciones de alcance aún no decididas:** (A) registrar cotización y monto manual, con menor alcance pero sin cálculo automático; (B) explorar si el cálculo de HU-11 puede usarse con medidas aproximadas, sin asumir que produzca un precio orientativo válido; (C) reutilizar HU-18/HU-11/HU-19 o extenderlas mínimamente para cotizar California por mitad. Ninguna opción está aprobada; la elección depende de validar unidades, datos, reglas de material y ganancia para el caso aproximado.
+- **Posible división, aún no aprobada:** una HU para guardar/consultar cotizaciones preliminares con medidas aproximadas, y otra para revisar diferencias y convertir una cotización aceptada en pedido del taller con medidas exactas, etiqueta y posición. El resumen de diferencias parece pertenecer al flujo de conversión, no necesita una HU de interfaz separada. Sin ID, épica, prioridad, esfuerzo, ciclo ni issues todavía.
+- **Por preguntar antes de formalizar:** ¿la aprobación final del cliente al total actualizado debe ocurrir antes de promover el pedido al taller? ¿qué componentes concretos de costo/precio y reglas mínimas (unidades, largos de compra, desperdicio, ganancia/servicios) usa California para que el estimador sea repetible? ¿se archivan o eliminan las cotizaciones que no se aceptan, y quién puede encontrarlas? No cambiar la captura actual de HU-01 hasta decidir el nuevo ciclo.
 
 ## Secuencia comercial prevista: datos, precios, aceptación y liquidación
 

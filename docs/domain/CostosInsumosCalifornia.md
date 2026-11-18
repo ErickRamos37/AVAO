@@ -25,23 +25,23 @@ Este documento reúne los materiales conocidos para una ventana California por m
 | Vertical fijo | Medida | $149 por tramo | Tramo de 21 pies | Longitud según el plan de corte |
 | Moldura de screen | Medida | $115 por tramo | Tramo de 12 pies | Longitudes de los perfiles horizontales y verticales del screen en el plan de corte |
 | Vidrio doble fuerza de 1/8″ | Medida | $780 por hoja | Hoja de 71″ de alto × 102″ de ancho | Dos vidrios iguales según el plan de corte |
-| Vinil doble fuerza | Medida | Pendiente | Rollo de largo variable | Perímetro de cada vidrio por la cantidad de vidrios |
+| Vinil doble fuerza | Medida | $1.20 por pie lineal | Rollo de largo variable | Perímetro de cada vidrio por la cantidad de vidrios |
 | Finger | Medida | $0.44 por pie | Rollo; longitud variable | `2 × horizontal fijo + 2 × vertical fijo` |
 | Felpa | Medida | $0.44 por pie | Rollo; longitud variable | `2 × aleta + 2 × horizontal corredizo` |
 | Rodajas | Unidad | $5.50 por unidad | Empaque; cantidad por confirmar | 2 unidades |
 | Guías plásticas | Unidad | $1.15 por unidad | Empaque; cantidad por confirmar | 4 unidades |
 | Jaladeras | Unidad | $14 por unidad | Empaque; cantidad por confirmar | 1 unidad |
 | Cola de rata | Medida | $1.88 por pie | Rollo; longitud variable | Perímetro del screen |
-| Tela mosquitera | Área | Tarifa por pie cuadrado pendiente; $850 por rollo queda como referencia | Rollo de ancho y largo variables; registrar rollos queda para una etapa futura | `anchoScreen × altoScreen` según las medidas del aluminio |
+| Tela mosquitera | Área | $3.00 por pie cuadrado; $850 por rollo queda como referencia | Rollo de ancho y largo variables; registrar rollos queda para una etapa futura | `anchoScreen × altoScreen` según las medidas del aluminio |
 | Escuadras | Unidad | $3 por unidad | Empaque; cantidad por confirmar | 4 unidades |
 | Chilillos | Unidad | $0.20 por unidad | Empaque; cantidad por confirmar | 24 unidades por ventana; $4.80 al costo común actual |
 | Taquetes | Unidad | $0.45 por unidad | Empaque; cantidad por confirmar | 4 unidades |
-| Pasta | Unidad | $47 por tubo | Tubo | 1.5 tubos |
+| Pasta | Medida | $47 por tubo | Tubo con rendimiento de 26 pies lineales (312 pulgadas) | Perímetro de fabricación por ambas caras |
 | Silicón | Unidad | $82 por unidad | Presentación de compra por confirmar | Fuera del costeo actual |
 | Vistas | Medida | $65 por tramo | Tramo de 12 pies | Fuera del costeo actual |
 
 > [!NOTE]
-> Para el costeo actual, cada ventana consume 1.5 tubos de pasta. El silicón y las vistas quedan fuera; se conservan sus datos aquí para una etapa futura.
+> El silicón y las vistas quedan fuera; se conservan sus datos aquí para una etapa futura.
 
 ## Guías plásticas
 
@@ -68,7 +68,7 @@ El usuario confirmó estas fórmulas para calcular el costo de materiales de una
 - **Felpa:** `2 × aleta + 2 × horizontal corredizo`; se instala en los perfiles del corredizo.
 - **Cola de rata:** perímetro del screen para sujetar la tela a la moldura.
 
-El vinil doble fuerza todavía no tiene costo informado. Finger, felpa y cola de rata tienen un costo por pie indicado en la tabla, aunque se compren en rollos de largo variable.
+El vinil doble fuerza, el Finger, la felpa y la cola de rata se valoran por pie lineal según la tabla, aunque se compren en rollos de largo variable.
 
 ## Tela mosquitera del screen
 
@@ -105,20 +105,24 @@ Las tres secciones agrupan los chilillos por tipo de uso. Las cantidades por ven
 > [!NOTE]
 > La tarifa de $0.20 por unidad es común y temporal para todas las variantes; no representa precios individuales confirmados. Las seis cantidades suman 24 chilillos por ventana, con un costo total actual de $4.80. Si después se conocen precios por variante, se actualizarán sus filas.
 
+## Pasta
+
+La pasta se aplica por dentro y por fuera de la ventana. Usa el ancho y el alto de fabricación ingresados por el vidriero, en pulgadas. El perímetro de una cara es `2 × (ancho + alto)`. La longitud total de aplicación es el doble de ese perímetro.
+
+Cada tubo cuesta $47.00 y rinde 26 pies lineales (312 pulgadas) de aplicación. La tarifa es `47 ÷ 312`, aproximadamente **$0.1506 por pulgada lineal**. Para costear la ventana, multiplica la longitud total de aplicación por la tarifa sin redondearla previamente. En el desglose, el consumo se muestra como tubos aproximados, redondeados hacia arriba a cuartos de tubo (por ejemplo, 1.30 tubos → 1 1/2 tubos). Esta aproximación sirve para preparar material y no modifica el costo exacto calculado.
+
 ## Reglas confirmadas para el costeo
 
 - El costo de compra de cada tramo de aluminio se puede mostrar como costo por pie lineal; los perfiles considerados miden 21 pies, salvo molduras y vistas, que se compran en tramos de 12 pies.
 - El costo de compra de una hoja de vidrio se puede mostrar como costo por pie cuadrado, usando la hoja doble fuerza de 1/8″ de 71″ × 102″.
 - Los materiales de consumo lineal se valoran por pie lineal; la tela mosquitera se valora por pie cuadrado según `anchoScreen × altoScreen`, convirtiendo de pulgadas cuadradas a pies cuadrados (`÷ 144`).
-- Para el costo de una ventana se valora la medida exacta consumida, sin redondear a un tramo de aluminio o una hoja de vidrio completa. Cada ventana usa 1.5 tubos de pasta.
+- Para el costo de una ventana se valora la medida exacta consumida, sin redondear a un tramo de aluminio o una hoja de vidrio completa.
 - Los cálculos conservan su precisión. El precio final de venta se muestra en pesos enteros: con 50 centavos o más sube al siguiente peso; con menos de 50 centavos baja al peso anterior. El total del pedido suma los precios redondeados por ventana. El costo base de materiales puede conservar centavos.
 - Actualizar el costo de compra afecta cálculos nuevos, no los ya consultados.
 - La lista de accesorios necesarios para armar la ventana todavía será proporcionada por el usuario. La tabla conserva los accesorios que ya están identificados; no se considera completa.
 
 ## Información por completar
 
-- Incorporar el precio de la tela mosquitera por pie cuadrado y del vinil doble fuerza.
 - El registro de tipos y dimensiones de rollos y la optimización de su acomodo quedan para una etapa futura; la tela se valorará en el alcance actual mediante una tarifa por pie cuadrado.
 - Completar la lista de accesorios que lleva la ventana.
 - Investigar el largo exacto del ventanero para marco, completar las cantidades y precios unitarios del catálogo de chilillos, y conciliar las 24 unidades con el desglose por variante.
-- Ingresar la tarifa de tela mosquitera por pie cuadrado y la tarifa de vinil doble fuerza. Pasta queda definida como 1.5 tubos por ventana; silicón y vistas están fuera del costeo actual.
