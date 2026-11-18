@@ -232,6 +232,7 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
   2. El costo por perfil y vidrio corresponde a la medida exacta usada, sin redondear a un tramo o una hoja comercial entera.
   3. El resultado presenta un desglose de costo de materiales por ventana y el subtotal de materiales.
   4. El cambio de costo de un insumo afecta los cálculos nuevos; no altera plan de corte, medidas ni avance del taller.
+- **Subtarea — Calcular y consultar el costo base completo de una ventana California por mitad:** usar el plan de corte guardado y los costos vigentes para valorar longitudes exactas de perfiles y moldura, áreas exactas de vidrios y tela, consumibles según las fórmulas documentadas y artículos por unidad, incluida la pasta. Mostrar el desglose de cantidades, medidas y costo base solo cuando estén configurados todos los costos requeridos; si falta alguno, indicar cuáles faltan y no mostrar importes ni subtotal parcial. No redondear a tramos u hojas comerciales ni modificar medidas, planes o avances. No incluye ganancia (HU-19), servicios, recuperación de desperdicio ni optimización 1D/2D.
 - **Dependencias/límites:** depende de unidades y costos configurados en HU-18. No aplica ganancia (HU-19), recupera desperdicio (HU-26/HU-27), incluye servicios ni optimiza cortes 1D/2D.
 - **Preguntas abiertas:** conversión de unidades de compra de perfiles/vidrio al costo de medida consumida; ejemplo real para validar costo de una ventana.
 

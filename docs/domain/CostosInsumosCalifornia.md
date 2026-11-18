@@ -109,7 +109,7 @@ Las tres secciones agrupan los chilillos por tipo de uso. Las cantidades por ven
 
 La pasta se aplica por dentro y por fuera de la ventana. Usa el ancho y el alto de fabricación ingresados por el vidriero, en pulgadas. El perímetro de una cara es `2 × (ancho + alto)`. La longitud total de aplicación es el doble de ese perímetro.
 
-Cada tubo cuesta $47.00 y rinde 26 pies lineales (312 pulgadas) de aplicación. La tarifa es `47 ÷ 312`, aproximadamente **$0.1506 por pulgada lineal**. Para costear la ventana, multiplica la longitud total de aplicación por la tarifa sin redondearla previamente.
+Cada tubo cuesta $47.00 y rinde 26 pies lineales (312 pulgadas) de aplicación. La tarifa es `47 ÷ 312`, aproximadamente **$0.1506 por pulgada lineal**. Para costear la ventana, multiplica la longitud total de aplicación por la tarifa sin redondearla previamente. En el desglose, el consumo se muestra como tubos aproximados, redondeados hacia arriba a cuartos de tubo (por ejemplo, 1.30 tubos → 1 1/2 tubos). Esta aproximación sirve para preparar material y no modifica el costo exacto calculado.
 
 ## Reglas confirmadas para el costeo
 

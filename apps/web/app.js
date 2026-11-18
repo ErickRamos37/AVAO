@@ -412,6 +412,18 @@ async function loadOrders() {
   }
 }
 
+function formatMaterialConsumption(item) {
+  if (item.codigo !== 'pasta' || item.unidad !== 'pulgada lineal') {
+    return `${item.cantidad} ${item.unidad}`;
+  }
+  // Each tube covers 312 inches; round up only the displayed supply quantity.
+  const quarters = Math.ceil(Number(item.cantidad) / 78);
+  const whole = Math.floor(quarters / 4);
+  const fraction = ['', '1/4', '1/2', '3/4'][quarters % 4];
+  const quantity = [whole || '', fraction].filter(Boolean).join(' ') || '0';
+  return `≈ ${quantity} ${quarters === 4 ? 'tubo' : 'tubos'}`;
+}
+
 function renderWindowCost(window, container) {
   const panel = document.createElement('section');
   panel.className = 'window-cost';
@@ -447,7 +459,7 @@ function renderWindowCost(window, container) {
     const tbody = document.createElement('tbody');
     for (const item of cost.items) {
       const row = document.createElement('tr');
-      for (const value of [item.nombre, `${item.cantidad} ${item.unidad}`, `$${item.costo}`]) {
+      for (const value of [item.nombre, formatMaterialConsumption(item), `$${item.costo}`]) {
         const cell = document.createElement('td');
         cell.textContent = value;
         row.append(cell);
