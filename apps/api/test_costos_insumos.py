@@ -169,6 +169,56 @@ class CostCatalogTests(unittest.TestCase):
         self.assertEqual(second["costo_base"], first["costo_base"])
         self.assertNotEqual(second["precio"], first["precio"])
 
+    def test_order_total_tracks_active_saved_prices_and_stale_plans(self):
+        from apps.api.main import (WindowDiscard, set_window_discard, WindowCorrection,
+                                   correct_window_measures)
+        order_id = create_order(NewOrder(ventanas=[
+            {"ancho": "48", "alto": "36"}, {"ancho": "50", "alto": "38"},
+        ]))["id"]
+        first, second = get_order(order_id)["ventanas"]
+        total = get_order(order_id)["total_ventanas"]
+        self.assertEqual(total, {"importe": None, "sin_precio": True, "desactualizado": False})
+        first_price = int(calculate_window_cost(first["id"])["precio"])
+        total = get_order(order_id)["total_ventanas"]
+        self.assertEqual(total["importe"], first_price)
+        self.assertTrue(total["sin_precio"])
+        second_price = int(calculate_window_cost(second["id"])["precio"])
+        total = get_order(order_id)["total_ventanas"]
+        self.assertEqual(total["importe"], first_price + second_price)
+        self.assertFalse(total["sin_precio"])
+        update_inventory(InventoryUpdate(porcentaje_ganancia=50, costos={"jamba": "600"}))
+        self.assertEqual(get_order(order_id)["total_ventanas"], total)
+        correct_window_measures(first["id"], WindowCorrection(ancho="49", alto="36", confirmar_correccion=True))
+        total = get_order(order_id)["total_ventanas"]
+        self.assertEqual(total["importe"], first_price + second_price)
+        self.assertTrue(total["desactualizado"])
+        set_window_discard(first["id"], WindowDiscard(descartada=True, confirmar_descarte=True))
+        total = get_order(order_id)["total_ventanas"]
+        self.assertEqual(total["importe"], second_price)
+        self.assertFalse(total["desactualizado"])
+        set_window_discard(first["id"], WindowDiscard(descartada=False))
+        self.assertEqual(get_order(order_id)["total_ventanas"]["importe"], first_price + second_price)
+        for window in (first, second):
+            set_window_discard(window["id"], WindowDiscard(descartada=True, confirmar_descarte=True))
+        self.assertIsNone(get_order(order_id)["total_ventanas"]["importe"])
+
+    def test_legacy_cost_without_price_is_excluded_from_partial_total(self):
+        import json
+        order_id = create_order(NewOrder(ventanas=[
+            {"ancho": "48", "alto": "36"}, {"ancho": "50", "alto": "38"},
+        ]))["id"]
+        first, second = get_order(order_id)["ventanas"]
+        price = int(calculate_window_cost(first["id"])["precio"])
+        calculate_window_cost(second["id"])
+        with sqlite3.connect(self.path) as connection:
+            raw = connection.execute("SELECT resultado_json FROM costos_ventana WHERE ventana_id = ?", (second["id"],)).fetchone()[0]
+            snapshot = json.loads(raw)
+            del snapshot["precio"]
+            connection.execute("UPDATE costos_ventana SET resultado_json = ? WHERE ventana_id = ?", (json.dumps(snapshot), second["id"]))
+        total = get_order(order_id)["total_ventanas"]
+        self.assertEqual(total["importe"], price)
+        self.assertTrue(total["sin_precio"])
+
     def test_cost_page_and_api_routes_are_registered(self):
         page = costs_page()
         self.assertTrue(Path(page.path).is_file())

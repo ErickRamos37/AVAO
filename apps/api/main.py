@@ -424,15 +424,26 @@ def get_order(order_id: int):
         for window_id, number, width, height, assembled, discarded in windows
     ]
 
+    active = [window for window in window_details if not window["descartada"]]
+    costs = [window["costo_materiales"] for window in active]
+    missing_price = any(cost is None or cost.get("precio") is None for cost in costs)
+    priced_costs = [cost for cost in costs if cost is not None and cost.get("precio") is not None]
+    total = sum(int(cost["precio"]) for cost in priced_costs) if priced_costs else None
+
     return {
         "id": order_id,
         "etiqueta": label,
+        "total_ventanas": {
+            "importe": total,
+            "sin_precio": missing_price,
+            "desactualizado": any(cost is not None and not cost["vigente"] for cost in costs),
+        },
         "cliente": None if order_row[3] is None else {
             "nombre": order_row[3], "apellido_1": order_row[4], "apellido_2": order_row[5] or "",
             "celular": order_row[6], "direccion": order_row[7] or "",
         },
         "notas": order_row[2] or "",
-        "ventanas": [window for window in window_details if not window["descartada"]],
+        "ventanas": active,
         "ventanas_descartadas": [window for window in window_details if window["descartada"]],
     }
 

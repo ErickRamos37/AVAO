@@ -37,3 +37,5 @@ button:disabled { opacity: .6; cursor: wait; }
 .window-cost h4, .window-cost p { margin: 4px 0 8px; }
 .window-cost table { border-collapse: collapse; width: 100%; }
 .window-cost th, .window-cost td { padding: 6px; border-bottom: 1px solid #c9d3ca; text-align: left; }
+
+.window-missing-price { border: 2px solid #b00020; padding: 0.5rem; }
