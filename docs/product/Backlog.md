@@ -194,7 +194,7 @@ El usuario decidió omitir la fórmula sencilla. Este ciclo prepara el costo rea
 | 2 | HU-11 — Calcular costo exacto de materiales por ventana | Alta | 5 | Usa cantidades y medidas del plan de corte y costos de HU-18. Valora medidas exactas usadas, sin redondear a tramos comerciales. No recupera desperdicio ni optimiza cortes. |
 | 3 | HU-19 — Aplicar ganancia al costo de materiales de una ventana | Alta | 3, provisional | Aplica el porcentaje definido por el usuario sobre el costo total de materiales de la ventana, no por perfil. Porcentaje común configurable en inventario (25 % inicial, entero de 1 a 100), aplicado a cada ventana. Los precios guardados cambian solo con Recalcular. Subtarea implementada y aprobada por el usuario. No incluye servicios ni cobros. |
 | 4 | HU-25 — Mostrar total de ventanas activas del pedido | Alta | 2 | Implementada y aprobada por el usuario; subtarea #71. Suma precios guardados de ventanas activas, excluye descartadas y distingue total parcial, precios pendientes y avisos de desactualización. No incluye aceptar presupuesto, anticipo ni saldo. |
-| 5 | HU-12 — Agregar traslado opcional al pedido | Media, propuesta | 3, propuesto | Un único importe opcional por pedido para traslados de visita o entrega a domicilio, estimado manualmente según ubicación y gasolina. Se suma separado del total de ventanas, sin aplicar ganancia al traslado. Depende de HU-25; sin tarifas automáticas ni instalación como servicio. |
+| 5 | HU-12 — Agregar traslado opcional al pedido | Media, propuesta | 3, propuesto | Un único importe opcional por pedido para traslados de visita o entrega a domicilio, estimado manualmente según ubicación y gasolina. Se suma separado del total de ventanas, sin aplicar ganancia al traslado. Implementada y aprobada por el usuario; subtarea #74. Depende de HU-25; sin tarifas automáticas ni instalación como servicio. |
 | 6 | HU-26 — Recuperar desperdicio de perfiles de aluminio según umbral | Media, propuesta | 3, provisional | Depende de HU-18/HU-11. Regla configurable y cobro distribuido entre ventanas del pedido; se limita a aluminio y no implementa optimización 1D. Falta fijar longitud comercial y aplicación del umbral. |
 
 ### Fuera del Ciclo 3
@@ -267,13 +267,14 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
 - **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Media propuesta / 3 propuesto para Ciclo 3. El esfuerzo considera capturar, conservar, modificar y quitar el importe, e integrarlo al total existente; es una estimación relativa sujeta a revisión.
 - **Historia:** **Como** empleado, **necesito** agregar al pedido un importe opcional de traslado para visita o entrega a domicilio, **para** presentar ese cargo separado del precio de las ventanas y conocer el total del pedido.
 - **Reglas confirmadas:** el usuario estima manualmente el importe variable según ubicación y gasolina. Un único importe opcional por pedido reúne los traslados. Si no se agrega, no hay cargo. La ganancia de las ventanas no se aplica al traslado.
-- **Criterios de aceptación propuestos:**
-  - [ ] Permite agregar un único importe de traslado en pesos a un pedido y consultar lo guardado.
-  - [ ] El campo de traslado aparece al final, bloqueado por defecto; su botón **Editar** permite cambiar el importe. Permite quitarlo y deja de incluir el cargo al hacerlo.
-  - [ ] Presenta por separado el total de ventanas y el traslado, y muestra su suma como total del pedido. Sin traslado, no agrega cargo.
-  - [ ] Conserva la distinción de HU-25 para precios pendientes o desactualizados y no presenta una suma parcial como total completo del pedido.
-  - [ ] No aplica al traslado el porcentaje de ganancia de ventanas.
-- **Subtarea propuesta — Registrar y consultar el traslado opcional de un pedido:** permitir agregar un único importe manual en pesos, consultarlo, editarlo o quitarlo; mostrar el traslado al final, con su campo bloqueado por defecto y un botón **Editar** que habilite cambiarlo; mostrar por separado total de ventanas y traslado y su suma como total del pedido, conservando los avisos y límites de HU-25. Comprobar persistencia, edición, eliminación, ausencia de cargo cuando no se agrega y que no se aplique ganancia de ventanas al traslado. No incluye instalación como servicio ni cálculo automático del importe.
+- **Estado:** implementada y aprobada por el usuario; subtarea #74.
+- **Criterios de aceptación:**
+  - [x] Permite agregar un único importe de traslado en pesos a un pedido y consultar lo guardado.
+  - [x] El campo de traslado aparece al final, bloqueado por defecto; su botón **Editar** permite cambiar el importe. Permite quitarlo y deja de incluir el cargo al hacerlo.
+  - [x] Presenta por separado el total de ventanas y el traslado, y muestra su suma como total del pedido. Sin traslado, no agrega cargo.
+  - [x] Conserva la distinción de HU-25 para precios pendientes o desactualizados y no presenta una suma parcial como total completo del pedido.
+  - [x] No aplica al traslado el porcentaje de ganancia de ventanas.
+- **Subtarea [#74](https://github.com/ErickRamos37/AVAO/issues/74), implementada y aprobada — Registrar y consultar el traslado opcional de un pedido:** permitir agregar un único importe manual en pesos, consultarlo, editarlo o quitarlo; mostrar el traslado al final, con su campo bloqueado por defecto y un botón **Editar** que habilite cambiarlo; mostrar por separado total de ventanas y traslado y su suma como total del pedido, conservando los avisos y límites de HU-25. Comprobar persistencia, edición, eliminación, ausencia de cargo cuando no se agrega y que no se aplique ganancia de ventanas al traslado. No incluye instalación como servicio ni cálculo automático del importe.
 - **Dependencias/límites:** depende de HU-25. Visita y entrega a domicilio se reúnen en el importe de traslado del pedido; no hay cotización de visita independiente. No incluye mapas, kilómetros ni tarifas automáticas, instalación como servicio, mantenimiento, reparaciones ni cobros separados por recorte o ensamble.
 
 ### HU-26 — Recuperar costo de desperdicio de perfiles de aluminio
