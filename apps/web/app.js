@@ -556,6 +556,24 @@ async function openOrder(id) {
     const assemblyList = document.querySelector('#order-assembly');
     for (const panel of [measures, discardedList, aluminum, glass, assemblyList]) panel.replaceChildren();
     discardedSection.hidden = !order.ventanas_descartadas.length;
+    const orderTotal = document.querySelector('#order-total');
+    orderTotal.replaceChildren();
+    const totalMessage = document.createElement('p');
+    if (!order.ventanas.length) {
+      totalMessage.textContent = 'No hay total: el pedido no tiene ventanas activas.';
+    } else if (order.total_ventanas.importe === null) {
+      totalMessage.textContent = 'No hay precios calculados para las ventanas activas.';
+    } else if (order.total_ventanas.sin_precio) {
+      totalMessage.textContent = `Total parcial de ventanas con precio: $${order.total_ventanas.importe}. Faltan precios de ventanas activas.`;
+    } else {
+      totalMessage.textContent = `Total de ventanas activas: $${order.total_ventanas.importe}`;
+    }
+    orderTotal.append(totalMessage);
+    if (order.total_ventanas.desactualizado) {
+      const warning = document.createElement('p');
+      warning.textContent = 'Hay precios desactualizados por cambios de medidas o planes. Recalcula las ventanas indicadas.';
+      orderTotal.append(warning);
+    }
     if (!order.ventanas.length) {
       measures.textContent = 'No hay ventanas activas en este pedido.';
       for (const panel of [aluminum, glass, assemblyList]) {
@@ -573,6 +591,12 @@ async function openOrder(id) {
       discardButton.textContent = `Descartar ventana ${window.codigo ?? window.numero}`;
       discardButton.addEventListener('click', () => changeWindowDiscard(window, true, discardButton));
       measureSection.append(measureHeading, measureValue, discardButton);
+      if (window.costo_materiales?.precio == null) {
+        measureSection.classList.add('window-missing-price');
+        const warning = document.createElement('p');
+        warning.textContent = 'Precio pendiente: esta ventana no está incluida en el total.';
+        measureSection.append(warning);
+      }
       renderWindowCost(window, measureSection);
       measures.append(measureSection);
       const assembly = assemblyRow(window, order.id);
