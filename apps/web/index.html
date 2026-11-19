@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu25-total-ventanas" defer></script>
+    <script src="/static/app.js?v=hu12-traslado" defer></script>
   </head>
   <body>
     <main>
@@ -65,6 +65,21 @@
             <p>Medidas de fabricación en pulgadas</p>
             <div id="order-measures"></div>
             <section id="order-total" aria-live="polite"></section>
+            <section aria-labelledby="delivery-title">
+              <h3 id="delivery-title">Traslado</h3>
+              <p id="delivery-value"></p>
+              <button id="delivery-edit" type="button">Editar traslado</button>
+              <form id="delivery-form">
+                <p><label for="delivery-amount">Importe de traslado en pesos</label>
+                <input id="delivery-amount" type="number" min="0" step="0.01" inputmode="decimal" disabled></p>
+                <div id="delivery-actions" hidden>
+                  <p>Deja el campo vacío para quitar el traslado.</p>
+                  <button type="submit">Guardar</button>
+                  <button id="delivery-cancel" type="button">Cancelar</button>
+                </div>
+              </form>
+              <p id="order-grand-total" aria-live="polite"></p>
+            </section>
             <section id="discarded-windows" hidden>
               <h3>Ventanas descartadas</h3>
               <div id="discarded-window-list"></div>

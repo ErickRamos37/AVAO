@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS pedidos (
     id INTEGER PRIMARY KEY,
     etiqueta TEXT,
     cliente_id INTEGER REFERENCES clientes (id),
-    notas TEXT
+    notas TEXT,
+    traslado_centavos INTEGER CHECK (traslado_centavos IS NULL OR traslado_centavos >= 0)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS pedidos_etiqueta_unica ON pedidos (etiqueta);

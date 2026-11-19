@@ -8,6 +8,10 @@ const clientForm = document.querySelector('#client-form');
 const measures = document.querySelector('#order-measures');
 const discardedSection = document.querySelector('#discarded-windows');
 const discardedList = document.querySelector('#discarded-window-list');
+const deliveryForm = document.querySelector('#delivery-form');
+const deliveryAmount = document.querySelector('#delivery-amount');
+const deliveryActions = document.querySelector('#delivery-actions');
+const deliveryEdit = document.querySelector('#delivery-edit');
 const measureEditButton = document.querySelector('#edit-measures');
 const measureEditForm = document.querySelector('#measure-edit-form');
 const measureEditRows = document.querySelector('#measure-edit-rows');
@@ -569,6 +573,17 @@ async function openOrder(id) {
       totalMessage.textContent = `Total de ventanas activas: $${order.total_ventanas.importe}`;
     }
     orderTotal.append(totalMessage);
+    document.querySelector('#delivery-value').textContent = order.traslado === null ? 'Sin cargo de traslado.' : `Traslado: $${order.traslado}`;
+    deliveryAmount.value = order.traslado ?? '';
+    deliveryAmount.disabled = true;
+    deliveryActions.hidden = true;
+    deliveryEdit.hidden = false;
+    const grandTotal = document.querySelector('#order-grand-total');
+    if (order.total_pedido === null) {
+      grandTotal.textContent = '';
+    } else {
+      grandTotal.textContent = `${order.total_ventanas.sin_precio ? 'Total parcial del pedido' : 'Total del pedido'}: $${order.total_pedido}`;
+    }
     if (order.total_ventanas.desactualizado) {
       const warning = document.createElement('p');
       warning.textContent = 'Hay precios desactualizados por cambios de medidas o planes. Recalcula las ventanas indicadas.';
@@ -693,6 +708,36 @@ async function changeWindowDiscard(item, discard, button) {
     button.disabled = false;
   }
 }
+
+deliveryEdit.addEventListener('click', () => {
+  deliveryAmount.value = currentOrderData.traslado ?? '';
+  deliveryEdit.hidden = true;
+  deliveryActions.hidden = false;
+  deliveryAmount.disabled = false;
+  deliveryAmount.focus();
+});
+document.querySelector('#delivery-cancel').addEventListener('click', () => {
+  deliveryAmount.value = currentOrderData.traslado ?? '';
+  deliveryAmount.disabled = true;
+  deliveryActions.hidden = true;
+  deliveryEdit.hidden = false;
+});
+deliveryForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!deliveryForm.reportValidity()) return;
+  const button = deliveryForm.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/traslado`, {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({importe: deliveryAmount.value === '' ? null : deliveryAmount.value}),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo guardar el traslado.');
+    await openOrder(currentOrderId);
+  } catch (error) { showError(error.message); }
+  finally { button.disabled = false; }
+});
 
 clientForm.addEventListener('submit', async (event) => {
   event.preventDefault();

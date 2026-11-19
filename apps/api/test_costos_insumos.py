@@ -219,6 +219,43 @@ class CostCatalogTests(unittest.TestCase):
         self.assertEqual(total["importe"], price)
         self.assertTrue(total["sin_precio"])
 
+    def test_delivery_is_optional_persistent_and_added_to_partial_and_complete_totals(self):
+        from apps.api.main import DeliveryUpdate, update_delivery
+        order_id = create_order(NewOrder(ventanas=[
+            {"ancho": "48", "alto": "36"}, {"ancho": "50", "alto": "38"},
+        ]))["id"]
+        first, second = get_order(order_id)["ventanas"]
+        self.assertIsNone(get_order(order_id)["traslado"])
+        update_delivery(order_id, DeliveryUpdate(importe="120.35"))
+        self.assertIsNone(get_order(order_id)["total_pedido"])
+        price1 = int(calculate_window_cost(first["id"])["precio"])
+        order = get_order(order_id)
+        self.assertTrue(order["total_ventanas"]["sin_precio"])
+        self.assertEqual(Decimal(order["total_pedido"]), Decimal(price1) + Decimal("120.35"))
+        price2 = int(calculate_window_cost(second["id"])["precio"])
+        self.migrate()
+        order = get_order(order_id)
+        self.assertEqual(order["traslado"], "120.35")
+        self.assertFalse(order["total_ventanas"]["sin_precio"])
+        self.assertEqual(Decimal(order["total_pedido"]), Decimal(price1 + price2) + Decimal("120.35"))
+        update_delivery(order_id, DeliveryUpdate(importe="5.01"))
+        self.assertEqual(Decimal(get_order(order_id)["total_pedido"]), Decimal(price1 + price2) + Decimal("5.01"))
+        update_delivery(order_id, DeliveryUpdate(importe=None))
+        self.assertIsNone(get_order(order_id)["traslado"])
+        self.assertEqual(Decimal(get_order(order_id)["total_pedido"]), Decimal(price1 + price2))
+
+    def test_delivery_rejects_invalid_costs_without_overwriting(self):
+        from apps.api.main import DeliveryUpdate, update_delivery
+        order_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
+        update_delivery(order_id, DeliveryUpdate(importe="1.23"))
+        for value in ("-1", "0.001", "NaN", "", "92233720368547758.08"):
+            with self.subTest(value=value), self.assertRaises(HTTPException):
+                update_delivery(order_id, DeliveryUpdate(importe=value))
+        self.assertEqual(get_order(order_id)["traslado"], "1.23")
+        with self.assertRaises(HTTPException) as missing:
+            update_delivery(999999, DeliveryUpdate(importe="1"))
+        self.assertEqual(missing.exception.status_code, 404)
+
     def test_cost_page_and_api_routes_are_registered(self):
         page = costs_page()
         self.assertTrue(Path(page.path).is_file())

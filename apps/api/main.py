@@ -82,6 +82,10 @@ class InventoryUpdate(BaseModel):
     porcentaje_ganancia: StrictInt | None = None
 
 
+class DeliveryUpdate(BaseModel):
+    importe: StrictStr | None
+
+
 class WindowDiscard(BaseModel):
     descartada: bool
     confirmar_descarte: bool = False
@@ -335,7 +339,7 @@ def get_order(order_id: int):
     with closing(connect_db()) as connection:
         order_row = connection.execute(
             "SELECT p.id, p.etiqueta, p.notas, c.nombre, c.apellido_1, c.apellido_2, "
-            "c.celular, c.direccion FROM pedidos AS p "
+            "c.celular, c.direccion, p.traslado_centavos FROM pedidos AS p "
             "LEFT JOIN clientes AS c ON c.id = p.cliente_id WHERE p.id = ?", (order_id,)
         ).fetchone()
         if order_row is None:
@@ -433,6 +437,8 @@ def get_order(order_id: int):
     return {
         "id": order_id,
         "etiqueta": label,
+        "traslado": None if order_row[8] is None else f"{Decimal(order_row[8]) / 100:.2f}",
+        "total_pedido": None if total is None else f"{Decimal(total) + Decimal(order_row[8] or 0) / 100:.2f}",
         "total_ventanas": {
             "importe": total,
             "sin_precio": missing_price,
@@ -446,6 +452,19 @@ def get_order(order_id: int):
         "ventanas": active,
         "ventanas_descartadas": [window for window in window_details if window["descartada"]],
     }
+
+
+@app.put("/api/pedidos/{order_id}/traslado")
+def update_delivery(order_id: int, update: DeliveryUpdate):
+    cents = None if update.importe is None else cents_from_input(update.importe)
+    if cents is not None and cents > 9223372036854775807:
+        raise HTTPException(status_code=422, detail="El importe es demasiado grande.")
+    with closing(connect_db()) as connection:
+        with connection:
+            cursor = connection.execute("UPDATE pedidos SET traslado_centavos = ? WHERE id = ?", (cents, order_id))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+    return get_order(order_id)
 
 
 @app.put("/api/ventanas/{window_id}/descarte")
