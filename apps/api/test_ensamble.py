@@ -18,6 +18,10 @@ from apps.api.main import (
 )
 
 
+from apps.api.testing import accepted_orders
+create_order = accepted_orders(create_order)
+
+
 class AssemblyTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()

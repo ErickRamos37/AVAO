@@ -51,8 +51,8 @@ class PersistenceTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(json.loads(result.stdout), {"pedidos": [
-            {"id": first, "etiqueta": "A", "codigos": ["A1"]},
-            {"id": second, "etiqueta": "B", "codigos": ["B1", "B2"]},
+            {"id": first, "etiqueta": "A", "codigos": ["A1"], "aceptado": False},
+            {"id": second, "etiqueta": "B", "codigos": ["B1", "B2"], "aceptado": False},
         ]})
         self.assertEqual(get_order(first)["ventanas"][0]["ancho"], "24")
         self.assertEqual(

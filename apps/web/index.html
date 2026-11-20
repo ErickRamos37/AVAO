@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu27-areas-enteras" defer></script>
+    <script src="/static/app.js?v=hu14-fechas-auto" defer></script>
   </head>
   <body>
     <main>
@@ -94,6 +94,16 @@
                 <button id="glass-waste-recalculate" type="button">Recalcular merma de vidrio</button>
               </section>
               <p id="order-grand-total" aria-live="polite"></p>
+              <section aria-labelledby="payments-title">
+                <h3 id="payments-title">Anticipo y movimientos</h3>
+                <div id="payment-status" aria-live="polite"></div>
+                <form id="payment-form">
+                  <p><label>Tipo <select name="tipo"><option value="pago">Pago</option><option value="devolucion">Devolución de excedente</option></select></label></p>
+                  <p><label>Importe <input name="importe" type="number" min="0.01" step="0.01" required></label></p>
+                  <button type="submit">Registrar movimiento</button>
+                </form>
+                <div id="payment-list"></div>
+              </section>
             </section>
             <section id="discarded-windows" hidden>
               <h3>Ventanas descartadas</h3>
@@ -123,6 +133,7 @@
         <a href="/">Crear otro pedido</a>
       </section>
 
+      <section id="budgets"><h2>Presupuestos</h2><div id="budget-list"></div></section>
       <section id="orders">
         <h2>Pedidos del taller</h2>
         <div id="order-list"></div>

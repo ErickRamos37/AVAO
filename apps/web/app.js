@@ -203,8 +203,8 @@ function aluminumCutRow(window, cut, progress, label, onProgressChange) {
 
   function refresh() {
     status.textContent = `${label}: ${cut.longitud}″ · requerido ${cut.cantidad}, cortado ${progress.cortadas}, pendiente ${progress.pendientes}`;
-    mark.disabled = progress.cortadas >= cut.cantidad;
-    undo.disabled = progress.cortadas <= 0 || window.ensamblada;
+    mark.disabled = !currentOrderData.aceptado || progress.cortadas >= cut.cantidad;
+    undo.disabled = !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
   }
 
   async function change(action) {
@@ -257,8 +257,8 @@ function glassCutRow(window, onProgressChange) {
 
   function refresh() {
     status.textContent = `Vidrio: ${plan.ancho}″ × ${plan.alto}″ · cortados: ${progress.cortadas} de ${plan.cantidad} · pendientes: ${progress.pendientes}`;
-    mark.disabled = progress.cortadas >= plan.cantidad;
-    undo.disabled = progress.cortadas <= 0 || window.ensamblada;
+    mark.disabled = !currentOrderData.aceptado || progress.cortadas >= plan.cantidad;
+    undo.disabled = !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
   }
 
   async function change(action) {
@@ -316,8 +316,8 @@ function assemblyRow(window, orderId) {
       && window.plan_vidrio && window.avance_vidrio
       && window.avance_vidrio.pendientes === 0;
     status.textContent = `Ensamble de ${window.codigo ?? window.numero}: ${window.ensamblada ? 'ensamblada' : 'pendiente'}`;
-    mark.disabled = window.ensamblada || !complete;
-    undo.disabled = !window.ensamblada;
+    mark.disabled = !currentOrderData.aceptado || window.ensamblada || !complete;
+    undo.disabled = !currentOrderData.aceptado || !window.ensamblada;
   }
 
   async function change(action) {
@@ -355,6 +355,17 @@ async function loadOrders() {
     if (!response.ok) throw new Error();
     const data = await response.json();
     list.replaceChildren();
+    const budgetsResponse = await fetch('/api/pedidos');
+    if (!budgetsResponse.ok) throw new Error();
+    const allOrders = await budgetsResponse.json();
+    const budgetList = document.querySelector('#budget-list'); budgetList.replaceChildren();
+    const budgets = allOrders.pedidos.filter(order => !order.aceptado);
+    if (!budgets.length) budgetList.textContent = 'No hay presupuestos pendientes.';
+    for (const order of budgets) {
+      const line = document.createElement('p');
+      const link = document.createElement('a'); link.href = `/pedidos/${order.id}`;
+      link.textContent = `Presupuesto ${order.etiqueta ?? order.id}`; line.append(link); budgetList.append(line);
+    }
     if (!data.pedidos.length) {
       list.textContent = 'Aún no hay pedidos.';
       return;
@@ -638,6 +649,40 @@ async function openOrder(id) {
       }
       table.append(head, body); details.append(summary, table); glassDetails.append(details);
     }
+    const paymentStatus = document.querySelector('#payment-status');
+    paymentStatus.replaceChildren();
+    const statusLines = [order.aceptado ? 'Pedido aceptado' : 'Presupuesto'];
+    if (order.anticipo_requerido === null) {
+      statusLines.push('Calcula todos los precios para consultar el anticipo y registrar movimientos.');
+    } else {
+      statusLines.push(`Anticipo requerido (${order.anticipo_minimo}%): $${order.anticipo_requerido}`,
+        `Saldo: $${order.saldo}`, `Excedente: $${order.excedente}`);
+      if (order.liquidado) statusLines.push('Liquidado');
+    }
+    if (order.aceptado) statusLines.push('Fecha de instalación pendiente de registrar.');
+    for (const line of statusLines) {
+      const paragraph = document.createElement('p'); paragraph.textContent = line; paymentStatus.append(paragraph);
+    }
+    const paymentList = document.querySelector('#payment-list'); paymentList.replaceChildren();
+    for (const movement of order.movimientos) {
+      const row = document.createElement('p');
+      row.textContent = `${movement.fecha} · ${movement.tipo === 'pago' ? 'Pago' : 'Devolución'}: $${movement.importe}${movement.anulado ? ` · Anulado${movement.fecha_anulacion ? ` el ${movement.fecha_anulacion}` : ''}` : ''}`;
+      if (!movement.anulado) {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Anular';
+        button.addEventListener('click', async () => {
+          if (!window.confirm('¿Anular este movimiento?')) return;
+          button.disabled = true;
+          try {
+            const response = await fetch(`/api/pedidos/${currentOrderId}/movimientos/${movement.id}/anular`, {method: 'POST'});
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.detail ?? 'No se pudo anular el movimiento.');
+            await openOrder(currentOrderId);
+          } catch (error) { showError(error.message); button.disabled = false; }
+        });
+        row.append(' ', button);
+      }
+      paymentList.append(row);
+    }
     const grandTotal = document.querySelector('#order-grand-total');
     if (order.total_pedido === null) {
       grandTotal.textContent = '';
@@ -811,6 +856,22 @@ document.querySelector('#glass-waste-included').addEventListener('change', async
     if (!response.ok) throw new Error(result.detail ?? 'No se pudo guardar la selección.');
     message.hidden = true; await openOrder(currentOrderId);
   } catch (error) { checkbox.checked = !checkbox.checked; showError(error.message); } finally { checkbox.disabled = false; }
+});
+
+document.querySelector('#payment-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  const button = form.querySelector('button'); button.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/movimientos`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: form.elements.tipo.value, importe: form.elements.importe.value}),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo registrar el movimiento.');
+    form.reset(); message.hidden = true; await openOrder(currentOrderId);
+  } catch (error) { showError(error.message); } finally { button.disabled = false; }
 });
 
 deliveryEdit.addEventListener('click', () => {

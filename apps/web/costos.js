@@ -2,6 +2,7 @@ const costList = document.querySelector('#cost-list');
 const costMessage = document.querySelector('#cost-message');
 const form = document.querySelector('#inventory-form');
 const profit = document.querySelector('#profit');
+const minimumAdvance = document.querySelector('#minimum-advance');
 const threshold = document.querySelector('#waste-threshold');
 const glassThreshold = document.querySelector('#glass-waste-threshold');
 const dialog = document.querySelector('#unsaved-dialog');
@@ -43,6 +44,7 @@ function renderCosts(data) {
   }
   table.append(head, body); costList.replaceChildren(table);
   profit.name = 'porcentaje_ganancia'; profit.value = data.porcentaje_ganancia;
+  minimumAdvance.name = 'anticipo_minimo'; minimumAdvance.value = data.anticipo_minimo;
   threshold.name = 'umbral_merma'; threshold.value = data.umbral_merma;
   glassThreshold.name = 'umbral_merma_vidrio'; glassThreshold.value = data.umbral_merma_vidrio;
   initial = new Map([...form.querySelectorAll('input')].map(input => [input.name, input.value]));
@@ -65,6 +67,7 @@ async function saveChanges() {
     }
   }
   const payload = {costos};
+  if (minimumAdvance.value !== initial.get(minimumAdvance.name)) payload.anticipo_minimo = Number(minimumAdvance.value);
   if (profit.value !== initial.get(profit.name)) payload.porcentaje_ganancia = Number(profit.value);
   if (threshold.value !== initial.get(threshold.name)) payload.umbral_merma = Number(threshold.value);
   if (glassThreshold.value !== initial.get(glassThreshold.name)) payload.umbral_merma_vidrio = Number(glassThreshold.value);

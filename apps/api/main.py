@@ -7,6 +7,8 @@ import sqlite3
 from contextlib import closing
 from typing import Literal
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -84,6 +86,12 @@ class InventoryUpdate(BaseModel):
     porcentaje_ganancia: StrictInt | None = None
     umbral_merma: StrictInt | None = None
     umbral_merma_vidrio: StrictInt | None = None
+    anticipo_minimo: StrictInt | None = None
+
+
+class MovementInput(BaseModel):
+    tipo: Literal["pago", "devolucion"]
+    importe: StrictStr
 
 
 class DeliveryUpdate(BaseModel):
@@ -122,9 +130,10 @@ def list_costs():
         percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
         threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
         glass_threshold = connection.execute("SELECT umbral FROM configuracion_merma_vidrio WHERE id = 1").fetchone()[0]
+        advance = connection.execute("SELECT porcentaje FROM configuracion_anticipo WHERE id = 1").fetchone()[0]
     return {"insumos": [
         serialize_cost(item, saved.get(item[0])) for item in INSUMOS
-    ], "porcentaje_ganancia": percentage, "umbral_merma": threshold, "umbral_merma_vidrio": glass_threshold}
+    ], "porcentaje_ganancia": percentage, "umbral_merma": threshold, "umbral_merma_vidrio": glass_threshold, "anticipo_minimo": advance}
 
 
 @app.put("/api/costos-insumos")
@@ -144,6 +153,9 @@ def update_inventory(update: InventoryUpdate):
     glass_threshold = update.umbral_merma_vidrio
     if ("umbral_merma_vidrio" in update.model_fields_set and glass_threshold is None) or (glass_threshold is not None and not 0 <= glass_threshold <= 100):
         raise HTTPException(status_code=422, detail="El umbral de vidrio debe ser un entero de 0 a 100.")
+    advance = update.anticipo_minimo
+    if ("anticipo_minimo" in update.model_fields_set and advance is None) or (advance is not None and not 1 <= advance <= 100):
+        raise HTTPException(status_code=422, detail="El anticipo mínimo debe ser un entero de 1 a 100.")
     with closing(connect_db()) as connection:
         with connection:
             for code, cents in costs.items():
@@ -158,6 +170,8 @@ def update_inventory(update: InventoryUpdate):
                 connection.execute("UPDATE configuracion_merma SET umbral = ? WHERE id = 1", (threshold,))
             if glass_threshold is not None:
                 connection.execute("UPDATE configuracion_merma_vidrio SET umbral = ? WHERE id = 1", (glass_threshold,))
+            if advance is not None:
+                connection.execute("UPDATE configuracion_anticipo SET porcentaje = ? WHERE id = 1", (advance,))
     return list_costs()
 
 
@@ -292,14 +306,14 @@ def create_order(order: NewOrder):
 def list_orders():
     with closing(connect_db()) as connection:
         rows = connection.execute(
-            "SELECT p.id, p.etiqueta, v.numero_en_pedido "
+            "SELECT p.id, p.etiqueta, v.numero_en_pedido, EXISTS(SELECT 1 FROM aceptaciones a WHERE a.pedido_id = p.id) "
             "FROM pedidos AS p LEFT JOIN ventanas AS v ON v.pedido_id = p.id AND v.descartada = 0 "
             "ORDER BY p.id ASC, v.numero_en_pedido ASC"
         ).fetchall()
     orders = {}
-    for order_id, label, number in rows:
+    for order_id, label, number, accepted in rows:
         if order_id not in orders:
-            orders[order_id] = {"id": order_id, "etiqueta": label, "codigos": []}
+            orders[order_id] = {"id": order_id, "etiqueta": label, "codigos": [], "aceptado": bool(accepted)}
         if label is not None and number is not None:
             orders[order_id]["codigos"].append(f"{label}{number}")
     return {"pedidos": list(orders.values())}
@@ -310,6 +324,8 @@ def list_order_progress():
     """Summarize active workshop work without storing a second progress state."""
     orders = []
     for order in list_orders()["pedidos"]:
+        if not order["aceptado"]:
+            continue
         windows = get_order(order["id"])["ventanas"]
         aluminum_done = sum(
             cut["cortadas"] for window in windows for cut in window["avance_aluminio"]
@@ -383,6 +399,9 @@ def get_order(order_id: int):
             (order_id,),
         ).fetchall()
         waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
+        accepted = connection.execute("SELECT 1 FROM aceptaciones WHERE pedido_id = ?", (order_id,)).fetchone() is not None
+        movement_rows = connection.execute("SELECT id, tipo, importe_centavos, fecha, anulado, fecha_anulacion FROM movimientos WHERE pedido_id = ? ORDER BY id", (order_id,)).fetchall()
+        minimum = connection.execute("SELECT porcentaje FROM configuracion_anticipo WHERE id = 1").fetchone()[0]
         glass_waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
         cost_rows = connection.execute(
             "SELECT c.ventana_id, c.plan_fingerprint, c.resultado_json "
@@ -458,9 +477,18 @@ def get_order(order_id: int):
 
     waste_cents = waste_row[0] if waste_row and waste_row[1] else 0
     waste_cents += glass_waste_row[0] if glass_waste_row and glass_waste_row[1] else 0
+    total_cents = None if total is None or missing_price else total * 100 + (order_row[8] or 0) + waste_cents
+    net = sum((cents if kind == "pago" else -cents) for _, kind, cents, _, void, _ in movement_rows if not void)
     return {
         "id": order_id,
         "etiqueta": label,
+        "aceptado": accepted,
+        "anticipo_minimo": minimum,
+        "anticipo_requerido": None if total_cents is None else f"{Decimal((total_cents * minimum + 99) // 100) / 100:.2f}",
+        "movimientos": [{"id": mid, "tipo": kind, "importe": f"{Decimal(cents) / 100:.2f}", "fecha": day, "anulado": bool(void), "fecha_anulacion": void_day} for mid, kind, cents, day, void, void_day in movement_rows],
+        "saldo": None if total_cents is None else f"{Decimal(max(0, total_cents - net)) / 100:.2f}",
+        "excedente": None if total_cents is None else f"{Decimal(max(0, net - total_cents)) / 100:.2f}",
+        "liquidado": total_cents is not None and accepted and net >= total_cents,
         "merma_vidrio": None if glass_waste_row is None else {"cargo": f"{Decimal(glass_waste_row[0]) / 100:.2f}", "incluida": bool(glass_waste_row[1]), "detalle": json.loads(glass_waste_row[2])},
         "merma": None if waste_row is None else {"cargo": f"{Decimal(waste_row[0]) / 100:.2f}", "incluida": bool(waste_row[1]), "detalle": None if waste_row[2] is None else json.loads(waste_row[2])},
         "traslado": None if order_row[8] is None else f"{Decimal(order_row[8]) / 100:.2f}",
@@ -536,6 +564,44 @@ def select_order_glass_waste(order_id: int, selection: WasteSelection):
             cursor = connection.execute("UPDATE merma_vidrio_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Calcula primero la merma de vidrio del pedido.")
+    return get_order(order_id)
+
+
+@app.post("/api/pedidos/{order_id}/movimientos")
+def add_movement(order_id: int, movement: MovementInput):
+    cents = cents_from_input(movement.importe)
+    if not 0 < cents <= 9223372036854775807:
+        raise HTTPException(status_code=422, detail="Ingresa un importe positivo válido.")
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            order = get_order(order_id)
+            if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
+                raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de registrar movimientos.")
+            total = cents_from_input(order["total_pedido"])
+            net = sum((cents_from_input(m["importe"]) if m["tipo"] == "pago" else -cents_from_input(m["importe"])) for m in order["movimientos"] if not m["anulado"])
+            if movement.tipo == "devolucion" and cents > max(0, net - total):
+                raise HTTPException(status_code=409, detail="La devolución no puede superar el excedente.")
+            connection.execute("INSERT INTO movimientos (pedido_id, tipo, importe_centavos, fecha) VALUES (?, ?, ?, ?)", (order_id, movement.tipo, cents, datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()))
+            if movement.tipo == "pago" and (net + cents) * 100 >= total * order["anticipo_minimo"]:
+                connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
+    return get_order(order_id)
+
+
+@app.post("/api/pedidos/{order_id}/movimientos/{movement_id}/anular")
+def void_movement(order_id: int, movement_id: int):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            order = get_order(order_id)
+            if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
+                raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de anular.")
+            cursor = connection.execute("UPDATE movimientos SET anulado = 1, fecha_anulacion = ? WHERE id = ? AND pedido_id = ? AND anulado = 0", (datetime.now(ZoneInfo("America/Tijuana")).date().isoformat(), movement_id, order_id))
+            if not cursor.rowcount:
+                raise HTTPException(status_code=404, detail="Movimiento no encontrado o ya anulado.")
+            net = connection.execute("SELECT COALESCE(SUM(CASE tipo WHEN 'pago' THEN importe_centavos ELSE -importe_centavos END), 0) FROM movimientos WHERE pedido_id = ? AND anulado = 0", (order_id,)).fetchone()[0]
+            if net * 100 < cents_from_input(order["total_pedido"]) * order["anticipo_minimo"]:
+                connection.execute("DELETE FROM aceptaciones WHERE pedido_id = ?", (order_id,))
     return get_order(order_id)
 
 
@@ -753,6 +819,11 @@ def save_order_client(order_id: int, details: OrderClient):
     return {"id": order_id}
 
 
+def require_accepted_window(connection, window_id):
+    if not connection.execute("SELECT 1 FROM ventanas v JOIN aceptaciones a ON a.pedido_id = v.pedido_id WHERE v.id = ?", (window_id,)).fetchone():
+        raise HTTPException(status_code=409, detail="Registra el anticipo mínimo antes de marcar fabricación.")
+
+
 @app.post("/api/ventanas/{window_id}/aluminio/{order}/marcas")
 def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
     difference = 1 if mark.accion == "marcar" else -1
@@ -771,6 +842,7 @@ def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
             ).fetchone()
             if discarded:
                 raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de registrar cortes.")
+            require_accepted_window(connection, window_id)
             if difference < 0 and assembled:
                 raise HTTPException(status_code=409, detail="Deshaz primero la marca de ensamble de esta ventana.")
             required, cut = row
@@ -801,6 +873,7 @@ def mark_glass(window_id: int, mark: GlassMark):
             ).fetchone()
             if discarded:
                 raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de registrar cortes.")
+            require_accepted_window(connection, window_id)
             if difference < 0 and assembled:
                 raise HTTPException(status_code=409, detail="Deshaz primero la marca de ensamble de esta ventana.")
             required, cut = row
@@ -826,6 +899,7 @@ def mark_assembly(window_id: int, mark: AssemblyMark):
                 raise HTTPException(status_code=404, detail="Ventana no encontrada.")
             if row[1]:
                 raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de marcar su ensamble.")
+            require_accepted_window(connection, window_id)
             assembled = bool(row[0])
             if (mark.accion == "marcar") == assembled:
                 raise HTTPException(status_code=409, detail="La ventana ya tiene ese estado de ensamble.")
