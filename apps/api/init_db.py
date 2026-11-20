@@ -65,6 +65,11 @@ if __name__ == "__main__":
                     "CHECK (cortadas >= 0 AND cortadas <= cantidad)"
                 )
                 connection.commit()
+        if connection.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'merma_pedido'").fetchone():
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(merma_pedido)")}
+            if "detalle_json" not in columns:
+                connection.execute("ALTER TABLE merma_pedido ADD COLUMN detalle_json TEXT")
+                connection.commit()
         connection.executescript(SCHEMA.read_text(encoding="utf-8"))
         with connection:
             connection.executemany(

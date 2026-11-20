@@ -16,6 +16,7 @@ from pydantic import BaseModel, StrictStr, StrictInt
 from apps.api.medidas import format_measure, parse_measure
 from apps.api.costos_insumos import INSUMOS, INSUMOS_POR_CODIGO, cents_from_input, serialize_cost
 from apps.api.costos_ventana import calculate_window_material_cost
+from apps.api.merma import calcular_merma
 from apps.api.plan_aluminio import calcular_plan_aluminio
 from apps.api.plan_vidrio import calcular_plan_vidrio
 
@@ -80,10 +81,15 @@ class CostUpdate(BaseModel):
 class InventoryUpdate(BaseModel):
     costos: dict[str, StrictStr] = {}
     porcentaje_ganancia: StrictInt | None = None
+    umbral_merma: StrictInt | None = None
 
 
 class DeliveryUpdate(BaseModel):
     importe: StrictStr | None
+
+
+class WasteSelection(BaseModel):
+    incluida: bool
 
 
 class WindowDiscard(BaseModel):
@@ -112,9 +118,10 @@ def list_costs():
             "SELECT codigo, costo_centavos FROM costos_insumos"
         ).fetchall())
         percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
+        threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
     return {"insumos": [
         serialize_cost(item, saved.get(item[0])) for item in INSUMOS
-    ], "porcentaje_ganancia": percentage}
+    ], "porcentaje_ganancia": percentage, "umbral_merma": threshold}
 
 
 @app.put("/api/costos-insumos")
@@ -128,6 +135,9 @@ def update_inventory(update: InventoryUpdate):
     percentage = update.porcentaje_ganancia
     if ("porcentaje_ganancia" in update.model_fields_set and percentage is None) or (percentage is not None and not 1 <= percentage <= 100):
         raise HTTPException(status_code=422, detail="La ganancia debe ser un entero de 1 a 100.")
+    threshold = update.umbral_merma
+    if ("umbral_merma" in update.model_fields_set and threshold is None) or (threshold is not None and not 0 <= threshold <= 100):
+        raise HTTPException(status_code=422, detail="El umbral de merma debe ser un entero de 0 a 100.")
     with closing(connect_db()) as connection:
         with connection:
             for code, cents in costs.items():
@@ -138,6 +148,8 @@ def update_inventory(update: InventoryUpdate):
                 cursor = connection.execute("UPDATE configuracion_ganancia SET porcentaje = ? WHERE id = 1", (percentage,))
                 if cursor.rowcount != 1:
                     raise HTTPException(status_code=503, detail="Inicializa la base de datos antes de guardar la ganancia.")
+            if threshold is not None:
+                connection.execute("UPDATE configuracion_merma SET umbral = ? WHERE id = 1", (threshold,))
     return list_costs()
 
 
@@ -362,6 +374,7 @@ def get_order(order_id: int):
             "WHERE v.pedido_id = ?",
             (order_id,),
         ).fetchall()
+        waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
         cost_rows = connection.execute(
             "SELECT c.ventana_id, c.plan_fingerprint, c.resultado_json "
             "FROM costos_ventana AS c JOIN ventanas AS v ON v.id = c.ventana_id "
@@ -434,11 +447,13 @@ def get_order(order_id: int):
     priced_costs = [cost for cost in costs if cost is not None and cost.get("precio") is not None]
     total = sum(int(cost["precio"]) for cost in priced_costs) if priced_costs else None
 
+    waste_cents = waste_row[0] if waste_row and waste_row[1] else 0
     return {
         "id": order_id,
         "etiqueta": label,
+        "merma": None if waste_row is None else {"cargo": f"{Decimal(waste_row[0]) / 100:.2f}", "incluida": bool(waste_row[1]), "detalle": None if waste_row[2] is None else json.loads(waste_row[2])},
         "traslado": None if order_row[8] is None else f"{Decimal(order_row[8]) / 100:.2f}",
-        "total_pedido": None if total is None else f"{Decimal(total) + Decimal(order_row[8] or 0) / 100:.2f}",
+        "total_pedido": None if total is None else f"{Decimal(total) + Decimal((order_row[8] or 0) + waste_cents) / 100:.2f}",
         "total_ventanas": {
             "importe": total,
             "sin_precio": missing_price,
@@ -452,6 +467,35 @@ def get_order(order_id: int):
         "ventanas": active,
         "ventanas_descartadas": [window for window in window_details if window["descartada"]],
     }
+
+
+@app.post("/api/pedidos/{order_id}/merma")
+def calculate_order_waste(order_id: int):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
+                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+            ids = [row[0] for row in connection.execute("SELECT id FROM ventanas WHERE pedido_id = ? AND descartada = 0", (order_id,))]
+            plans = [[{"perfil": name, "longitud_16": length, "cantidad": qty} for name, length, qty in connection.execute(
+                "SELECT perfil, longitud_16, cantidad FROM plan_aluminio WHERE ventana_id = ?", (window_id,))] for window_id in ids]
+            costs = dict(connection.execute("SELECT codigo, costo_centavos FROM costos_insumos"))
+            threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
+            cents, details = calcular_merma(plans, costs, threshold, incluir_detalle=True)
+            connection.execute("INSERT INTO merma_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
+                               "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
+                               (order_id, cents, json.dumps(details, ensure_ascii=False)))
+    return get_order(order_id)
+
+
+@app.put("/api/pedidos/{order_id}/merma")
+def select_order_waste(order_id: int, selection: WasteSelection):
+    with closing(connect_db()) as connection:
+        with connection:
+            cursor = connection.execute("UPDATE merma_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Calcula primero la merma del pedido.")
+    return get_order(order_id)
 
 
 @app.put("/api/pedidos/{order_id}/traslado")
