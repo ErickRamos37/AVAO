@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu26-nombres" defer></script>
+    <script src="/static/app.js?v=hu27-areas-enteras" defer></script>
   </head>
   <body>
     <main>
@@ -85,6 +85,13 @@
                 <p>El cargo guardado solo cambia al recalcular la merma.</p>
                 <p><label><input id="waste-included" type="checkbox"> Incluir cargo por merma</label></p>
                 <button id="waste-recalculate" type="button">Recalcular merma</button>
+              </section>
+              <section aria-labelledby="glass-waste-title">
+                <h3 id="glass-waste-title">Cargo por merma de vidrio</h3>
+                <p id="glass-waste-value"></p><div id="glass-waste-details"></div>
+                <p>El cálculo estima áreas; no comprueba el acomodo de las piezas en la hoja. El cargo solo cambia al recalcular.</p>
+                <p><label><input id="glass-waste-included" type="checkbox"> Incluir cargo por merma de vidrio</label></p>
+                <button id="glass-waste-recalculate" type="button">Recalcular merma de vidrio</button>
               </section>
               <p id="order-grand-total" aria-live="polite"></p>
             </section>

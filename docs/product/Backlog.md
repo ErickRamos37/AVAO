@@ -308,7 +308,7 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
 
 ## Ciclo 4 propuesto: completar el pedido
 
-El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. Las prioridades, esfuerzos y orden son propuestas revisables; las subtareas son borradores, no incidencias creadas ni autorización para implementar. Se propone HU-27 antes de HU-14 para disponer del total con sus cargos antes del anticipo; el usuario decide el orden. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
+El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. Las prioridades, esfuerzos y orden son propuestas revisables. HU-27 y su subtarea #79 fueron implementadas y aceptadas; las demás historias y subtareas ya tienen incidencias y aún no están implementadas. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
 
 | ID | HU | Épica | Esfuerzo propuesto | Prioridad actual propuesta | Estado |
 | --- | --- | --- | ---: | --- | --- |
@@ -316,17 +316,17 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 | HU-15 | Fechas de instalación | E3 | 2 | Media | Por refinar y desarrollar |
 | HU-16 | Instalación completa | E3 | 2 | Alta | Por refinar y desarrollar |
 | HU-17 | Pagos, liquidación e histórico | E3 | 5 | Alta | Por refinar y desarrollar |
-| HU-27 | Merma de vidrio | E4 | 3 | Alta | Por desarrollar; orden por decidir |
+| HU-27 | Merma de vidrio | E4 | 3 | — | Implementada y aceptada; subtarea #79 |
 
 ### HU-14 — Registrar aceptación, anticipo y consultar saldo
 
 - **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 5 propuesto.
 - **Historia:** **Como** empleado, **necesito** registrar anticipo y confirmar el pedido aceptado, **para** iniciar el trabajo con total y saldo visibles.
 - **Criterios de aceptación propuestos:**
-  - [ ] Un anticipo inferior al mínimo no confirma el pedido; uno suficiente sí, y la configuración y movimientos persisten al consultar de nuevo. La falta de fecha programada no impide registrar ni conservar el anticipo; la fecha se exige después.
+  - [ ] Un anticipo neto inferior al mínimo no confirma el pedido; uno suficiente sí, y la configuración y movimientos persisten al consultar de nuevo. La falta de fecha programada no impide registrar ni conservar el anticipo; la fecha se exige después.
   - [ ] Un cambio del total actualiza el saldo sin modificar los movimientos ni reducir el total por los pagos; si existe excedente, se muestra la diferencia.
   - [ ] Cada pago o devolución conserva importe y fecha; un movimiento anulado sigue visible y se excluye del neto, saldo y liquidación. El pedido se considera liquidado si pagos menos devoluciones no anulados alcanza el total, incluso antes de instalar.
-- **Subtarea vertical propuesta — Registrar aceptación, anticipo y consultar saldo:** Configurar el porcentaje mínimo de anticipo en inventario (entero 1–100, inicialmente 50 %); registrar el anticipo con importe y fecha y confirmar el pedido cuando alcance el mínimo. Solicitar después la fecha programada obligatoria sin impedir ni perder el registro del anticipo por faltar la fecha. Consultar total vigente, movimientos y saldo; permitir varios pagos y devoluciones fechados, mostrar el excedente y registrar su devolución o conservarlo si el cliente así lo decide. Cambios posteriores al total recalculan el saldo como total vigente menos pagos netos. Permitir anular un movimiento incorrecto conservándolo visible y registrar el correcto; no definir edición ni cancelación sin decisión previa.
+- **Subtarea vertical propuesta — Registrar aceptación, anticipo y consultar saldo:** Configurar el porcentaje mínimo de anticipo en inventario (entero 1–100, inicialmente 50 %); registrar el anticipo con importe y fecha y confirmar el pedido cuando el anticipo neto alcance el mínimo. Solicitar después la fecha programada obligatoria sin impedir ni perder el registro del anticipo por faltar la fecha. Consultar total vigente, movimientos y saldo; permitir varios pagos y devoluciones fechados, mostrar el excedente y registrar su devolución o conservarlo si el cliente así lo decide. Cambios posteriores al total recalculan el saldo como total vigente menos pagos netos. Permitir anular un movimiento incorrecto conservándolo visible y registrar el correcto; no definir edición ni cancelación sin decisión previa.
 - **Dependencias, límites y preguntas:** Depende del total del pedido y de las decisiones sobre presupuesto previo, etiqueta, cola y marcas. La cancelación y la edición de movimientos siguen abiertas.
 
 ### HU-15 — Registrar y consultar fechas de instalación
@@ -361,7 +361,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 ### HU-27 — Recuperar merma de hojas de vidrio
 
-- **Área:** Precios y cobros · **Épica:** E4 · **Prioridad/esfuerzo:** Alta propuesta / 3 propuesto; incluida por el usuario en Ciclo 4.
+- **Área:** Precios y cobros · **Épica:** E4 · **Esfuerzo histórico:** 3. **Estado:** implementada y aceptada por el usuario, incluida la presentación de importes enteros.
 - **Historia:** **Como** encargado del negocio, **necesito** aplicar un umbral configurable a la merma de vidrio del pedido, **para** recuperar su costo como cargo separado cuando corresponda.
 - **Reglas confirmadas:** estimar consumo sumando el área en pulgadas cuadradas del vidrio del pedido y evaluar el residual de la última hoja de 71″ × 102″ con las mismas reglas de umbral de aluminio. El umbral de vidrio es editable en inventario de forma independiente al de aluminio; ambos comienzan en 80 %. Es entero de 0 a 100 y 0 % desactiva la recuperación. El cargo es separado y no recibe ganancia; cambia mediante **Recalcular**, y la selección desmarcada persiste. El cálculo por área no comprueba que las piezas quepan en la hoja; no incorpora acomodo ni optimización 2D. Los errores del negocio no se cobran como desperdicio.
 - **Cambio de decisión:** la propuesta anterior de distribuir la recuperación dentro del precio de cada ventana se sustituye por el cargo separado confirmado.
@@ -370,7 +370,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
   - [ ] Suma el área de vidrio del pedido y evalúa el consumo residual de la última hoja de 71″ × 102″ según la regla acordada; una hoja completa no produce sobrante recuperable.
   - [ ] Presenta el cargo separado, sin ganancia; cambia solo al recalcular y, si se desmarca, mantiene esa elección al recalcular y volver a consultar.
   - [ ] No cobra errores del negocio ni afirma haber comprobado el acomodo físico de las piezas.
-- **Subtarea vertical propuesta — Calcular y consultar la merma opcional de vidrio:** configurar el umbral acordado, estimar el residual por área del vidrio del pedido, calcular y mostrar el cargo separado y conservar la selección desmarcada; comprobar umbral cero, hoja completa, recálculo explícito y persistencia. Sin optimización 2D.
+- **Subtarea [#79](https://github.com/ErickRamos37/AVAO/issues/79), implementada y aceptada — Calcular y consultar la merma opcional de vidrio:** configurar el umbral acordado, estimar el residual por área del vidrio del pedido, calcular y mostrar el cargo separado y conservar la selección desmarcada; comprobar umbral cero, hoja completa, recálculo explícito y persistencia. Sin optimización 2D.
 - **Dependencias/límites:** depende de HU-18, HU-11 y HU-25; incluida en el Ciclo 4. No incluye acomodo u optimización 2D ni reutilización automática de sobrantes.
 
 ### Reglas y decisiones transversales del ciclo

@@ -106,3 +106,16 @@ CREATE TABLE IF NOT EXISTS merma_pedido (
     incluida INTEGER NOT NULL DEFAULT 1 CHECK (incluida IN (0, 1)),
     detalle_json TEXT
 );
+
+-- HU-27: umbral y último cálculo de merma de vidrio.
+CREATE TABLE IF NOT EXISTS configuracion_merma_vidrio (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    umbral INTEGER NOT NULL CHECK (umbral BETWEEN 0 AND 100)
+);
+INSERT OR IGNORE INTO configuracion_merma_vidrio (id, umbral) VALUES (1, 80);
+CREATE TABLE IF NOT EXISTS merma_vidrio_pedido (
+    pedido_id INTEGER PRIMARY KEY REFERENCES pedidos (id),
+    cargo_centavos INTEGER NOT NULL CHECK (cargo_centavos >= 0),
+    incluida INTEGER NOT NULL DEFAULT 1 CHECK (incluida IN (0, 1)),
+    detalle_json TEXT NOT NULL
+);
