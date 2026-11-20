@@ -29,6 +29,9 @@ if __name__ == "__main__":
             if "traslado_centavos" not in columns:
                 connection.execute("ALTER TABLE pedidos ADD COLUMN traslado_centavos INTEGER CHECK (traslado_centavos IS NULL OR traslado_centavos >= 0)")
                 connection.commit()
+            if "fecha_programada" not in columns:
+                connection.execute("ALTER TABLE pedidos ADD COLUMN fecha_programada TEXT")
+                connection.commit()
         if connection.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'ventanas'"
         ).fetchone():

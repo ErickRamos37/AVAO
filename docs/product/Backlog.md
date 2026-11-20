@@ -313,7 +313,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 | ID | HU | Épica | Esfuerzo propuesto | Prioridad actual propuesta | Estado |
 | --- | --- | --- | ---: | --- | --- |
 | HU-14 | Aceptación, anticipo y saldo | E3 | 5 | Alta | Implementada y aceptada; subtarea #81 |
-| HU-15 | Fechas de instalación | E3 | 2 | Media | Por refinar y desarrollar |
+| HU-15 | Fechas de instalación | E3 | 2 | Media | Implementada y aceptada; subtarea #83 |
 | HU-16 | Instalación completa | E3 | 2 | Alta | Por refinar y desarrollar |
 | HU-17 | Pagos, liquidación e histórico | E3 | 5 | Alta | Por refinar y desarrollar |
 | HU-27 | Merma de vidrio | E4 | 3 | — | Implementada y aceptada; subtarea #79 |
@@ -334,13 +334,15 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 ### HU-15 — Registrar y consultar fechas de instalación
 
+- **Estado:** implementada y aceptada por el usuario; subtarea [#83](https://github.com/ErickRamos37/AVAO/issues/83). Tras registrar un anticipo que acepta el pedido, se solicita automáticamente la fecha si falta, conservando el pago.
+
 - **Área:** Instalación · **Épica:** E3 · **Prioridad/esfuerzo:** Media propuesta / 2 propuesto.
 - **Historia:** **Como** empleado, **necesito** registrar día y, si se acuerda, hora de instalación, **para** coordinar la visita con el cliente.
 - **Criterios de aceptación propuestos:**
   - [ ] La fecha programada se captura por el usuario y persiste; se muestra bloqueada hasta pulsar **Editar**, solo cambia al guardar y cancelar conserva la anterior.
-  - [ ] Un pedido aceptado sin fecha programada muestra «Fecha de instalación pendiente»; la ausencia de fecha no impide registrar ni conservar el anticipo.
+  - [ ] Un pedido aceptado sin fecha programada muestra «Fecha de instalación pendiente» y solicita automáticamente la fecha después del anticipo; la ausencia de fecha no impide registrar ni conservar el pago.
   - [ ] Al marcar instalado se registra automáticamente la fecha real del día y se puede consultar.
-- **Subtarea vertical propuesta — Registrar y consultar fechas de instalación:** Guardar fecha programada obligatoria capturada por el usuario y fecha real registrada automáticamente al marcar instalado; mostrar «Fecha de instalación pendiente» si el pedido aceptado no tiene fecha programada; la programada se consulta bloqueada, se modifica mediante **Editar** y permite guardar o cancelar. La fecha programada se exige después de registrar el anticipo mínimo y su ausencia no impide registrar ese dinero. La fecha real se registra automáticamente al marcar instalado; no se captura manualmente.
+- **Subtarea [#83](https://github.com/ErickRamos37/AVAO/issues/83), implementada y aceptada — Registrar y consultar fechas de instalación:** Guardar fecha programada obligatoria capturada por el usuario y fecha real registrada automáticamente al marcar instalado; mostrar «Fecha de instalación pendiente» si el pedido aceptado no tiene fecha programada; la programada se consulta bloqueada, se modifica mediante **Editar** y permite guardar o cancelar. La fecha programada se exige después de registrar el anticipo mínimo y su ausencia no impide registrar ese dinero. La fecha real se registra automáticamente al marcar instalado; no se captura manualmente.
 - **Dependencias, límites y preguntas:** La fecha programada es obligatoria después del anticipo mínimo; la fecha real se registra automáticamente al marcar instalado.
 
 ### HU-16 — Marcar instalación completa del pedido
@@ -348,10 +350,10 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 - **Área:** Instalación · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 2 propuesto.
 - **Historia:** **Como** instalador, **necesito** marcar el pedido instalado, **para** distinguir la entrega física de la liquidación del saldo.
 - **Criterios de aceptación propuestos:**
-  - [ ] Si falta un corte o ensamble activo, no permite marcar instalado; una vez completos, la marca y señal persisten al consultar.
+  - [ ] Si falta un corte o ensamble activo, no permite marcar instalado; una vez completos, la marca y señal verde o texto en la esquina de la tarjeta y en el detalle persisten al consultar; la fecha real se registra automáticamente, sin entrada manual.
   - [ ] Instalado bloquea ventanas, medidas y fabricación y permite pagos y devoluciones; desmarcar requiere advertencia y devuelve la posibilidad de modificación.
-- **Subtarea vertical propuesta — Marcar instalación completa del pedido:** Permitir marcar instalado cuando todos los cortes y ensambles de las ventanas activas estén completos; mostrar señal en tarjeta y detalle. Bloquear cambios en ventanas, medidas y fabricación, sin bloquear pagos ni devoluciones; permitir desmarcar con advertencia. No definir reapertura desde histórico sin acordarla.
-- **Dependencias, límites y preguntas:** La instalación requiere cortes y ensambles de ventanas activas completos. Queda por decidir cómo actuar desde el histórico.
+- **Subtarea vertical propuesta — Marcar instalación completa del pedido:** Permitir marcar instalado cuando todos los cortes y ensambles de las ventanas activas estén completos; mostrar señal verde o texto en la esquina de la tarjeta y en el detalle y registrar automáticamente la fecha real al marcar instalado. Bloquear cambios en ventanas, medidas y fabricación, sin bloquear pagos ni devoluciones; permitir desmarcar con advertencia. No definir reapertura desde histórico sin acordarla.
+- **Dependencias, límites y preguntas:** La instalación requiere cortes y ensambles de ventanas activas completos. El cierre e histórico son HU-17 y no forman parte de esta subtarea; queda por decidir cómo actuar desde el histórico. No se han acordado requisitos adicionales de precio o fecha para marcar instalado.
 
 ### HU-17 — Cerrar y consultar pedidos finalizados
 
