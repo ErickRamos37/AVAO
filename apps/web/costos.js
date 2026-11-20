@@ -3,6 +3,7 @@ const costMessage = document.querySelector('#cost-message');
 const form = document.querySelector('#inventory-form');
 const profit = document.querySelector('#profit');
 const threshold = document.querySelector('#waste-threshold');
+const glassThreshold = document.querySelector('#glass-waste-threshold');
 const dialog = document.querySelector('#unsaved-dialog');
 let initial = new Map();
 let destination = null;
@@ -43,6 +44,7 @@ function renderCosts(data) {
   table.append(head, body); costList.replaceChildren(table);
   profit.name = 'porcentaje_ganancia'; profit.value = data.porcentaje_ganancia;
   threshold.name = 'umbral_merma'; threshold.value = data.umbral_merma;
+  glassThreshold.name = 'umbral_merma_vidrio'; glassThreshold.value = data.umbral_merma_vidrio;
   initial = new Map([...form.querySelectorAll('input')].map(input => [input.name, input.value]));
 }
 async function loadCosts() {
@@ -65,6 +67,7 @@ async function saveChanges() {
   const payload = {costos};
   if (profit.value !== initial.get(profit.name)) payload.porcentaje_ganancia = Number(profit.value);
   if (threshold.value !== initial.get(threshold.name)) payload.umbral_merma = Number(threshold.value);
+  if (glassThreshold.value !== initial.get(glassThreshold.name)) payload.umbral_merma_vidrio = Number(glassThreshold.value);
   saving = true; form.querySelectorAll('input, button').forEach(element => { element.disabled = true; });
   try {
     const response = await fetch('/api/costos-insumos', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});

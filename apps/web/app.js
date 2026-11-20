@@ -612,6 +612,32 @@ async function openOrder(id) {
     const wasteCheck = document.querySelector('#waste-included');
     wasteCheck.disabled = order.merma === null;
     wasteCheck.checked = order.merma?.incluida ?? false;
+    const glassWaste = order.merma_vidrio;
+    document.querySelector('#glass-waste-value').textContent = glassWaste === null ? 'La merma de vidrio aún no se ha calculado.' : `Cargo por merma de vidrio: $${glassWaste.cargo}${glassWaste.incluida ? '' : ' (no aplicado)'}`;
+    const glassWasteCheck = document.querySelector('#glass-waste-included');
+    glassWasteCheck.disabled = glassWaste === null;
+    glassWasteCheck.checked = glassWaste?.incluida ?? false;
+    const glassDetails = document.querySelector('#glass-waste-details');
+    glassDetails.replaceChildren();
+    if (glassWaste?.detalle?.length === 0) {
+      glassDetails.textContent = 'No hay sobrantes que generen cargo en este cálculo.';
+    } else if (glassWaste?.detalle?.length) {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = 'Ver desglose de merma de vidrio';
+      const table = document.createElement('table'); const head = document.createElement('thead'); const header = document.createElement('tr');
+      for (const label of ['Vidrio', 'Consumo (pulgadas²)', 'Hoja (pulgadas)', 'Sobrante (pulgadas²)', 'Importe aproximado']) {
+        const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = label; header.append(cell);
+      }
+      head.append(header); const body = document.createElement('tbody');
+      for (const item of glassWaste.detalle) {
+        const row = document.createElement('tr');
+        for (const value of [item.vidrio, Math.trunc(Number(item.consumo)), item.hoja, Math.trunc(Number(item.sobrante)), `$${item.importe}`]) {
+          const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
+        }
+        body.append(row);
+      }
+      table.append(head, body); details.append(summary, table); glassDetails.append(details);
+    }
     const grandTotal = document.querySelector('#order-grand-total');
     if (order.total_pedido === null) {
       grandTotal.textContent = '';
@@ -766,6 +792,25 @@ document.querySelector('#waste-included').addEventListener('change', async event
     await openOrder(currentOrderId);
   } catch (error) { checkbox.checked = !checkbox.checked; showError(error.message); }
   finally { checkbox.disabled = false; }
+});
+
+document.querySelector('#glass-waste-recalculate').addEventListener('click', async event => {
+  const button = event.currentTarget; button.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/merma-vidrio`, {method: 'POST'});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail ?? 'No se pudo calcular la merma de vidrio.');
+    message.hidden = true; await openOrder(currentOrderId);
+  } catch (error) { showError(error.message); } finally { button.disabled = false; }
+});
+document.querySelector('#glass-waste-included').addEventListener('change', async event => {
+  const checkbox = event.currentTarget; checkbox.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/merma-vidrio`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({incluida: checkbox.checked})});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail ?? 'No se pudo guardar la selección.');
+    message.hidden = true; await openOrder(currentOrderId);
+  } catch (error) { checkbox.checked = !checkbox.checked; showError(error.message); } finally { checkbox.disabled = false; }
 });
 
 deliveryEdit.addEventListener('click', () => {

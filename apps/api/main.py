@@ -17,6 +17,7 @@ from apps.api.medidas import format_measure, parse_measure
 from apps.api.costos_insumos import INSUMOS, INSUMOS_POR_CODIGO, cents_from_input, serialize_cost
 from apps.api.costos_ventana import calculate_window_material_cost
 from apps.api.merma import calcular_merma
+from apps.api.merma_vidrio import calcular_merma_vidrio
 from apps.api.plan_aluminio import calcular_plan_aluminio
 from apps.api.plan_vidrio import calcular_plan_vidrio
 
@@ -82,6 +83,7 @@ class InventoryUpdate(BaseModel):
     costos: dict[str, StrictStr] = {}
     porcentaje_ganancia: StrictInt | None = None
     umbral_merma: StrictInt | None = None
+    umbral_merma_vidrio: StrictInt | None = None
 
 
 class DeliveryUpdate(BaseModel):
@@ -119,9 +121,10 @@ def list_costs():
         ).fetchall())
         percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
         threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
+        glass_threshold = connection.execute("SELECT umbral FROM configuracion_merma_vidrio WHERE id = 1").fetchone()[0]
     return {"insumos": [
         serialize_cost(item, saved.get(item[0])) for item in INSUMOS
-    ], "porcentaje_ganancia": percentage, "umbral_merma": threshold}
+    ], "porcentaje_ganancia": percentage, "umbral_merma": threshold, "umbral_merma_vidrio": glass_threshold}
 
 
 @app.put("/api/costos-insumos")
@@ -138,6 +141,9 @@ def update_inventory(update: InventoryUpdate):
     threshold = update.umbral_merma
     if ("umbral_merma" in update.model_fields_set and threshold is None) or (threshold is not None and not 0 <= threshold <= 100):
         raise HTTPException(status_code=422, detail="El umbral de merma debe ser un entero de 0 a 100.")
+    glass_threshold = update.umbral_merma_vidrio
+    if ("umbral_merma_vidrio" in update.model_fields_set and glass_threshold is None) or (glass_threshold is not None and not 0 <= glass_threshold <= 100):
+        raise HTTPException(status_code=422, detail="El umbral de vidrio debe ser un entero de 0 a 100.")
     with closing(connect_db()) as connection:
         with connection:
             for code, cents in costs.items():
@@ -150,6 +156,8 @@ def update_inventory(update: InventoryUpdate):
                     raise HTTPException(status_code=503, detail="Inicializa la base de datos antes de guardar la ganancia.")
             if threshold is not None:
                 connection.execute("UPDATE configuracion_merma SET umbral = ? WHERE id = 1", (threshold,))
+            if glass_threshold is not None:
+                connection.execute("UPDATE configuracion_merma_vidrio SET umbral = ? WHERE id = 1", (glass_threshold,))
     return list_costs()
 
 
@@ -375,6 +383,7 @@ def get_order(order_id: int):
             (order_id,),
         ).fetchall()
         waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
+        glass_waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
         cost_rows = connection.execute(
             "SELECT c.ventana_id, c.plan_fingerprint, c.resultado_json "
             "FROM costos_ventana AS c JOIN ventanas AS v ON v.id = c.ventana_id "
@@ -448,9 +457,11 @@ def get_order(order_id: int):
     total = sum(int(cost["precio"]) for cost in priced_costs) if priced_costs else None
 
     waste_cents = waste_row[0] if waste_row and waste_row[1] else 0
+    waste_cents += glass_waste_row[0] if glass_waste_row and glass_waste_row[1] else 0
     return {
         "id": order_id,
         "etiqueta": label,
+        "merma_vidrio": None if glass_waste_row is None else {"cargo": f"{Decimal(glass_waste_row[0]) / 100:.2f}", "incluida": bool(glass_waste_row[1]), "detalle": json.loads(glass_waste_row[2])},
         "merma": None if waste_row is None else {"cargo": f"{Decimal(waste_row[0]) / 100:.2f}", "incluida": bool(waste_row[1]), "detalle": None if waste_row[2] is None else json.loads(waste_row[2])},
         "traslado": None if order_row[8] is None else f"{Decimal(order_row[8]) / 100:.2f}",
         "total_pedido": None if total is None else f"{Decimal(total) + Decimal((order_row[8] or 0) + waste_cents) / 100:.2f}",
@@ -495,6 +506,36 @@ def select_order_waste(order_id: int, selection: WasteSelection):
             cursor = connection.execute("UPDATE merma_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Calcula primero la merma del pedido.")
+    return get_order(order_id)
+
+
+@app.post("/api/pedidos/{order_id}/merma-vidrio")
+def calculate_order_glass_waste(order_id: int):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
+                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+            plans = connection.execute(
+                "SELECT g.ancho_16, g.alto_16, g.cantidad FROM ventanas v LEFT JOIN plan_vidrio g ON g.ventana_id = v.id "
+                "WHERE v.pedido_id = ? AND v.descartada = 0", (order_id,)).fetchall()
+            plans = [None if row[0] is None else row for row in plans]
+            row = connection.execute("SELECT costo_centavos FROM costos_insumos WHERE codigo = 'vidrio_doble_fuerza'").fetchone()
+            threshold = connection.execute("SELECT umbral FROM configuracion_merma_vidrio WHERE id = 1").fetchone()[0]
+            cents, details = calcular_merma_vidrio(plans, None if row is None else row[0], threshold)
+            connection.execute("INSERT INTO merma_vidrio_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
+                               "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
+                               (order_id, cents, json.dumps(details, ensure_ascii=False)))
+    return get_order(order_id)
+
+
+@app.put("/api/pedidos/{order_id}/merma-vidrio")
+def select_order_glass_waste(order_id: int, selection: WasteSelection):
+    with closing(connect_db()) as connection:
+        with connection:
+            cursor = connection.execute("UPDATE merma_vidrio_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Calcula primero la merma de vidrio del pedido.")
     return get_order(order_id)
 
 
