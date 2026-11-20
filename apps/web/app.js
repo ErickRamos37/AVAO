@@ -578,6 +578,40 @@ async function openOrder(id) {
     deliveryAmount.disabled = true;
     deliveryActions.hidden = true;
     deliveryEdit.hidden = false;
+    document.querySelector('#waste-value').textContent = order.merma === null ? 'La merma aún no se ha calculado.' : `Cargo por merma: $${order.merma.cargo}${order.merma.incluida ? '' : ' (no aplicado)'}`;
+    const wasteDetails = document.querySelector('#waste-details');
+    wasteDetails.replaceChildren();
+    if (order.merma?.detalle === null) {
+      wasteDetails.textContent = 'Recalcula la merma para consultar el desglose de este cálculo anterior.';
+    } else if (order.merma?.detalle?.length === 0) {
+      wasteDetails.textContent = 'No hay sobrantes que generen cargo en este cálculo.';
+    } else if (order.merma?.detalle?.length) {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = 'Ver desglose de merma';
+      const table = document.createElement('table');
+      const head = document.createElement('thead');
+      const header = document.createElement('tr');
+      for (const label of ['Perfil', 'Consumo (pulgadas)', 'Tramo (pies)', 'Sobrante (pulgadas)', 'Importe aproximado']) {
+        const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = label; header.append(cell);
+      }
+      head.append(header);
+      const body = document.createElement('tbody');
+      for (const item of order.merma.detalle) {
+        const row = document.createElement('tr');
+        for (const value of [item.perfil.replace(/\s+(?:de\s+)?aluminio\b/gi, ""), item.consumo, item.tramo_pies, item.sobrante, `$${item.importe}`]) {
+          const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
+        }
+        body.append(row);
+      }
+      table.append(head, body);
+      const note = document.createElement('p');
+      note.textContent = 'Los importes por perfil son aproximados; el cargo total se redondea al centavo.';
+      details.append(summary, table, note); wasteDetails.append(details);
+    }
+    const wasteCheck = document.querySelector('#waste-included');
+    wasteCheck.disabled = order.merma === null;
+    wasteCheck.checked = order.merma?.incluida ?? false;
     const grandTotal = document.querySelector('#order-grand-total');
     if (order.total_pedido === null) {
       grandTotal.textContent = '';
@@ -708,6 +742,31 @@ async function changeWindowDiscard(item, discard, button) {
     button.disabled = false;
   }
 }
+
+document.querySelector('#waste-recalculate').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/merma`, {method: 'POST'});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail ?? 'No se pudo calcular la merma.');
+    message.hidden = true;
+    await openOrder(currentOrderId);
+  } catch (error) { showError(error.message); }
+  finally { button.disabled = false; }
+});
+document.querySelector('#waste-included').addEventListener('change', async event => {
+  const checkbox = event.currentTarget;
+  checkbox.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/merma`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({incluida: checkbox.checked})});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail ?? 'No se pudo guardar la selección.');
+    message.hidden = true;
+    await openOrder(currentOrderId);
+  } catch (error) { checkbox.checked = !checkbox.checked; showError(error.message); }
+  finally { checkbox.disabled = false; }
+});
 
 deliveryEdit.addEventListener('click', () => {
   deliveryAmount.value = currentOrderData.traslado ?? '';

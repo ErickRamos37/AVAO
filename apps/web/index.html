@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu12-traslado" defer></script>
+    <script src="/static/app.js?v=hu26-nombres" defer></script>
   </head>
   <body>
     <main>
@@ -78,6 +78,14 @@
                   <button id="delivery-cancel" type="button">Cancelar</button>
                 </div>
               </form>
+              <section aria-labelledby="waste-title">
+                <h3 id="waste-title">Cargo por merma de aluminio</h3>
+                <p id="waste-value"></p>
+                <div id="waste-details"></div>
+                <p>El cargo guardado solo cambia al recalcular la merma.</p>
+                <p><label><input id="waste-included" type="checkbox"> Incluir cargo por merma</label></p>
+                <button id="waste-recalculate" type="button">Recalcular merma</button>
+              </section>
               <p id="order-grand-total" aria-live="polite"></p>
             </section>
             <section id="discarded-windows" hidden>

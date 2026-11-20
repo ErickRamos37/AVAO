@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Costos de insumos</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu18-costos">
-    <script src="/static/costos.js?v=hu19-ganancia" defer></script>
+    <script src="/static/costos.js?v=hu26-merma" defer></script>
   </head>
   <body>
     <main>
@@ -20,6 +20,8 @@
       <form id="inventory-form">
         <div id="cost-list">Cargando costos…</div>
         <p><label for="profit">Ganancia común (%)</label> <input id="profit" type="number" min="1" max="100" step="1" required></p>
+        <p><label for="waste-threshold">Umbral de merma de aluminio (%)</label> <input id="waste-threshold" type="number" min="0" max="100" step="1" required></p>
+        <p>Con 0 % no se recupera merma.</p>
         <button type="submit">Guardar</button>
       </form>
       <dialog id="unsaved-dialog">
