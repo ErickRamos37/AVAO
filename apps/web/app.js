@@ -649,6 +649,15 @@ async function openOrder(id) {
       }
       table.append(head, body); details.append(summary, table); glassDetails.append(details);
     }
+    document.querySelector('#installation-date-error').hidden = true;
+    document.querySelector('#installation-date').value = order.fecha_programada ?? '';
+    const needsDate = order.aceptado && !order.fecha_programada;
+    document.querySelector('#installation-date').disabled = !needsDate;
+    document.querySelector('#installation-date-actions').hidden = !needsDate;
+    document.querySelector('#installation-date-edit').hidden = needsDate;
+    document.querySelector('#installation-date-status').textContent = order.fecha_programada
+      ? `Fecha programada: ${order.fecha_programada}`
+      : (order.aceptado ? 'Fecha obligatoria pendiente: registra la fecha programada de instalación.' : 'Sin fecha programada.');
     const paymentStatus = document.querySelector('#payment-status');
     paymentStatus.replaceChildren();
     const statusLines = [order.aceptado ? 'Pedido aceptado' : 'Presupuesto'];
@@ -659,7 +668,7 @@ async function openOrder(id) {
         `Saldo: $${order.saldo}`, `Excedente: $${order.excedente}`);
       if (order.liquidado) statusLines.push('Liquidado');
     }
-    if (order.aceptado) statusLines.push('Fecha de instalación pendiente de registrar.');
+    if (order.aceptado && !order.fecha_programada) statusLines.push('Fecha de instalación pendiente de registrar.');
     for (const line of statusLines) {
       const paragraph = document.createElement('p'); paragraph.textContent = line; paymentStatus.append(paragraph);
     }
@@ -871,6 +880,45 @@ document.querySelector('#payment-form').addEventListener('submit', async event =
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo registrar el movimiento.');
     form.reset(); message.hidden = true; await openOrder(currentOrderId);
+    if (result.aceptado && !result.fecha_programada) {
+      const dateField = document.querySelector('#installation-date');
+      dateField.scrollIntoView({block: 'center'}); dateField.focus();
+    }
+  } catch (error) { showError(error.message); } finally { button.disabled = false; }
+});
+
+const installationDateForm = document.querySelector('#installation-date-form');
+const installationDate = document.querySelector('#installation-date');
+const installationDateActions = document.querySelector('#installation-date-actions');
+const installationDateError = document.querySelector('#installation-date-error');
+const installationDateEdit = document.querySelector('#installation-date-edit');
+installationDateEdit.addEventListener('click', () => {
+  installationDateError.hidden = true;
+  installationDate.value = currentOrderData.fecha_programada ?? '';
+  installationDate.disabled = false; installationDateActions.hidden = false; installationDateEdit.hidden = true;
+  installationDate.focus();
+});
+document.querySelector('#installation-date-cancel').addEventListener('click', () => {
+  installationDateError.hidden = true;
+  installationDate.value = currentOrderData.fecha_programada ?? '';
+  installationDate.disabled = true; installationDateActions.hidden = true; installationDateEdit.hidden = false;
+});
+installationDate.addEventListener('input', () => { installationDateError.hidden = true; });
+installationDateForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!installationDate.value || !installationDate.validity.valid) {
+    installationDateError.textContent = 'Ingresa una fecha programada válida para guardar.';
+    installationDateError.hidden = false; installationDate.focus(); return;
+  }
+  installationDateError.hidden = true;
+  const button = installationDateForm.querySelector('button[type="submit"]'); button.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/fecha-programada`, {
+      method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({fecha: installationDate.value}),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo guardar la fecha.');
+    message.hidden = true; await openOrder(currentOrderId);
   } catch (error) { showError(error.message); } finally { button.disabled = false; }
 });
 

@@ -7,7 +7,7 @@ import sqlite3
 from contextlib import closing
 from typing import Literal
 from decimal import Decimal, ROUND_HALF_UP
-from datetime import datetime
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException
@@ -92,6 +92,10 @@ class InventoryUpdate(BaseModel):
 class MovementInput(BaseModel):
     tipo: Literal["pago", "devolucion"]
     importe: StrictStr
+
+
+class InstallationDateUpdate(BaseModel):
+    fecha: StrictStr
 
 
 class DeliveryUpdate(BaseModel):
@@ -375,7 +379,7 @@ def get_order(order_id: int):
     with closing(connect_db()) as connection:
         order_row = connection.execute(
             "SELECT p.id, p.etiqueta, p.notas, c.nombre, c.apellido_1, c.apellido_2, "
-            "c.celular, c.direccion, p.traslado_centavos FROM pedidos AS p "
+            "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada FROM pedidos AS p "
             "LEFT JOIN clientes AS c ON c.id = p.cliente_id WHERE p.id = ?", (order_id,)
         ).fetchone()
         if order_row is None:
@@ -483,6 +487,7 @@ def get_order(order_id: int):
         "id": order_id,
         "etiqueta": label,
         "aceptado": accepted,
+        "fecha_programada": order_row[9],
         "anticipo_minimo": minimum,
         "anticipo_requerido": None if total_cents is None else f"{Decimal((total_cents * minimum + 99) // 100) / 100:.2f}",
         "movimientos": [{"id": mid, "tipo": kind, "importe": f"{Decimal(cents) / 100:.2f}", "fecha": day, "anulado": bool(void), "fecha_anulacion": void_day} for mid, kind, cents, day, void, void_day in movement_rows],
@@ -602,6 +607,22 @@ def void_movement(order_id: int, movement_id: int):
             net = connection.execute("SELECT COALESCE(SUM(CASE tipo WHEN 'pago' THEN importe_centavos ELSE -importe_centavos END), 0) FROM movimientos WHERE pedido_id = ? AND anulado = 0", (order_id,)).fetchone()[0]
             if net * 100 < cents_from_input(order["total_pedido"]) * order["anticipo_minimo"]:
                 connection.execute("DELETE FROM aceptaciones WHERE pedido_id = ?", (order_id,))
+    return get_order(order_id)
+
+
+@app.put("/api/pedidos/{order_id}/fecha-programada")
+def update_installation_date(order_id: int, update: InstallationDateUpdate):
+    try:
+        parsed = date.fromisoformat(update.fecha)
+        if parsed.isoformat() != update.fecha:
+            raise ValueError
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Ingresa una fecha válida.") from None
+    with closing(connect_db()) as connection:
+        with connection:
+            cursor = connection.execute("UPDATE pedidos SET fecha_programada = ? WHERE id = ?", (update.fecha, order_id))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
     return get_order(order_id)
 
 

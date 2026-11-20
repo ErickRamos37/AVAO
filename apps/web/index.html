@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu14-fechas-auto" defer></script>
+    <script src="/static/app.js?v=hu15-solicitar-fecha" defer></script>
   </head>
   <body>
     <main>
@@ -94,6 +94,19 @@
                 <button id="glass-waste-recalculate" type="button">Recalcular merma de vidrio</button>
               </section>
               <p id="order-grand-total" aria-live="polite"></p>
+              <section aria-labelledby="installation-date-title">
+                <h3 id="installation-date-title">Fecha programada de instalación</h3>
+                <p id="installation-date-status" aria-live="polite"></p>
+                <button id="installation-date-edit" type="button">Editar fecha</button>
+                <form id="installation-date-form" novalidate>
+                  <p><label>Fecha programada <input id="installation-date" type="date" required disabled></label></p>
+                  <p id="installation-date-error" role="alert" hidden></p>
+                  <div id="installation-date-actions" hidden>
+                    <button type="submit">Guardar</button>
+                    <button id="installation-date-cancel" type="button">Cancelar</button>
+                  </div>
+                </form>
+              </section>
               <section aria-labelledby="payments-title">
                 <h3 id="payments-title">Anticipo y movimientos</h3>
                 <div id="payment-status" aria-live="polite"></div>
