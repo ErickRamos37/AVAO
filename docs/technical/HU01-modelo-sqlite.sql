@@ -119,3 +119,16 @@ CREATE TABLE IF NOT EXISTS merma_vidrio_pedido (
     incluida INTEGER NOT NULL DEFAULT 1 CHECK (incluida IN (0, 1)),
     detalle_json TEXT NOT NULL
 );
+
+-- HU-14: configuración, aceptación y movimientos comerciales.
+CREATE TABLE IF NOT EXISTS configuracion_anticipo (
+ id INTEGER PRIMARY KEY CHECK (id = 1), porcentaje INTEGER NOT NULL CHECK (porcentaje BETWEEN 1 AND 100)
+);
+INSERT OR IGNORE INTO configuracion_anticipo VALUES (1, 50);
+CREATE TABLE IF NOT EXISTS aceptaciones (pedido_id INTEGER PRIMARY KEY REFERENCES pedidos(id));
+CREATE TABLE IF NOT EXISTS movimientos (
+ id INTEGER PRIMARY KEY, pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+ tipo TEXT NOT NULL CHECK (tipo IN ('pago', 'devolucion')),
+ importe_centavos INTEGER NOT NULL CHECK (importe_centavos > 0),
+ fecha TEXT NOT NULL, anulado INTEGER NOT NULL DEFAULT 0 CHECK (anulado IN (0, 1)), fecha_anulacion TEXT
+);

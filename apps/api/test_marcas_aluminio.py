@@ -16,6 +16,10 @@ from fastapi import HTTPException
 from apps.api.main import AluminumMark, NewOrder, create_order, get_order, mark_aluminum
 
 
+from apps.api.testing import accepted_orders
+create_order = accepted_orders(create_order)
+
+
 class AluminumMarkTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()

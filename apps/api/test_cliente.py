@@ -16,6 +16,10 @@ from apps.api.main import (AluminumMark, GlassMark, NewOrder, OrderClient,
                            save_order_client)
 
 
+from apps.api.testing import accepted_orders
+create_order = accepted_orders(create_order)
+
+
 class ClientTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()

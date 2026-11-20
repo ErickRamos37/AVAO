@@ -16,6 +16,10 @@ from fastapi import HTTPException
 from apps.api.main import GlassMark, NewOrder, create_order, get_order, mark_glass
 
 
+from apps.api.testing import accepted_orders
+create_order = accepted_orders(create_order)
+
+
 class GlassMarkTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()

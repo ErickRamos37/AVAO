@@ -70,6 +70,11 @@ if __name__ == "__main__":
             if "detalle_json" not in columns:
                 connection.execute("ALTER TABLE merma_pedido ADD COLUMN detalle_json TEXT")
                 connection.commit()
+        if connection.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'movimientos'").fetchone():
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(movimientos)")}
+            if "fecha_anulacion" not in columns:
+                connection.execute("ALTER TABLE movimientos ADD COLUMN fecha_anulacion TEXT")
+                connection.commit()
         connection.executescript(SCHEMA.read_text(encoding="utf-8"))
         with connection:
             connection.executemany(
