@@ -306,23 +306,23 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
 - **Posible división, aún no aprobada:** una HU para guardar/consultar cotizaciones preliminares con medidas aproximadas, y otra para revisar diferencias y convertir una cotización aceptada en pedido del taller con medidas exactas, etiqueta y posición. El resumen de diferencias parece pertenecer al flujo de conversión, no necesita una HU de interfaz separada. Sin ID, épica, prioridad, esfuerzo, ciclo ni issues todavía.
 - **Por preguntar antes de formalizar:** ¿la aprobación final del cliente al total actualizado debe ocurrir antes de promover el pedido al taller? ¿qué componentes concretos de costo/precio y reglas mínimas (unidades, largos de compra, desperdicio, ganancia/servicios) usa California para que el estimador sea repetible? ¿se archivan o eliminan las cotizaciones que no se aceptan, y quién puede encontrarlas? No cambiar la captura actual de HU-01 hasta decidir el nuevo ciclo.
 
-## Ciclo 4 propuesto: completar el pedido
+## Ciclo 4 cerrado: completar el pedido
 
-El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. Las prioridades, esfuerzos y orden son propuestas revisables. HU-14, HU-15, HU-16, HU-17 y HU-27 fueron implementadas y aceptadas por el usuario. La integración de HU-17 a develop sigue pendiente; el cierre formal del ciclo se revisará al terminarla. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
+El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. HU-14, HU-15, HU-16, HU-17 y HU-27 fueron implementadas y aceptadas por el usuario. HU-17 se integró a develop mediante el [PR #93](https://github.com/ErickRamos37/AVAO/pull/93), commit `6210f5a`. El usuario autorizó el cierre del ciclo. Se conservan historias y esfuerzos históricos y se retiran las prioridades de las terminadas. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
 
-| ID | HU | Épica | Esfuerzo propuesto | Prioridad actual propuesta | Estado |
+| ID | HU | Épica | Esfuerzo histórico | Prioridad actual | Resultado |
 | --- | --- | --- | ---: | --- | --- |
-| HU-14 | Aceptación, anticipo y saldo | E3 | 5 | Alta | Implementada y aceptada; subtarea #81 |
-| HU-15 | Fechas de instalación | E3 | 2 | Media | Implementada y aceptada; subtarea #83 |
-| HU-16 | Instalación completa | E3 | 2 | Alta | Implementada y aceptada; subtarea #85 |
-| HU-17 | Pagos, liquidación e histórico | E3 | 5 | Alta | Implementada y aceptada; subtarea #87; integración pendiente |
+| HU-14 | Aceptación, anticipo y saldo | E3 | 5 | — | Implementada y aceptada; subtarea #81 |
+| HU-15 | Fechas de instalación | E3 | 2 | — | Implementada y aceptada; subtarea #83 |
+| HU-16 | Instalación completa | E3 | 2 | — | Implementada y aceptada; subtarea #85 |
+| HU-17 | Pagos, liquidación e histórico | E3 | 5 | — | Implementada y aceptada; subtarea #87; integrada por PR #93 |
 | HU-27 | Merma de vidrio | E4 | 3 | — | Implementada y aceptada; subtarea #79 |
 
 ### HU-14 — Registrar aceptación, anticipo y consultar saldo
 
 - **Estado:** implementada y aceptada por el usuario; subtarea [#81](https://github.com/ErickRamos37/AVAO/issues/81).
 
-- **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 5 propuesto.
+- **Área:** Precios y cobros · **Épica:** E3 · **Esfuerzo histórico:** 5.
 - **Historia:** **Como** empleado, **necesito** registrar anticipo y confirmar el pedido aceptado, **para** iniciar el trabajo con total y saldo visibles.
 - **Criterios de aceptación propuestos:**
   - [ ] Solo se registra anticipo con el total completo calculado. Un anticipo neto inferior al mínimo no confirma el pedido; uno suficiente sí, y la configuración y movimientos persisten al consultar de nuevo. La falta de fecha programada no impide registrar ni conservar el anticipo; la fecha se exige después.
@@ -336,7 +336,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 - **Estado:** implementada y aceptada por el usuario; subtarea [#83](https://github.com/ErickRamos37/AVAO/issues/83). Tras registrar un anticipo que acepta el pedido, se solicita automáticamente la fecha si falta, conservando el pago.
 
-- **Área:** Instalación · **Épica:** E3 · **Prioridad/esfuerzo:** Media propuesta / 2 propuesto.
+- **Área:** Instalación · **Épica:** E3 · **Esfuerzo histórico:** 2.
 - **Historia:** **Como** empleado, **necesito** registrar día y, si se acuerda, hora de instalación, **para** coordinar la visita con el cliente.
 - **Criterios de aceptación propuestos:**
   - [ ] La fecha programada se captura por el usuario y persiste; se muestra bloqueada hasta pulsar **Editar**, solo cambia al guardar y cancelar conserva la anterior.
@@ -349,7 +349,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 - **Estado:** implementada y aceptada por el usuario; subtarea [#85](https://github.com/ErickRamos37/AVAO/issues/85).
 
-- **Área:** Instalación · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 2 propuesto.
+- **Área:** Instalación · **Épica:** E3 · **Esfuerzo histórico:** 2.
 - **Historia:** **Como** instalador, **necesito** marcar el pedido instalado, **para** distinguir la entrega física de la liquidación del saldo.
 - **Criterios de aceptación:**
   - [x] Si falta un corte o ensamble activo, no permite marcar instalado; una vez completos, la marca y señal verde o texto en la esquina de la tarjeta y en el detalle persisten al consultar; la fecha real se registra automáticamente, sin entrada manual.
@@ -359,9 +359,9 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 ### HU-17 — Cerrar y consultar pedidos finalizados
 
-- **Estado:** implementada y aceptada por el usuario; subtarea [#87](https://github.com/ErickRamos37/AVAO/issues/87). Integración a develop pendiente.
+- **Estado:** implementada y aceptada por el usuario; subtarea [#87](https://github.com/ErickRamos37/AVAO/issues/87). Integrada a develop mediante [PR #93](https://github.com/ErickRamos37/AVAO/pull/93), commit `6210f5a`.
 
-- **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 5 propuesto.
+- **Área:** Precios y cobros · **Épica:** E3 · **Esfuerzo histórico:** 5.
 - **Historia:** **Como** empleado, **necesito** consultar los pedidos instalados y liquidados, **para** conservar un respaldo de su información al concluir el trabajo.
 - **Criterios de aceptación:**
   - [x] Un pedido solo instalado o solo liquidado permanece activo. Al estar instalado y alcanzar el total de venta con pagos netos (pagos menos devoluciones, excluyendo movimientos anulados), se cierra automáticamente, sale de la cola activa, libera su etiqueta y aparece en el histórico. El sistema registra automáticamente como fecha de cierre el día en que se cumplen ambas condiciones.
@@ -401,13 +401,79 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 HU-14 y HU-17 comparten movimientos: HU-14 los registra y calcula el saldo; HU-17 usa ese resultado para cerrar, evitando construir dos registros de pagos.
 
-## Ciclo 5: orientación futura
+## Ciclo 5 propuesto: medición del taller
 
-Explorar datos, métricas y un tablero de consulta cuando el usuario decida el alcance y existan datos fiables. Sin historias, estimaciones ni prioridad asignadas todavía.
+El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las siguientes historias son propuestas para refinar; sus identificadores aún no implican incidencias ni estado en GitHub Projects. Esfuerzo y prioridad son propuestas relativas pendientes de aceptación. Las dependencias orientan el orden, sin sustituir la decisión del usuario. HU-28 se estima en 8 por la variedad de eventos, correcciones e histórico; si al refinar supera 8, se propondrá dividirla en historias con valor propio antes de implementarla.
+
+| ID | HU | Épica | Esfuerzo propuesto | Prioridad propuesta | Estado |
+| --- | --- | --- | --- | --- | --- |
+| HU-28 | Consultar hitos y avance de fabricación | Por asignar | 8 | Alta | Propuesta por refinar |
+| HU-29 | Consultar cambios de medida y piezas afectadas | Por asignar | 5 | Alta | Propuesta por refinar |
+| HU-30 | Consultar programación y reprogramaciones | Por asignar | 5 | Media | Propuesta por refinar |
+| HU-31 | Consultar el flujo del taller por periodos | Por asignar | 8 | Media | Propuesta por refinar |
+
+### HU-28 — Consultar hitos y avance de fabricación
+
+- **Prioridad/esfuerzo propuestos:** Alta / 8. Integra varios eventos, correcciones y conservación al cierre; requiere revisar tamaño antes de implementar.
+
+- **Historia:** **Como** encargado, **necesito** consultar cuándo se registraron los hitos comerciales y el avance de fabricación de cada pedido, **para** conocer su recorrido y contar el trabajo registrado por periodo.
+- **Criterios de aceptación propuestos:**
+  - [ ] Al crear un presupuesto, alcanzar el anticipo mínimo, registrar el primer corte de aluminio o vidrio, registrar cortes y ensambles completos, instalar, liquidar y cerrar, se registran automáticamente los eventos correspondientes con fecha y hora. El anticipo mínimo señala el inicio comercial; el primer corte señala el inicio de fabricación.
+  - [ ] Se pueden consultar los eventos vinculados al pedido y, cuando corresponda, la ventana y el área. Se cuentan piezas físicas individuales de aluminio o vidrio cortadas y ventanas completas ensambladas por día, semana y mes.
+  - [ ] Una corrección manual que deshace una marca ajusta el conteo del día original y conserva el evento de corrección. Una corrección de dimensiones que afecta piezas previamente cortadas conserva la producción original como ocurrida y se distingue según HU-29.
+  - [ ] Los eventos ligeros permanecen consultables tras el cierre, sin conservar por ello planes de corte ni desglose individual de materiales y costos.
+- **Dependencias y límites:** depende de la aceptación y movimientos de HU-14, instalación de HU-16 y cierre de HU-17. La hora es del registro, que puede hacerse por tandas después del trabajo: no demuestra la hora real del trabajo, tiempo efectivo ni productividad individual. Los datos antiguos no permiten reconstruir con fiabilidad los eventos que no se registraron.
+- **Subtareas verticales propuestas:**
+  1. **Consultar hitos del pedido:** registrar creación, aceptación, instalación, liquidación y cierre con fecha y hora; consultar y conservarlos al cerrar. Acordar antes el tratamiento de pérdida y recuperación de liquidación.
+  2. **Consultar cortes y ensambles registrados:** registrar primer corte y avance por pieza o ventana, distinguir correcciones manuales y consultar conteos por periodo; conservar eventos al cerrar. Acordar cómo asignar el día a tandas registradas después.
+- **Preguntas abiertas:** si un pedido deja de estar liquidado por cambio de total o anulación y después vuelve a liquidarse, ¿qué fecha o fechas se conservan y muestran? ¿Las tandas se asignan automáticamente al día del registro aunque el trabajo fuera anterior? ¿Las fechas y horas se interpretan en la zona local de Tijuana?
+
+### HU-29 — Consultar cambios de medida y piezas afectadas
+
+- **Prioridad/esfuerzo propuestos:** Alta / 5. Reutiliza HU-07 y los eventos, pero debe distinguir causas y piezas afectadas.
+
+- **Historia:** **Como** encargado, **necesito** consultar cambios de medida posteriores a la aceptación y piezas cortadas afectadas, **para** conocer su incidencia en el trabajo del taller.
+- **Criterios de aceptación propuestos:**
+  - [ ] Se registran y consultan los cambios de medidas base posteriores a la aceptación, con las medidas anteriores y nuevas y el momento del cambio; se excluyen las correcciones realizadas mientras se trata de un presupuesto.
+  - [ ] Cuando cambiar las dimensiones modifica una medida derivada y HU-07 deshace automáticamente marcas, se registran la cantidad previamente cortada afectada, el tipo de perfil o vidrio, la edición relacionada y la fecha y hora. Las piezas sin cambio de medida derivada conservan su marca y no cuentan como afectadas; desmarcar manualmente no cuenta como este caso.
+  - [ ] Para perfiles de aluminio, si la nueva longitud requerida supera la ya cortada, las piezas afectadas se clasifican como «sobrante recuperable por cambio de medida». Si la nueva longitud es menor, se registran como afectadas y queda abierta la posibilidad de recorte; si es igual, no se consideran afectadas por longitud.
+  - [ ] Los eventos de corte originales permanecen en la producción histórica; los eventos de cambio y piezas afectadas se consultan por separado y se conservan tras el cierre.
+- **Dependencias y límites:** depende de HU-07 y del registro de HU-28. La clasificación no implica desperdicio definitivo, cargo monetario de HU-26 ni inventario automático de sobrantes; un cambio no demuestra por sí solo error de medición. La regla de longitud mayor o menor se refiere a perfiles y no se extiende al vidrio sin confirmación.
+- **Subtarea vertical propuesta — Consultar cambios de medidas y piezas cortadas afectadas:** registrar y consultar cambios posteriores a la aceptación, sus medidas anteriores y nuevas y las piezas previamente cortadas afectadas; clasificar perfiles según longitud, conservar producción original y eventos al cierre, y comprobar que correcciones de presupuesto quedan fuera.
+- **Preguntas abiertas:** ¿cómo clasificar los vidrios afectados cuando cambian sus dimensiones? Si se descarta una ventana, ¿cómo afecta a los conteos ya registrados?
+
+### HU-30 — Consultar programación y reprogramaciones
+
+- **Prioridad/esfuerzo propuestos:** Media / 5. Amplía fechas existentes con historial y motivos por definir.
+
+- **Historia:** **Como** encargado, **necesito** consultar la fecha de instalación acordada y sus cambios, **para** dar seguimiento a los compromisos con el cliente.
+- **Criterios de aceptación propuestos:**
+  - [ ] Se conservan y consultan la fecha programada original y cada reprogramación, con fecha anterior y nueva y momento de registro.
+  - [ ] Se registra y consulta el motivo de reprogramación o atraso conforme a las reglas que se acuerden; la fecha real de instalación conserva fecha y hora.
+- **Dependencias y límites:** amplía las fechas de HU-15 y el registro de HU-28. La reprogramación y el atraso no tienen necesariamente el mismo motivo.
+- **Subtarea vertical propuesta — Consultar fechas y motivos de instalación:** conservar y mostrar fecha original, reprogramaciones con valores anterior y nuevo y momento, y motivo según se acuerde; comprobar consulta tras cerrar. No imponer catálogo ni obligatoriedad sin decisión.
+- **Preguntas abiertas:** ¿cuándo se captura el motivo, si es obligatorio y qué opciones necesita el taller? ¿Qué situación determina que una instalación está atrasada?
+
+### HU-31 — Consultar el flujo del taller por periodos
+
+- **Prioridad/esfuerzo propuestos:** Media / 8. Reúne varias consultas y reglas de periodos; revisar tamaño tras definir el primer resultado.
+
+- **Historia:** **Como** encargado, **necesito** consultar un tablero con el avance y los compromisos del taller, **para** identificar pendientes y orientar decisiones de organización.
+- **Criterios de aceptación propuestos:**
+  - [ ] Se consultan conteos por día, semana y mes de piezas de aluminio y vidrio cortadas y ventanas ensambladas, basados en los eventos y correcciones de HU-28.
+  - [ ] Se consultan pedidos listos y pendientes, instalaciones y pagos; el detalle y definiciones se acuerdan antes de implementar.
+  - [ ] Se distingue la fecha y hora de registro de la actividad efectivamente realizada, sin presentar conteos como tiempo efectivo, productividad individual o prueba de una causa de cuello de botella.
+- **Dependencias y límites:** utiliza los datos de HU-28 y HU-30; el alcance de cambios de medida y piezas afectadas depende de HU-29. Cortes de distinta longitud o complejidad no son directamente equivalentes. No promete mediciones retrospectivas sin datos registrados.
+- **Subtareas verticales propuestas:**
+  1. **Consultar producción por periodos:** mostrar cortes y ensambles registrados por día, semana y mes con correcciones y zona horaria acordadas; identificar que son momentos de registro.
+  2. **Consultar pedidos e instalaciones pendientes:** mostrar estados y fechas útiles según definiciones acordadas y consultar pagos pertinentes; comprobar pedidos activos e históricos.
+- **Preguntas abiertas:** ¿qué significa estar listo o pendiente para esta consulta y qué datos de pagos e instalaciones son útiles? ¿Cuántos días anticipados hacen que una fecha sea próxima? ¿Cómo empiezan y terminan los periodos de calendario y qué zona horaria se aplica? No se presentan predicciones sin reglas y datos acordados.
+
+**Temas futuros sin reglas ni historias aprobadas:** definir cómo registrar material surtido o faltante, bloqueos y sus causas, estimaciones de fabricación y satisfacción del cliente. La investigación no fija todavía su alcance ni los incorpora automáticamente a estas entregas.
 
 ## Secuencia comercial prevista: datos, precios, aceptación y liquidación
 
-Secuencia funcional prevista: **empleado captura medidas → completa datos de cliente → calcula precio de ventanas e incorpora servicios opcionales → comunica total → si cliente acepta, registra anticipo y confirma pedido → taller fabrica → se instala; los pagos pueden liquidar el saldo antes o después de instalar → se cierra al cumplir ambas condiciones**. El Ciclo 3 cubrió el precio de las ventanas, el total del pedido, traslado y merma de aluminio; la aceptación, anticipo y cierre comercial se proponen para el Ciclo 4. No hay interfaz del cliente prevista.
+Secuencia funcional prevista: **empleado captura medidas → completa datos de cliente → calcula precio de ventanas e incorpora servicios opcionales → comunica total → si cliente acepta, registra anticipo y confirma pedido → taller fabrica → se instala; los pagos pueden liquidar el saldo antes o después de instalar → se cierra al cumplir ambas condiciones**. El Ciclo 3 cubrió el precio de las ventanas, el total del pedido, traslado y merma de aluminio; el Ciclo 4 completó aceptación, anticipo y cierre comercial. No hay interfaz del cliente prevista.
 
 | ID | Área · Épica | Historia | Regla pendiente |
 | --- | --- | --- | --- |
