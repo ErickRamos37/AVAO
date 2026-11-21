@@ -198,8 +198,8 @@ function aluminumCutRow(window, cut, progress, label, onProgressChange) {
   mark.type = undo.type = 'button';
   mark.textContent = 'Marcar corte';
   undo.textContent = 'Deshacer marca';
-  mark.setAttribute('aria-label', `Marcar corte de ${label} para ${window.codigo}`);
-  undo.setAttribute('aria-label', `Deshacer marca de ${label} para ${window.codigo}`);
+  mark.setAttribute('aria-label', `Marcar corte de ${label} para ${window.codigo ?? window.numero}`);
+  undo.setAttribute('aria-label', `Deshacer marca de ${label} para ${window.codigo ?? window.numero}`);
 
   function refresh() {
     status.textContent = `${label}: ${cut.longitud}″ · requerido ${cut.cantidad}, cortado ${progress.cortadas}, pendiente ${progress.pendientes}`;
@@ -224,6 +224,7 @@ function aluminumCutRow(window, cut, progress, label, onProgressChange) {
       progress.cortadas = updated.cortadas;
       progress.pendientes = updated.pendientes;
       onProgressChange();
+      await openOrder(currentOrderId);
     } catch (error) {
       showError(error.message);
     } finally {
@@ -250,8 +251,8 @@ function glassCutRow(window, onProgressChange) {
   mark.type = undo.type = 'button';
   mark.textContent = 'Marcar corte';
   undo.textContent = 'Deshacer marca';
-  mark.setAttribute('aria-label', `Marcar corte de vidrio para ${window.codigo}`);
-  undo.setAttribute('aria-label', `Deshacer marca de vidrio para ${window.codigo}`);
+  mark.setAttribute('aria-label', `Marcar corte de vidrio para ${window.codigo ?? window.numero}`);
+  undo.setAttribute('aria-label', `Deshacer marca de vidrio para ${window.codigo ?? window.numero}`);
   const plan = window.plan_vidrio;
   const progress = window.avance_vidrio;
 
@@ -278,6 +279,7 @@ function glassCutRow(window, onProgressChange) {
       progress.cortadas = updated.cortadas;
       progress.pendientes = updated.pendientes;
       onProgressChange();
+      await openOrder(currentOrderId);
     } catch (error) {
       showError(error.message);
     } finally {
@@ -306,8 +308,8 @@ function assemblyRow(window, orderId) {
   mark.type = undo.type = 'button';
   mark.textContent = 'Confirmar ensamble';
   undo.textContent = 'Deshacer ensamble';
-  mark.setAttribute('aria-label', `Confirmar ensamble de ${window.codigo}`);
-  undo.setAttribute('aria-label', `Deshacer ensamble de ${window.codigo}`);
+  mark.setAttribute('aria-label', `Confirmar ensamble de ${window.codigo ?? window.numero}`);
+  undo.setAttribute('aria-label', `Deshacer ensamble de ${window.codigo ?? window.numero}`);
 
   function refresh() {
     const complete = window.plan_aluminio.length === 10
@@ -580,13 +582,63 @@ async function openOrder(id) {
       }
       return details;
     };
+    const productionView = () => {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = 'Fabricación registrada'; details.append(summary);
+      const note = document.createElement('p'); note.textContent = 'Las fechas indican cuándo se registró el trabajo, posiblemente por tandas. Las marcas anteriores a este registro pueden faltar.'; details.append(note);
+      const first = order.eventos_fabricacion.find(event => event.accion === 'marcar' && !event.corregido && event.area !== 'ensamble');
+      const firstLine = document.createElement('p'); firstLine.textContent = first ? `Primer corte registrado: ${new Date(first.fecha_hora).toLocaleString('es-MX', {timeZone: 'America/Tijuana'})} (Tijuana)` : 'Primer corte registrado: no disponible'; details.append(firstLine);
+      const log = document.createElement('details'); const logTitle = document.createElement('summary'); logTitle.textContent = 'Ver registros y correcciones'; log.append(logTitle);
+      for (const event of order.eventos_fabricacion) {
+        const line = document.createElement('p');
+        line.textContent = `${new Date(event.fecha_hora).toLocaleString('es-MX', {timeZone: 'America/Tijuana'})} · Ventana ${event.ventana} · ${event.area} · ${event.accion === 'marcar' ? 'registrado' : 'corrección manual'}${event.corregido ? ' (corregido)' : ''}${event.accion === 'deshacer' && !event.original_id ? ' (marca anterior sin fecha disponible)' : ''}`;
+        log.append(line);
+      }
+      details.append(log);
+      const controls = document.createElement('p');
+      const dateLabel = document.createElement('label'); dateLabel.textContent = 'Fecha de referencia ';
+      const day = document.createElement('input'); day.type = 'date'; day.value = new Intl.DateTimeFormat('en-CA', {timeZone: 'America/Tijuana'}).format(new Date()); dateLabel.append(day);
+      const periodLabel = document.createElement('label'); periodLabel.textContent = ' Periodo ';
+      const period = document.createElement('select');
+      for (const [value, name] of [['dia', 'Día'], ['semana', 'Semana'], ['mes', 'Mes'], ['ano', 'Año']]) { const option = document.createElement('option'); option.value = value; option.textContent = name; period.append(option); }
+      periodLabel.append(period); controls.append(dateLabel, periodLabel); details.append(controls);
+      const results = document.createElement('div'); details.append(results);
+      function showCounts() {
+        results.replaceChildren();
+        if (!day.value) return;
+        const start = new Date(`${day.value}T00:00:00Z`);
+        if (period.value === 'semana') start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7);
+        if (period.value === 'mes' || period.value === 'ano') start.setUTCDate(1);
+        if (period.value === 'ano') start.setUTCMonth(0);
+        const end = new Date(start);
+        if (period.value === 'dia') end.setUTCDate(end.getUTCDate() + 1);
+        if (period.value === 'semana') end.setUTCDate(end.getUTCDate() + 7);
+        if (period.value === 'mes') end.setUTCMonth(end.getUTCMonth() + 1);
+        if (period.value === 'ano') end.setUTCFullYear(end.getUTCFullYear() + 1);
+        const counts = {};
+        for (const event of order.eventos_fabricacion) {
+          if (event.accion !== 'marcar' || event.corregido) continue;
+          const key = event.fecha_hora.slice(0, 10);
+          counts[key] ??= {aluminio: 0, vidrio: 0, ensamble: 0}; counts[key][event.area]++;
+        }
+        const list = document.createElement('ul'); const total = {aluminio: 0, vidrio: 0, ensamble: 0};
+        for (let date = new Date(start); date < end; date.setUTCDate(date.getUTCDate() + 1)) {
+          const key = date.toISOString().slice(0, 10); const c = counts[key] ?? {aluminio: 0, vidrio: 0, ensamble: 0};
+          for (const area of Object.keys(total)) total[area] += c[area];
+          const item = document.createElement('li'); item.textContent = `${key}: aluminio ${c.aluminio}, vidrio ${c.vidrio}, ventanas ensambladas ${c.ensamble}`; list.append(item);
+        }
+        const heading = document.createElement('p'); heading.textContent = `Total: aluminio ${total.aluminio}, vidrio ${total.vidrio}, ventanas ensambladas ${total.ensamble}`; results.append(heading, list);
+      }
+      day.addEventListener('change', showCounts); period.addEventListener('change', showCounts); showCounts();
+      return details;
+    };
     if (order.fecha_cierre) {
       document.querySelector('#history').hidden = true;
       document.querySelector('#budgets').hidden = true;
       document.querySelector('#orders').hidden = true;
       const view = document.createElement('section'); view.id = 'history-detail';
       const title = document.createElement('h1'); title.textContent = `Pedido ${order.id} · finalizado y liquidado`;
-      view.append(title, eventsView());
+      view.append(title, eventsView(), productionView());
       const add = (label, value) => { const p = document.createElement('p'); p.textContent = `${label}: ${value ?? 'Sin dato'}`; view.append(p); };
       add('Fecha de cierre', order.fecha_cierre); add('Fecha de instalación', order.fecha_real); add('Fecha programada', order.fecha_programada);
       const c = order.cliente; add('Cliente', c ? [c.nombre, c.apellido_1, c.apellido_2].filter(Boolean).join(' ') : null);
@@ -625,12 +677,13 @@ async function openOrder(id) {
       document.querySelector('#client-details').open = false;
     }
     currentOrderData = order;
-    document.querySelector('#order-events').replaceChildren(eventsView());
+    document.querySelector('#order-events').replaceChildren(eventsView(), productionView());
     document.querySelector('#installation-state').textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
     document.querySelector('#installation-toggle').textContent = order.instalado ? 'Desmarcar instalación' : 'Marcar instalado';
     exitMeasureEdit();
-    document.querySelector('#order-title').textContent = order.etiqueta === null
-      ? `Pedido ${order.id} · sin etiqueta`
+    document.querySelector('#order-title').textContent = !order.aceptado
+      ? `Presupuesto ${order.id}`
+      : order.etiqueta === null ? `Pedido ${order.id} · sin etiqueta`
       : `Pedido ${order.etiqueta}`;
     clientForm.dataset.orderId = order.id;
     for (const field of ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion']) {

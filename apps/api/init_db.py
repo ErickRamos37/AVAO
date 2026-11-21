@@ -89,6 +89,8 @@ if __name__ == "__main__":
                 connection.commit()
         connection.executescript(SCHEMA.read_text(encoding="utf-8"))
         with connection:
+            connection.execute("UPDATE pedidos SET etiqueta = NULL WHERE fecha_cierre IS NULL AND etiqueta IS NOT NULL "
+                               "AND NOT EXISTS (SELECT 1 FROM aceptaciones WHERE pedido_id = pedidos.id)")
             connection.executemany(
                 "INSERT OR IGNORE INTO costos_insumos (codigo, costo_centavos) VALUES (?, ?)",
                 ((item[0], item[6]) for item in INSUMOS),
