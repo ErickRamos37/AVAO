@@ -306,23 +306,23 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
 - **Posible división, aún no aprobada:** una HU para guardar/consultar cotizaciones preliminares con medidas aproximadas, y otra para revisar diferencias y convertir una cotización aceptada en pedido del taller con medidas exactas, etiqueta y posición. El resumen de diferencias parece pertenecer al flujo de conversión, no necesita una HU de interfaz separada. Sin ID, épica, prioridad, esfuerzo, ciclo ni issues todavía.
 - **Por preguntar antes de formalizar:** ¿la aprobación final del cliente al total actualizado debe ocurrir antes de promover el pedido al taller? ¿qué componentes concretos de costo/precio y reglas mínimas (unidades, largos de compra, desperdicio, ganancia/servicios) usa California para que el estimador sea repetible? ¿se archivan o eliminan las cotizaciones que no se aceptan, y quién puede encontrarlas? No cambiar la captura actual de HU-01 hasta decidir el nuevo ciclo.
 
-## Ciclo 4 propuesto: completar el pedido
+## Ciclo 4 cerrado: completar el pedido
 
-El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. Las prioridades, esfuerzos y orden son propuestas revisables. HU-14, HU-15, HU-16, HU-17 y HU-27 fueron implementadas y aceptadas por el usuario. La integración de HU-17 a develop sigue pendiente; el cierre formal del ciclo se revisará al terminarla. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
+El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. HU-14, HU-15, HU-16, HU-17 y HU-27 fueron implementadas y aceptadas por el usuario. HU-17 se integró a develop mediante el [PR #93](https://github.com/ErickRamos37/AVAO/pull/93), commit `6210f5a`. El usuario autorizó el cierre del ciclo. Se conservan historias y esfuerzos históricos y se retiran las prioridades de las terminadas. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
 
-| ID | HU | Épica | Esfuerzo propuesto | Prioridad actual propuesta | Estado |
+| ID | HU | Épica | Esfuerzo histórico | Prioridad actual | Resultado |
 | --- | --- | --- | ---: | --- | --- |
-| HU-14 | Aceptación, anticipo y saldo | E3 | 5 | Alta | Implementada y aceptada; subtarea #81 |
-| HU-15 | Fechas de instalación | E3 | 2 | Media | Implementada y aceptada; subtarea #83 |
-| HU-16 | Instalación completa | E3 | 2 | Alta | Implementada y aceptada; subtarea #85 |
-| HU-17 | Pagos, liquidación e histórico | E3 | 5 | Alta | Implementada y aceptada; subtarea #87; integración pendiente |
+| HU-14 | Aceptación, anticipo y saldo | E3 | 5 | — | Implementada y aceptada; subtarea #81 |
+| HU-15 | Fechas de instalación | E3 | 2 | — | Implementada y aceptada; subtarea #83 |
+| HU-16 | Instalación completa | E3 | 2 | — | Implementada y aceptada; subtarea #85 |
+| HU-17 | Pagos, liquidación e histórico | E3 | 5 | — | Implementada y aceptada; subtarea #87; integrada por PR #93 |
 | HU-27 | Merma de vidrio | E4 | 3 | — | Implementada y aceptada; subtarea #79 |
 
 ### HU-14 — Registrar aceptación, anticipo y consultar saldo
 
 - **Estado:** implementada y aceptada por el usuario; subtarea [#81](https://github.com/ErickRamos37/AVAO/issues/81).
 
-- **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 5 propuesto.
+- **Área:** Precios y cobros · **Épica:** E3 · **Esfuerzo histórico:** 5.
 - **Historia:** **Como** empleado, **necesito** registrar anticipo y confirmar el pedido aceptado, **para** iniciar el trabajo con total y saldo visibles.
 - **Criterios de aceptación propuestos:**
   - [ ] Solo se registra anticipo con el total completo calculado. Un anticipo neto inferior al mínimo no confirma el pedido; uno suficiente sí, y la configuración y movimientos persisten al consultar de nuevo. La falta de fecha programada no impide registrar ni conservar el anticipo; la fecha se exige después.
@@ -336,7 +336,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 - **Estado:** implementada y aceptada por el usuario; subtarea [#83](https://github.com/ErickRamos37/AVAO/issues/83). Tras registrar un anticipo que acepta el pedido, se solicita automáticamente la fecha si falta, conservando el pago.
 
-- **Área:** Instalación · **Épica:** E3 · **Prioridad/esfuerzo:** Media propuesta / 2 propuesto.
+- **Área:** Instalación · **Épica:** E3 · **Esfuerzo histórico:** 2.
 - **Historia:** **Como** empleado, **necesito** registrar día y, si se acuerda, hora de instalación, **para** coordinar la visita con el cliente.
 - **Criterios de aceptación propuestos:**
   - [ ] La fecha programada se captura por el usuario y persiste; se muestra bloqueada hasta pulsar **Editar**, solo cambia al guardar y cancelar conserva la anterior.
@@ -349,7 +349,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 - **Estado:** implementada y aceptada por el usuario; subtarea [#85](https://github.com/ErickRamos37/AVAO/issues/85).
 
-- **Área:** Instalación · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 2 propuesto.
+- **Área:** Instalación · **Épica:** E3 · **Esfuerzo histórico:** 2.
 - **Historia:** **Como** instalador, **necesito** marcar el pedido instalado, **para** distinguir la entrega física de la liquidación del saldo.
 - **Criterios de aceptación:**
   - [x] Si falta un corte o ensamble activo, no permite marcar instalado; una vez completos, la marca y señal verde o texto en la esquina de la tarjeta y en el detalle persisten al consultar; la fecha real se registra automáticamente, sin entrada manual.
@@ -359,9 +359,9 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 ### HU-17 — Cerrar y consultar pedidos finalizados
 
-- **Estado:** implementada y aceptada por el usuario; subtarea [#87](https://github.com/ErickRamos37/AVAO/issues/87). Integración a develop pendiente.
+- **Estado:** implementada y aceptada por el usuario; subtarea [#87](https://github.com/ErickRamos37/AVAO/issues/87). Integrada a develop mediante [PR #93](https://github.com/ErickRamos37/AVAO/pull/93), commit `6210f5a`.
 
-- **Área:** Precios y cobros · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 5 propuesto.
+- **Área:** Precios y cobros · **Épica:** E3 · **Esfuerzo histórico:** 5.
 - **Historia:** **Como** empleado, **necesito** consultar los pedidos instalados y liquidados, **para** conservar un respaldo de su información al concluir el trabajo.
 - **Criterios de aceptación:**
   - [x] Un pedido solo instalado o solo liquidado permanece activo. Al estar instalado y alcanzar el total de venta con pagos netos (pagos menos devoluciones, excluyendo movimientos anulados), se cierra automáticamente, sale de la cola activa, libera su etiqueta y aparece en el histórico. El sistema registra automáticamente como fecha de cierre el día en que se cumplen ambas condiciones.
@@ -401,13 +401,19 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 HU-14 y HU-17 comparten movimientos: HU-14 los registra y calcula el saldo; HU-17 usa ese resultado para cerrar, evitando construir dos registros de pagos.
 
-## Ciclo 5: orientación futura
+## Ciclo 5: propuesta inicial para decidir
 
-Explorar datos, métricas y un tablero de consulta cuando el usuario decida el alcance y existan datos fiables. Sin historias, estimaciones ni prioridad asignadas todavía.
+**Objetivo propuesto:** apoyar decisiones del taller mediante consultas sencillas sobre tiempos de producción por área, posibles cuellos de botella, fechas próximas o vencidas y satisfacción del cliente. Son temas a conversar, no historias, prioridades ni compromisos definitivos.
+
+**Posible primera entrega, por acordar:** una consulta de fechas programadas próximas y vencidas para ayudar a organizar instalaciones. Antes de definirla hay que decidir qué significa «próxima» y qué pedidos incluir. Después podrían evaluarse tiempos por área y cuellos de botella, y cómo recoger satisfacción; el usuario decide el orden.
+
+**Datos y límites observados:** actualmente se guardan fechas programada y real de instalación, fecha de cierre y fechas de movimientos. El esquema revisado no registra inicios ni finales por área; el cierre además elimina marcas y resumen de avance. No se puede prometer reconstruir tiempos históricos por área con estos datos. Las marcas existentes no equivalen a tiempos activos; satisfacción requiere definir cómo y cuándo se registra.
+
+**Preguntas para elegir el primer resultado:** ¿qué decisión diaria o semanal debe apoyar primero: fechas, tiempos/cuello de botella o satisfacción? Para tiempos, ¿se busca tiempo transcurrido entre inicio y fin, o tiempo efectivo de trabajo excluyendo pausas? Para fechas, ¿cuántos días anticipados cuentan como próximos y qué pedidos deben incluirse?
 
 ## Secuencia comercial prevista: datos, precios, aceptación y liquidación
 
-Secuencia funcional prevista: **empleado captura medidas → completa datos de cliente → calcula precio de ventanas e incorpora servicios opcionales → comunica total → si cliente acepta, registra anticipo y confirma pedido → taller fabrica → se instala; los pagos pueden liquidar el saldo antes o después de instalar → se cierra al cumplir ambas condiciones**. El Ciclo 3 cubrió el precio de las ventanas, el total del pedido, traslado y merma de aluminio; la aceptación, anticipo y cierre comercial se proponen para el Ciclo 4. No hay interfaz del cliente prevista.
+Secuencia funcional prevista: **empleado captura medidas → completa datos de cliente → calcula precio de ventanas e incorpora servicios opcionales → comunica total → si cliente acepta, registra anticipo y confirma pedido → taller fabrica → se instala; los pagos pueden liquidar el saldo antes o después de instalar → se cierra al cumplir ambas condiciones**. El Ciclo 3 cubrió el precio de las ventanas, el total del pedido, traslado y merma de aluminio; el Ciclo 4 completó aceptación, anticipo y cierre comercial. No hay interfaz del cliente prevista.
 
 | ID | Área · Épica | Historia | Regla pendiente |
 | --- | --- | --- | --- |
