@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AVAO · Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
+    <script src="/static/dashboard.js?v=hu31-graficas" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <a href="/" class="brand">AVAO</a>
+        <p>Dashboard</p>
+        <a href="/costos">Inventario de insumos</a>
+      </header>
+      <p><a href="/">Volver a pedidos</a></p>
+      <section id="production-report" aria-labelledby="production-report-title">
+        <h2 id="production-report-title">Producción registrada</h2>
+        <p>Solo eventos registrados; los datos anteriores pueden estar incompletos. Las tandas se cuentan en la fecha de registro.</p>
+        <form id="production-report-form">
+          <p><label>Fecha de referencia <input id="production-report-date" type="date" required></label></p>
+          <p><label>Periodo <select id="production-report-period">
+            <option value="dia">Día</option><option value="semana">Semana</option>
+            <option value="mes">Mes</option><option value="ano">Año</option>
+          </select></label></p>
+          <button type="submit">Consultar</button>
+        </form>
+        <div id="production-report-results" aria-live="polite"></div>
+      </section>
+
+    </main>
+  </body>
+</html>

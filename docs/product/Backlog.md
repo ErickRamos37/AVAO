@@ -415,7 +415,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 | HU-28 | Consultar hitos y avance de fabricación | E5 | 8 | Alta | Implementada y aceptada; subtareas #96 y #97 |
 | HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | Alta | Implementada y aceptada; subtarea #99 |
 | HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #101 |
-| HU-31 | Consultar producción por periodos | E5 | 5 | Media | División propuesta por refinar |
+| HU-31 | Consultar producción por periodos | E5 | 5 | Media | Implementada y aceptada; subtarea #103 |
 | HU-32 | Consultar pedidos e instalaciones | E5 | 5 | Media | División propuesta por refinar |
 | HU-33 | Consultar ingresos y ganancia estimada | E5 | 8 | Media | División propuesta por refinar |
 
@@ -474,16 +474,22 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 - **Subtarea [#101](https://github.com/ErickRamos37/AVAO/issues/101), implementada y aceptada — Consultar fechas y motivos de instalación:** conservar y mostrar fecha original, reprogramaciones con valores anterior y nuevo y momento, y motivo obligatorio de catálogo o «Otros» con texto; señalar atraso al pasar la fecha acordada sin instalar y comprobar consulta tras cerrar.
 - **Regla confirmada:** catálogo de motivos: falta de material, fabricación pendiente, disponibilidad del cliente, disponibilidad del taller/transporte y «Otros» con texto.
 
+**Criterio común confirmado para HU-31, HU-32 y HU-33:** las consultas de producción, pedidos e instalaciones y finanzas se reúnen en una única página exclusiva de tablero, accesible desde la navegación principal. Las funciones posteriores se incorporan a esa misma página, sin duplicarlas ni dispersarlas por la aplicación. La ruta `/dashboard` es una opción técnica, no un requisito de producto. No se define diseño ni organización visual adicional.
+
 ### HU-31 — Consultar producción por periodos
+
+- **Estado:** implementada y aceptada por el usuario; subtarea [#103](https://github.com/ErickRamos37/AVAO/issues/103).
 
 - **Área:** Visibilidad · **Épica:** E5.
 
 - **Prioridad/esfuerzo aceptados:** Media / 5. 
 **Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de producción registrada por periodo, **para** observar el comportamiento del taller.
-- **Criterios propuestos:**
-  - [ ] Consultar cantidades y gráficas de piezas de aluminio y vidrio cortadas y ventanas ensambladas por día, semana, mes y año; semanas de lunes a domingo en horario de Tijuana, incluyendo domingos.
-  - [ ] Consultar promedios por periodo incluyendo los días sin actividad, incluidos domingos; distinguir registro por tandas de hora real de trabajo y aplicar correcciones de HU-28.
-- **Subtarea [#103](https://github.com/ErickRamos37/AVAO/issues/103) propuesta — Consultar producción registrada:** presentar conteos, gráficas y promedios basados en eventos conservados. **Dependencia:** HU-28. Los promedios incluyen días sin actividad, incluidos domingos. No inferir productividad individual o causas de cuellos de botella.
+- **Criterios de aceptación:**
+  - [x] Consultar cantidades y gráficas de piezas de aluminio y vidrio cortadas y ventanas ensambladas por día, semana, mes y año; semanas de lunes a domingo en horario de Tijuana, incluyendo domingos.
+  - [x] Mostrar por separado el total y promedio diario del periodo para aluminio, vidrio y ensambles. En la semana, mes y año actuales, dividir entre los días calendario transcurridos hasta hoy inclusive, incluidos los días sin actividad y domingos, sin contar días futuros. Distinguir registro por tandas de hora real de trabajo y aplicar correcciones de HU-28; advertir la cobertura limitada anterior al registro de eventos.
+- **Subtarea [#103](https://github.com/ErickRamos37/AVAO/issues/103), implementada y aceptada — Consultar producción registrada:** presentar gráficas, total y promedio diario por periodo separados para aluminio, vidrio y ensambles, basados en eventos conservados. En periodos actuales incluir solo días transcurridos hasta hoy, con ceros y domingos; advertir cobertura limitada de datos anteriores. **Dependencia:** HU-28. No inferir productividad individual o causas de cuellos de botella.
+- **Ajuste de navegación implementado y aceptado:** producción se consulta en la página única del tablero accesible desde la navegación principal, conservando los cálculos y criterios aceptados.
+- **Mejora futura por definir:** hacer más clara la lectura de picos y caídas de la gráfica, sin inventar datos ni decidir todavía una técnica de representación.
 
 ### HU-32 — Consultar pedidos e instalaciones
 
@@ -492,9 +498,10 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 - **Prioridad/esfuerzo aceptados:** Media / 5. 
 **Historia:** **Como** encargado, **necesito** consultar pedidos listos, pendientes e instalaciones y promedios de salidas, **para** organizar compromisos.
 - **Criterios propuestos:**
-  - [ ] Consultar pedidos listos, pendientes y por instalar, con señal visible de instalación atrasada conforme a HU-30.
+  - [ ] Mostrar estas consultas en la misma página exclusiva de tablero que producción, accesible desde la navegación principal.
+  - [ ] Consultar pedidos listos para instalar (todas sus ventanas activas ensambladas y aún no instalado), pendientes por área y por instalar, con señal visible de instalación atrasada conforme a HU-30.
   - [ ] Consultar por separado pedidos instalados y pedidos finalizados (instalados y liquidados), y sus promedios por semana, mes y año, incluyendo días sin actividad.
-- **Subtarea propuesta — Consultar pedidos y salidas:** mostrar listas y promedios con fechas de instalación e histórico. **Dependencias:** HU-28 y HU-30. **Pregunta abierta:** ¿cómo se definen listo y pendiente para la consulta?
+- **Subtarea propuesta — Consultar pedidos y salidas:** mostrar listas y promedios con fechas de instalación e histórico. **Dependencias:** HU-28 y HU-30. **Preguntas abiertas:** ¿cuántos días anticipados cuentan como instalación próxima? ¿Cómo deben contarse las instalaciones cuando se desmarca y vuelve a marcar instalado?
 
 ### HU-33 — Consultar ingresos y ganancia estimada
 
@@ -502,6 +509,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Prioridad/esfuerzo aceptados:** Media / 8, sujeto a revisión al acordar fórmulas y agregación; si supera 8 se propondrá dividirla. **Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de ingresos y ganancia estimada, **para** observar el comportamiento económico del negocio.
 - **Criterios propuestos:**
+  - [ ] Mostrar estas consultas en la misma página exclusiva de tablero que producción y pedidos, accesible desde la navegación principal.
   - [ ] Consultar gráficas y promedios de pagos recibidos, devoluciones e ingresos netos, además de saldos y distribución por día de la semana en que entra dinero; incluir días sin actividad y excluir anulaciones conforme a HU-14.
   - [ ] Mostrar dos indicadores de ganancia estimada usando la ganancia guardada de ventanas activas no descartadas: pedidos activos aceptados como situación actual, incluidos los ya pagados que aún no están instalados; y pedidos finalizados, instalados y con pagos netos iguales o superiores al total, agrupados por fecha de cierre. No incluir presupuestos, merma ni traslado como ganancia; no presentarla como utilidad neta porque faltan mano de obra y gastos.
 - **Subtarea propuesta — Consultar movimientos y ganancia estimada:** integrar gráficas y promedios con pagos, devoluciones y saldos, y mostrar por separado la ganancia guardada de ventanas de pedidos activos aceptados y finalizados agrupados por cierre. **Dependencias:** HU-14, HU-17 y reglas de agregación pendientes. La ganancia de activos es una instantánea actual, no se atribuye al cobro y no permite comparaciones históricas sin capturas adicionales. **Pregunta abierta:** ¿cómo se agregan saldos y promedios por semana, mes y año?
