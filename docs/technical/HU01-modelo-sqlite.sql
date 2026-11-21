@@ -173,3 +173,14 @@ CREATE TABLE IF NOT EXISTS cambios_medidas (
     alto_nuevo_16 INTEGER NOT NULL,
     afectadas_json TEXT NOT NULL
 );
+
+-- Primera programación y reprogramaciones registradas desde HU-30.
+CREATE TABLE IF NOT EXISTS programaciones_instalacion (
+    id INTEGER PRIMARY KEY,
+    pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+    fecha_anterior TEXT,
+    fecha_nueva TEXT NOT NULL,
+    fecha_hora TEXT NOT NULL,
+    motivo TEXT,
+    motivo_otro TEXT
+);

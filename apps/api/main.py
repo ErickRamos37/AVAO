@@ -101,6 +101,8 @@ class InstallationUpdate(BaseModel):
 
 class InstallationDateUpdate(BaseModel):
     fecha: StrictStr
+    motivo: StrictStr | None = None
+    motivo_otro: StrictStr | None = None
 
 
 class DeliveryUpdate(BaseModel):
@@ -446,6 +448,7 @@ def list_order_progress():
             "porcentaje": round(sum(ratios) / 3 * 100) if all(value is not None for value in ratios) else None,
             "listo_instalacion": bool(windows) and assembly_done == assembly_required and has_plan,
             "instalado": details["instalado"],
+            "instalacion_atrasada": details["instalacion_atrasada"],
             "aluminio": aluminum,
             "vidrio": glass,
             "ensamble": assembly,
@@ -506,6 +509,10 @@ def _get_order(order_id, existing_connection=None):
             "c.ancho_nuevo_16, c.alto_nuevo_16, c.afectadas_json "
             "FROM cambios_medidas c JOIN ventanas v ON v.id = c.ventana_id "
             "WHERE v.pedido_id = ? ORDER BY c.id", (order_id,)
+        ).fetchall()
+        schedule = connection.execute(
+            "SELECT fecha_anterior, fecha_nueva, fecha_hora, motivo, motivo_otro "
+            "FROM programaciones_instalacion WHERE pedido_id = ? ORDER BY id", (order_id,)
         ).fetchall()
         minimum = connection.execute("SELECT porcentaje FROM configuracion_anticipo WHERE id = 1").fetchone()[0]
         glass_waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
@@ -602,6 +609,10 @@ def _get_order(order_id, existing_connection=None):
             for timestamp, number, old_width, old_height, new_width, new_height, affected in measure_changes
         ],
         "fecha_programada": order_row[9],
+        "instalacion_atrasada": bool(order_row[9] and not order_row[10] and order_row[9] < datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()),
+        "programaciones": [{"anterior": previous, "nueva": new, "fecha_hora": timestamp,
+                            "motivo": reason, "motivo_otro": other}
+                           for previous, new, timestamp, reason, other in schedule],
         "instalado": bool(order_row[10]),
         "fecha_real": order_row[11],
         "fecha_cierre": order_row[12],
@@ -797,9 +808,24 @@ def update_installation_date(order_id: int, update: InstallationDateUpdate):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
-            cursor = connection.execute("UPDATE pedidos SET fecha_programada = ? WHERE id = ?", (update.fecha, order_id))
-            if cursor.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+            previous = connection.execute("SELECT fecha_programada FROM pedidos WHERE id = ?", (order_id,)).fetchone()[0]
+            if previous != update.fecha:
+                reason, other = None, None
+                if previous is not None:
+                    reasons = {"falta de material", "fabricación pendiente", "disponibilidad del cliente",
+                               "disponibilidad del taller/transporte", "Otros"}
+                    if update.motivo not in reasons:
+                        raise HTTPException(status_code=422, detail="Selecciona un motivo válido de reprogramación.")
+                    reason = update.motivo
+                    if reason == "Otros":
+                        other = (update.motivo_otro or "").strip()
+                        if not other:
+                            raise HTTPException(status_code=422, detail="Describe el motivo de reprogramación.")
+                connection.execute("UPDATE pedidos SET fecha_programada = ? WHERE id = ?", (update.fecha, order_id))
+                connection.execute(
+                    "INSERT INTO programaciones_instalacion (pedido_id, fecha_anterior, fecha_nueva, fecha_hora, motivo, motivo_otro) VALUES (?, ?, ?, ?, ?, ?)",
+                    (order_id, previous, update.fecha, datetime.now(ZoneInfo("America/Tijuana")).isoformat(timespec="seconds"), reason, other),
+                )
     return get_order(order_id)
 
 

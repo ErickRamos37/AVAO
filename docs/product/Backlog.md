@@ -414,7 +414,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 | --- | --- | --- | --- | --- | --- |
 | HU-28 | Consultar hitos y avance de fabricación | E5 | 8 | Alta | Implementada y aceptada; subtareas #96 y #97 |
 | HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | Alta | Implementada y aceptada; subtarea #99 |
-| HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Propuesta por refinar |
+| HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #101 |
 | HU-31 | Consultar producción por periodos | E5 | 5 | Media | División propuesta por refinar |
 | HU-32 | Consultar pedidos e instalaciones | E5 | 5 | Media | División propuesta por refinar |
 | HU-33 | Consultar ingresos y ganancia estimada | E5 | 8 | Media | División propuesta por refinar |
@@ -460,16 +460,18 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 ### HU-30 — Consultar programación y reprogramaciones
 
+- **Estado:** implementada y aceptada por el usuario; subtarea [#101](https://github.com/ErickRamos37/AVAO/issues/101).
+
 - **Área:** Visibilidad · **Épica:** E5.
 
 - **Prioridad/esfuerzo aceptados:** Media / 5. Amplía fechas existentes con historial y motivos por definir.
 
 - **Historia:** **Como** encargado, **necesito** consultar la fecha de instalación acordada y sus cambios, **para** dar seguimiento a los compromisos con el cliente.
-- **Criterios de aceptación propuestos:**
-  - [ ] Se conservan y consultan la fecha programada original y cada reprogramación, con fecha anterior y nueva y momento de registro.
-  - [ ] Al reprogramar se exige un motivo: falta de material, fabricación pendiente, disponibilidad del cliente, disponibilidad del taller/transporte u «Otros» con texto; la fecha real de instalación conserva fecha y hora. Un pedido no instalado queda visiblemente atrasado al pasar la fecha actualmente acordada.
+- **Criterios de aceptación:**
+  - [x] Se conservan y consultan la fecha programada original y cada reprogramación, con fecha anterior y nueva y momento de registro.
+  - [x] Al reprogramar se exige un motivo: falta de material, fabricación pendiente, disponibilidad del cliente, disponibilidad del taller/transporte u «Otros» con texto; la fecha real de instalación conserva fecha y hora. Un pedido no instalado queda visiblemente atrasado al pasar la fecha actualmente acordada.
 - **Dependencias y límites:** amplía las fechas de HU-15 y el registro de HU-28. La reprogramación y el atraso no tienen necesariamente el mismo motivo.
-- **Subtarea [#101](https://github.com/ErickRamos37/AVAO/issues/101) propuesta — Consultar fechas y motivos de instalación:** conservar y mostrar fecha original, reprogramaciones con valores anterior y nuevo y momento, y motivo obligatorio de catálogo o «Otros» con texto; señalar atraso al pasar la fecha acordada sin instalar y comprobar consulta tras cerrar.
+- **Subtarea [#101](https://github.com/ErickRamos37/AVAO/issues/101), implementada y aceptada — Consultar fechas y motivos de instalación:** conservar y mostrar fecha original, reprogramaciones con valores anterior y nuevo y momento, y motivo obligatorio de catálogo o «Otros» con texto; señalar atraso al pasar la fecha acordada sin instalar y comprobar consulta tras cerrar.
 - **Regla confirmada:** catálogo de motivos: falta de material, fabricación pendiente, disponibilidad del cliente, disponibilidad del taller/transporte y «Otros» con texto.
 
 ### HU-31 — Consultar producción por periodos
@@ -481,7 +483,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 - **Criterios propuestos:**
   - [ ] Consultar cantidades y gráficas de piezas de aluminio y vidrio cortadas y ventanas ensambladas por día, semana, mes y año; semanas de lunes a domingo en horario de Tijuana, incluyendo domingos.
   - [ ] Consultar promedios por periodo incluyendo los días sin actividad, incluidos domingos; distinguir registro por tandas de hora real de trabajo y aplicar correcciones de HU-28.
-- **Subtarea propuesta — Consultar producción registrada:** presentar conteos, gráficas y promedios basados en eventos conservados. **Dependencia:** HU-28. Los promedios incluyen días sin actividad, incluidos domingos. No inferir productividad individual o causas de cuellos de botella.
+- **Subtarea [#103](https://github.com/ErickRamos37/AVAO/issues/103) propuesta — Consultar producción registrada:** presentar conteos, gráficas y promedios basados en eventos conservados. **Dependencia:** HU-28. Los promedios incluyen días sin actividad, incluidos domingos. No inferir productividad individual o causas de cuellos de botella.
 
 ### HU-32 — Consultar pedidos e instalaciones
 

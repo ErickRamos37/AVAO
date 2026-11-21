@@ -28,7 +28,7 @@ class InstallationDateTests(unittest.TestCase):
         self.assertEqual(get_order(self.order_id)["fecha_programada"], "2026-12-15")
         subprocess.run([sys.executable, "-m", "apps.api.init_db"], check=True, capture_output=True)
         self.assertEqual(get_order(self.order_id)["fecha_programada"], "2026-12-15")
-        update_installation_date(self.order_id, InstallationDateUpdate(fecha="2026-12-20"))
+        update_installation_date(self.order_id, InstallationDateUpdate(fecha="2026-12-20", motivo="falta de material"))
         self.assertEqual(get_order(self.order_id)["fecha_programada"], "2026-12-20")
         self.assertTrue(get_order(self.order_id)["aceptado"])
 
