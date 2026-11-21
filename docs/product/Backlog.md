@@ -19,6 +19,7 @@
 | E3. Completar un pedido desde presupuesto hasta liquidación | Comunicar total, registrar aceptación y pagos, instalar y cerrar. | HU-11 a HU-17 |
 | E4. Actualizar el cálculo comercial desde insumos | Cambiar precios individuales y aplicar ganancia definida. | HU-18, HU-19 |
 | E5. Conocer el desempeño del taller para tomar decisiones | Consultar eventos y resultados del taller a lo largo del tiempo para apoyar decisiones. | HU-28 a HU-33 |
+| E6. Facilitar el trabajo cotidiano del taller | Mejorar navegación, edición y comprensión de presupuestos y cambios. | HU-35 a HU-38 |
 
 HU-20, HU-21 y HU-24 quedan independientes hasta que su alcance justifique agruparlas. El progreso de una épica no reemplaza la aceptación de cada HU.
 
@@ -526,7 +527,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 ## Ciclo 6: propuesta de usabilidad por acordar
 
-**Objetivo propuesto:** facilitar el recorrido de trabajo y la comprensión de información y acciones, sin rediseño visual. No hay historias definitivas, prioridad ni esfuerzo acordados; cada entrega se refinará con el usuario antes de construirla.
+**Objetivo propuesto:** facilitar el recorrido de trabajo y la comprensión de información y acciones, sin rediseño visual. El usuario aprobó E6, los esfuerzos y las prioridades de HU-35 a HU-38; cada entrega conserva sus reglas pendientes y se refinará antes de construirla.
 
 **Posibles resultados:** mejorar la navegación según el flujo real; ordenar la información y mostrar controles en el momento adecuado; permitir editar por bloques con guardar, cancelar y aviso de cambios sin guardar; y estudiar una previsualización de precios que reduzca la fricción de calcular cada ventana. Cualquier modificación al tratamiento de precios guardados necesita una regla acordada antes de implementarse.
 
@@ -538,11 +539,11 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 **Reglas confirmadas para la vista previa:** al editar una ventana se usan los costos vigentes del inventario solo para las ventanas editadas; las demás conservan sus importes guardados. Se recalcula la merma del pedido conservando su selección incluida o desmarcada y la vista previa resume la diferencia del cargo. Un cambio de inventario por sí solo no modifica pedidos en segundo plano; el cálculo ocurre al editar o realizar una nueva captura. Se conserva el porcentaje de ganancia guardado.
 
-**Reglas pendientes antes de implementar:** precisar la presentación de la pérdida y la comparación en presupuesto y pedido aceptado. Si se conserva el precio acordado con un costo diferente, mostrar la ganancia estimada confirmada, o pérdida cuando sea negativa; precisar su presentación. Precisar el comportamiento para presupuestos y pedidos aceptados antes de definir la entrega.
+**Reglas pendientes antes de implementar:** decidir si conservar o actualizar precio se elige por ventana o para todas las afectadas y qué ocurre con el cargo de merma recalculado al conservar precio; precisar la presentación de la pérdida y la comparación en presupuesto y pedido aceptado. Si se conserva el precio acordado con un costo diferente, mostrar la ganancia estimada confirmada, o pérdida cuando sea negativa; precisar su presentación. Precisar el comportamiento para presupuestos y pedidos aceptados antes de definir la entrega.
 
-**Épica propuesta, por aprobar:** E6 — Facilitar el trabajo cotidiano del taller. Los identificadores siguientes son propuestas locales, no incidencias ni prioridad aprobada. Las estimaciones son relativas y revisables.
+**Épica aprobada:** E6 — Facilitar el trabajo cotidiano del taller. Los esfuerzos y prioridades indicados están aceptados; las subtareas son propuestas para revisión y no implican incidencias creadas.
 
-| ID | Historia | Épica propuesta | Esfuerzo propuesto | Prioridad propuesta | Estado |
+| ID | Historia | Épica | Esfuerzo aceptado | Prioridad aceptada | Estado |
 | --- | --- | --- | --- | --- | --- |
 | HU-35 | Navegar según el flujo del pedido | E6 | 5 | Alta | Propuesta por refinar |
 | HU-36 | Editar y cancelar por bloque | E6 | 5 | Alta | Propuesta por refinar |
@@ -555,6 +556,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 - **Criterios propuestos:**
   - [ ] La navegación permite seguir el flujo del presupuesto, fabricación e instalación y encontrar las acciones correspondientes a cada etapa.
   - [ ] La información y controles se presentan cuando corresponden al estado del pedido; las acciones siguen siendo accesibles cuando se necesitan.
+- **Subtarea vertical propuesta — Navegar por el flujo del pedido:** organizar acceso a información y acciones según el estado, comprobar presupuesto, fabricación e instalación y conservar controles necesarios.
 - **Límites y preguntas:** conservar funcionalidades existentes y estilo actual; acordar con el usuario el recorrido concreto antes de implementarlo. Sin rediseño visual.
 
 ### HU-36 — Editar y cancelar por bloque
@@ -563,6 +565,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 - **Criterios propuestos:**
   - [ ] Un bloque se consulta y entra en edición explícitamente; guardar persiste sus cambios y cancelar conserva los valores anteriores.
   - [ ] Si hay cambios sin guardar, se advierte antes de abandonar o cambiar de contexto. Editar datos del cliente o fechas no cambia precios acordados.
+- **Subtarea vertical propuesta — Editar información por bloque:** activar edición explícita con guardar y cancelar, advertir cambios pendientes al salir y comprobar persistencia, cancelación y navegación.
 - **Límites y preguntas:** acordar bloques y comportamiento al navegar; cambios de medidas con impacto de precio dependen de HU-38. Sin rediseño visual.
 
 ### HU-37 — Consultar presupuesto durante la captura
@@ -571,6 +574,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 - **Criterios propuestos:**
   - [ ] Al capturar o cambiar medidas válidas se actualiza la vista provisional de las ventanas y total; si faltan datos se informa sin presentar importes inexistentes como cero.
   - [ ] La vista provisional se distingue del precio guardado y no modifica un precio aceptado por cambios de inventario en segundo plano.
+- **Subtarea vertical propuesta — Consultar cálculo provisional al capturar:** actualizar la vista al introducir medidas válidas, mostrar pendientes y comprobar que no guarda borradores ni altera precios aceptados sin decisión.
 - **Límites y preguntas:** el cálculo de captura nueva usa costos vigentes y conserva la selección de merma; la captura incompleta no implica un precio definitivo. Precisar cómo mostrar el efecto de la merma. Sin rediseño visual.
 
 ### HU-38 — Revisar impacto de cambios antes de guardar
@@ -582,8 +586,9 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
   - [ ] Se puede conservar el precio acordado, actualizarlo o cancelar toda la acción. Guardar ocurre conjuntamente después de la decisión final; cancelar conserva todos los datos originales. El precio conservado no impide actualizar el costo de materiales.
   - [ ] Se distingue costo base de materiales, precio sugerido y precio cobrado elegido. La ganancia estimada es precio cobrado elegido menos costo actualizado de materiales; un resultado negativo es pérdida. No se presenta como utilidad neta ni se presume culpa del taller.
   - [ ] Cambiar solo cliente o fecha y cambios de costos de inventario en segundo plano no alteran los precios aceptados.
+- **Subtarea vertical propuesta — Revisar y confirmar cambios de medidas:** preparar comparación, solicitar ambas confirmaciones y aplicar conjuntamente la elección de precio, costos, merma y medidas; comprobar conservar, actualizar y cancelar, ventanas intactas y validaciones existentes de precios, anticipo, saldo y anulaciones.
 - **Dependencias y límites:** depende de reglas de cálculo y edición acordadas para HU-36/HU-37; no guarda parcialmente ni modifica datos al cancelar. La etiqueta de un presupuesto sin código debe seguir su identificación por ID.
-- **Pregunta abierta:** ¿cómo presentar la pérdida y la comparación en presupuesto y pedido aceptado?
+- **Preguntas abiertas:** ¿la elección de precio se hace por ventana o para todas las afectadas? Al conservar el precio, ¿cómo se trata el cargo de merma recalculado? ¿Cómo presentar la pérdida y la comparación en presupuesto y pedido aceptado?
 
 **Apoyos posibles, sin instalar ni adoptar por anticipado:** Impeccable (audit, clarify y distill) para revisar usabilidad; ProMax si más adelante se solicita trabajo visual; y los flujos de simplicidad y entrega vertical existentes para mantener el alcance pequeño.
 
