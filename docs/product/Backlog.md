@@ -404,20 +404,20 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 HU-14 y HU-17 comparten movimientos: HU-14 los registra y calcula el saldo; HU-17 usa ese resultado para cerrar, evitando construir dos registros de pagos.
 
-## Ciclo 5 propuesto: medición del taller
+## Ciclo 5 cerrado: medición del taller
 
 **Regla implementada y aceptada para el flujo actual:** el presupuesto sin anticipo mínimo no ocupa letra y se identifica por ID; al aceptarse por anticipo mínimo se asignan la etiqueta y los códigos de ventana. Si una anulación lo devuelve a presupuesto se libera la etiqueta; al aceptarlo de nuevo se asigna una letra disponible y se conservan ID, ventanas y eventos.
 
-El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las seis historias HU-28 a HU-33 fueron implementadas y aceptadas por el usuario; la integración de HU-33 a develop está pendiente antes del cierre del ciclo. El usuario aceptó los esfuerzos relativos y las prioridades del ciclo 5. E5 agrupa las consultas y eventos que apoyan decisiones; la captura de eventos precede a las consultas que dependen de ella, sin fijar otro orden entre historias de igual prioridad. Las dependencias orientan el orden, sin sustituir la decisión del usuario. HU-28 se estima en 8 por la variedad de eventos, correcciones e histórico; si al refinar supera 8, se propondrá dividirla en historias con valor propio antes de implementarla.
+El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las seis historias HU-28 a HU-33 fueron implementadas y aceptadas por el usuario. HU-33 se integró a develop mediante [PR #115](https://github.com/ErickRamos37/AVAO/pull/115), commit `98323c5`; pasaron 41 pruebas del tablero. El usuario autorizó cerrar el ciclo: se conservan historias y esfuerzos históricos y se retiran las prioridades de las terminadas. El usuario aceptó los esfuerzos relativos y las prioridades del ciclo 5. E5 agrupa las consultas y eventos que apoyan decisiones; la captura de eventos precede a las consultas que dependen de ella, sin fijar otro orden entre historias de igual prioridad. Las dependencias orientan el orden, sin sustituir la decisión del usuario. HU-28 se estima en 8 por la variedad de eventos, correcciones e histórico; si al refinar supera 8, se propondrá dividirla en historias con valor propio antes de implementarla.
 
-| ID | HU | Épica | Esfuerzo aceptado | Prioridad | Estado |
+| ID | HU | Épica | Esfuerzo histórico | Prioridad actual | Resultado |
 | --- | --- | --- | --- | --- | --- |
-| HU-28 | Consultar hitos y avance de fabricación | E5 | 8 | Alta | Implementada y aceptada; subtareas #96 y #97 |
-| HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | Alta | Implementada y aceptada; subtarea #99 |
-| HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #101 |
-| HU-31 | Consultar producción por periodos | E5 | 5 | Media | Implementada y aceptada; subtarea #103 |
-| HU-32 | Consultar pedidos e instalaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #112 |
-| HU-33 | Consultar ingresos y ganancia estimada | E5 | 8 | Media | Implementada y aceptada; subtarea #113; integración pendiente |
+| HU-28 | Consultar hitos y avance de fabricación | E5 | 8 | — | Implementada y aceptada; subtareas #96 y #97 |
+| HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | — | Implementada y aceptada; subtarea #99 |
+| HU-30 | Consultar programación y reprogramaciones | E5 | 5 | — | Implementada y aceptada; subtarea #101 |
+| HU-31 | Consultar producción por periodos | E5 | 5 | — | Implementada y aceptada; subtarea #103 |
+| HU-32 | Consultar pedidos e instalaciones | E5 | 5 | — | Implementada y aceptada; subtarea #112 |
+| HU-33 | Consultar ingresos y ganancia estimada | E5 | 8 | — | Implementada y aceptada; subtarea #113; integrada por PR #115 |
 
 ### HU-28 — Consultar hitos y avance de fabricación
 
@@ -425,7 +425,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Alta / 8. Integra varios eventos, correcciones y conservación al cierre; requiere revisar tamaño antes de implementar.
+- **Esfuerzo histórico:** 8. Integra varios eventos, correcciones y conservación al cierre; requiere revisar tamaño antes de implementar.
 
 - **Historia:** **Como** encargado, **necesito** consultar cuándo se registraron los hitos comerciales y el avance de fabricación de cada pedido, **para** conocer su recorrido y contar el trabajo registrado por periodo.
 - **Criterios de aceptación:**
@@ -446,7 +446,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Alta / 5. Reutiliza HU-07 y los eventos, pero debe distinguir causas y piezas afectadas.
+- **Esfuerzo histórico:** 5. Reutiliza HU-07 y los eventos, pero debe distinguir causas y piezas afectadas.
 
 - **Historia:** **Como** encargado, **necesito** consultar cambios de medida posteriores a la aceptación y piezas cortadas afectadas, **para** conocer su incidencia en el trabajo del taller.
 - **Criterios de aceptación:**
@@ -464,7 +464,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Media / 5. Amplía fechas existentes con historial y motivos por definir.
+- **Esfuerzo histórico:** 5. Amplía fechas existentes con historial y motivos por definir.
 
 - **Historia:** **Como** encargado, **necesito** consultar la fecha de instalación acordada y sus cambios, **para** dar seguimiento a los compromisos con el cliente.
 - **Criterios de aceptación:**
@@ -482,7 +482,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Media / 5. 
+- **Esfuerzo histórico:** 5. 
 **Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de producción registrada por periodo, **para** observar el comportamiento del taller.
 - **Criterios de aceptación:**
   - [x] Consultar cantidades y gráficas de piezas de aluminio y vidrio cortadas y ventanas ensambladas por día, semana, mes y año; semanas de lunes a domingo en horario de Tijuana, incluyendo domingos.
@@ -497,7 +497,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Media / 5. 
+- **Esfuerzo histórico:** 5. 
 **Historia:** **Como** encargado, **necesito** consultar pedidos listos, pendientes e instalaciones y promedios de salidas, **para** organizar compromisos.
 - **Criterios de aceptación:**
   - [x] Mostrar estas consultas en la misma página exclusiva de tablero que producción, accesible desde la navegación principal.
@@ -507,11 +507,11 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 ### HU-33 — Consultar ingresos y ganancia estimada
 
-- **Estado:** implementada y aceptada por el usuario; subtarea [#113](https://github.com/ErickRamos37/AVAO/issues/113). Integración a develop pendiente.
+- **Estado:** implementada y aceptada por el usuario; subtarea [#113](https://github.com/ErickRamos37/AVAO/issues/113). Integrada a develop mediante [PR #115](https://github.com/ErickRamos37/AVAO/pull/115), commit `98323c5`.
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Media / 8, sujeto a revisión al acordar fórmulas y agregación; si supera 8 se propondrá dividirla. **Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de ingresos y ganancia estimada, **para** observar el comportamiento económico del negocio.
+- **Esfuerzo histórico:** 8. **Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de ingresos y ganancia estimada, **para** observar el comportamiento económico del negocio.
 - **Criterios de aceptación:**
   - [x] Mostrar estas consultas en la misma página exclusiva de tablero que producción y pedidos, accesible desde la navegación principal.
   - [x] Consultar gráficas y promedios de pagos recibidos, devoluciones e ingresos netos, además de saldos. El promedio monetario diario sigue HU-31: días calendario transcurridos hasta hoy inclusive, incluidos días sin actividad. Para comparar días de la semana, mostrar el ingreso neto promedio por ocurrencia de cada día en el periodo, incluyendo las ocurrencias sin movimiento. Excluir anulaciones conforme a HU-14.
@@ -523,6 +523,18 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. Se conserva la intención y el identificador como idea futura, sin prioridad, esfuerzo ni implementación acordados. La propuesta de señalar presupuestos sin pagos y con más de una semana sin actualizar como candidatos por revisar no determina una pérdida definitiva; quedan por decidir qué cuenta como actualización y cómo confirmar una pérdida.
 
 **Temas futuros sin reglas ni historias aprobadas:** definir cómo registrar material surtido o faltante, bloqueos y sus causas, estimaciones de fabricación y satisfacción del cliente. La investigación no fija todavía su alcance ni los incorpora automáticamente a estas entregas.
+
+## Ciclo 6: propuesta de usabilidad por acordar
+
+**Objetivo propuesto:** facilitar el recorrido de trabajo y la comprensión de información y acciones, sin rediseño visual. No hay historias definitivas, prioridad ni esfuerzo acordados; cada entrega se refinará con el usuario antes de construirla.
+
+**Posibles resultados:** mejorar la navegación según el flujo real; ordenar la información y mostrar controles en el momento adecuado; permitir editar por bloques con guardar, cancelar y aviso de cambios sin guardar; y estudiar una previsualización de precios que reduzca la fricción de calcular cada ventana. Cualquier modificación al tratamiento de precios guardados necesita una regla acordada antes de implementarse.
+
+**Hipótesis derivadas de revisión del código, por validar con el usuario:** los datos del cliente pueden quedar editables sin cancelar y una reapertura podría perder cambios; una etiqueta «Precio ventana» podría referirse al costo base; algunos controles de instalación aparecen antes de necesitarlos y se acumulan bajo Medidas; calcular cada ventana por separado podría dificultar el flujo. Estas observaciones no sustituyen una prueba del uso real.
+
+**Pregunta clave:** en un presupuesto, ¿se desea un cálculo provisional automático y separado del precio acordado y guardado, que permanezca congelado hasta que se decida actualizarlo? Precisar qué se muestra, cuándo cambia y qué ocurre al aceptar antes de definir una entrega.
+
+**Apoyos posibles, sin instalar ni adoptar por anticipado:** Impeccable (audit, clarify y distill) para revisar usabilidad; ProMax si más adelante se solicita trabajo visual; y los flujos de simplicidad y entrega vertical existentes para mantener el alcance pequeño.
 
 ## Secuencia comercial prevista: datos, precios, aceptación y liquidación
 
