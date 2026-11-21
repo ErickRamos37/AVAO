@@ -408,7 +408,7 @@ HU-14 y HU-17 comparten movimientos: HU-14 los registra y calcula el saldo; HU-1
 
 **Regla implementada y aceptada para el flujo actual:** el presupuesto sin anticipo mínimo no ocupa letra y se identifica por ID; al aceptarse por anticipo mínimo se asignan la etiqueta y los códigos de ventana. Si una anulación lo devuelve a presupuesto se libera la etiqueta; al aceptarlo de nuevo se asigna una letra disponible y se conservan ID, ventanas y eventos.
 
-El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las siguientes historias son propuestas para refinar; sus identificadores aún no implican incidencias ni estado en GitHub Projects. El usuario aceptó los esfuerzos relativos y las prioridades del ciclo 5. E5 agrupa las consultas y eventos que apoyan decisiones; la captura de eventos precede a las consultas que dependen de ella, sin fijar otro orden entre historias de igual prioridad. Las dependencias orientan el orden, sin sustituir la decisión del usuario. HU-28 se estima en 8 por la variedad de eventos, correcciones e histórico; si al refinar supera 8, se propondrá dividirla en historias con valor propio antes de implementarla.
+El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las seis historias HU-28 a HU-33 fueron implementadas y aceptadas por el usuario; la integración de HU-33 a develop está pendiente antes del cierre del ciclo. El usuario aceptó los esfuerzos relativos y las prioridades del ciclo 5. E5 agrupa las consultas y eventos que apoyan decisiones; la captura de eventos precede a las consultas que dependen de ella, sin fijar otro orden entre historias de igual prioridad. Las dependencias orientan el orden, sin sustituir la decisión del usuario. HU-28 se estima en 8 por la variedad de eventos, correcciones e histórico; si al refinar supera 8, se propondrá dividirla en historias con valor propio antes de implementarla.
 
 | ID | HU | Épica | Esfuerzo aceptado | Prioridad | Estado |
 | --- | --- | --- | --- | --- | --- |
@@ -417,7 +417,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 | HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #101 |
 | HU-31 | Consultar producción por periodos | E5 | 5 | Media | Implementada y aceptada; subtarea #103 |
 | HU-32 | Consultar pedidos e instalaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #112 |
-| HU-33 | Consultar ingresos y ganancia estimada | E5 | 8 | Media | División propuesta por refinar |
+| HU-33 | Consultar ingresos y ganancia estimada | E5 | 8 | Media | Implementada y aceptada; subtarea #113; integración pendiente |
 
 ### HU-28 — Consultar hitos y avance de fabricación
 
@@ -507,14 +507,16 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 ### HU-33 — Consultar ingresos y ganancia estimada
 
+- **Estado:** implementada y aceptada por el usuario; subtarea [#113](https://github.com/ErickRamos37/AVAO/issues/113). Integración a develop pendiente.
+
 - **Área:** Visibilidad · **Épica:** E5.
 
 - **Prioridad/esfuerzo aceptados:** Media / 8, sujeto a revisión al acordar fórmulas y agregación; si supera 8 se propondrá dividirla. **Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de ingresos y ganancia estimada, **para** observar el comportamiento económico del negocio.
-- **Criterios propuestos:**
-  - [ ] Mostrar estas consultas en la misma página exclusiva de tablero que producción y pedidos, accesible desde la navegación principal.
-  - [ ] Consultar gráficas y promedios de pagos recibidos, devoluciones e ingresos netos, además de saldos y distribución por día de la semana en que entra dinero; incluir días sin actividad y excluir anulaciones conforme a HU-14.
-  - [ ] Mostrar dos indicadores de ganancia estimada usando la ganancia guardada de ventanas activas no descartadas: pedidos activos aceptados como situación actual, incluidos los ya pagados que aún no están instalados; y pedidos finalizados, instalados y con pagos netos iguales o superiores al total, agrupados por fecha de cierre. No incluir presupuestos, merma ni traslado como ganancia; no presentarla como utilidad neta porque faltan mano de obra y gastos.
-- **Subtarea [#113](https://github.com/ErickRamos37/AVAO/issues/113) propuesta — Consultar movimientos y ganancia estimada:** integrar gráficas y promedios con pagos, devoluciones y saldos, y mostrar por separado la ganancia guardada de ventanas de pedidos activos aceptados y finalizados agrupados por cierre. **Dependencias:** HU-14, HU-17 y reglas de agregación pendientes. La ganancia de activos es una instantánea actual, no se atribuye al cobro y no permite comparaciones históricas sin capturas adicionales. **Pregunta abierta:** ¿cómo se agregan saldos y promedios por semana, mes y año?
+- **Criterios de aceptación:**
+  - [x] Mostrar estas consultas en la misma página exclusiva de tablero que producción y pedidos, accesible desde la navegación principal.
+  - [x] Consultar gráficas y promedios de pagos recibidos, devoluciones e ingresos netos, además de saldos. El promedio monetario diario sigue HU-31: días calendario transcurridos hasta hoy inclusive, incluidos días sin actividad. Para comparar días de la semana, mostrar el ingreso neto promedio por ocurrencia de cada día en el periodo, incluyendo las ocurrencias sin movimiento. Excluir anulaciones conforme a HU-14.
+  - [x] Mostrar dos indicadores de ganancia estimada usando la ganancia guardada de ventanas activas no descartadas: pedidos activos aceptados como situación actual, incluidos los ya pagados que aún no están instalados; y pedidos finalizados, instalados y con pagos netos iguales o superiores al total, agrupados por fecha de cierre. No incluir presupuestos, merma ni traslado como ganancia; no presentarla como utilidad neta porque faltan mano de obra y gastos.
+- **Subtarea [#113](https://github.com/ErickRamos37/AVAO/issues/113), implementada y aceptada — Consultar movimientos y ganancia estimada:** integrar gráficas y promedios con pagos, devoluciones y saldos; calcular promedio diario con días transcurridos y comparar ingreso neto por ocurrencia de cada día de la semana, incluyendo ceros; mostrar por separado la ganancia guardada de ventanas de pedidos activos aceptados y finalizados agrupados por cierre. **Dependencias:** HU-14 y HU-17. La ganancia de activos es una instantánea actual, no se atribuye al cobro y no permite comparaciones históricas sin capturas adicionales. **Regla confirmada:** los promedios diarios incluyen días calendario sin actividad hasta hoy; la comparación por día de semana divide el ingreso neto entre las ocurrencias de ese día, incluidos ceros.
 
 ### HU-34 — Seguimiento de presupuestos, fuera del ciclo 5
 

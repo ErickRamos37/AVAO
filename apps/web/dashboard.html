@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Dashboard</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/dashboard.js?v=hu32-pedidos" defer></script>
+    <script src="/static/dashboard.js?v=hu33-finanzas" defer></script>
   </head>
   <body>
     <main>
@@ -44,6 +44,16 @@
         <div id="production-report-results" aria-live="polite"></div>
       </section>
 
+      <section aria-labelledby="finance-title">
+        <h2 id="finance-title">Ingresos y ganancia estimada</h2>
+        <p>Los movimientos se agrupan por fecha de registro y excluyen anulaciones. La ganancia guardada no es utilidad neta: faltan mano de obra y gastos.</p>
+        <form id="finance-form">
+          <p><label>Fecha de referencia <input id="finance-date" type="date" required></label></p>
+          <p><label>Periodo <select id="finance-period"><option value="dia">Día</option><option value="semana">Semana</option><option value="mes">Mes</option><option value="ano">Año</option></select></label></p>
+          <button type="submit">Consultar finanzas</button>
+        </form>
+        <div id="finance-results" aria-live="polite"></div>
+      </section>
     </main>
   </body>
 </html>

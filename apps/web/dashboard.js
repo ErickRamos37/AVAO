@@ -151,3 +151,68 @@ departuresForm.addEventListener('submit', async event => {
     table.append(body); departuresResults.append(table);
   } catch (error) { departuresResults.textContent = error.message; }
 });
+
+function financeChart(days, key, label) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 800 230'); svg.setAttribute('width', '100%'); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', `Gráfica de ${label} por fecha. Los valores exactos están en la tabla.`);
+  const add = (tag, attrs, text) => { const item = document.createElementNS(ns, tag); for (const [name, value] of Object.entries(attrs)) item.setAttribute(name, value); if (text !== undefined) item.textContent = text; svg.append(item); };
+  add('title', {}, `${label} por fecha`); add('desc', {}, 'Eje horizontal: fecha. Eje vertical: pesos, incluidos valores negativos. La tabla presenta importes exactos.');
+  const left = 82, right = 780, top = 15, bottom = 185;
+  const values = days.map(day => Number(day[key]));
+  const min = Math.min(0, ...values), max = Math.max(0, ...values);
+  const span = max === min ? 1 : max - min;
+  const x = index => days.length === 1 ? (left + right) / 2 : left + (right - left) * index / (days.length - 1);
+  const y = value => bottom - (bottom - top) * (value - min) / span;
+  for (let n = 0; n <= 4; n++) {
+    const value = min + span * n / 4, pos = y(value);
+    add('line', {x1:left, x2:right, y1:pos, y2:pos, stroke:'#ddd'});
+    add('text', {x:left-8, y:pos+4, 'text-anchor':'end', 'font-size':12}, value.toFixed(2));
+  }
+  add('line', {x1:left, x2:right, y1:y(0), y2:y(0), stroke:'#333'});
+  add('line', {x1:left, x2:left, y1:top, y2:bottom, stroke:'#333'});
+  const ticks = Math.min(days.length, 5);
+  for (let n=0; n<ticks; n++) { const index = ticks === 1 ? 0 : Math.round(n * (days.length - 1) / (ticks - 1)); add('text', {x:x(index), y:bottom+20, 'text-anchor':'middle', 'font-size':12}, days[index].fecha); }
+  add('polyline', {points:values.map((value,index) => `${x(index)},${y(value)}`).join(' '), fill:'none', stroke:'#176a42', 'stroke-width':2});
+  values.forEach((value,index) => add('circle', {cx:x(index), cy:y(value), r:days.length>31?1.5:3, fill:'#176a42'}));
+  return svg;
+}
+
+function availableAmount(amount, available, missing) {
+  if (!available && missing) return 'No disponible';
+  return `$${amount}${missing ? ' (parcial)' : ''}`;
+}
+
+const financeForm = document.querySelector('#finance-form');
+const financeDate = document.querySelector('#finance-date');
+const financePeriod = document.querySelector('#finance-period');
+const financeResults = document.querySelector('#finance-results');
+financeDate.value = financeDate.max = productionDate.max;
+financeForm.addEventListener('submit', async event => {
+  event.preventDefault(); financeResults.replaceChildren();
+  try {
+    const response = await fetch(`/api/tablero/finanzas?${new URLSearchParams({fecha:financeDate.value, periodo:financePeriod.value})}`);
+    const result = await response.json();
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudieron consultar las finanzas.');
+    const range = document.createElement('p'); range.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} día(s), incluidos días sin movimientos`; financeResults.append(range);
+    for (const [key, label] of [['pagos','Pagos recibidos'], ['devoluciones','Devoluciones'], ['neto','Ingresos netos']]) {
+      const section = document.createElement('section'), heading = document.createElement('h3');
+      heading.textContent = `${label}: total $${result.totales[key]} · promedio diario $${result.promedios_diarios[key]}`;
+      section.append(heading, financeChart(result.dias, key, label)); financeResults.append(section);
+    }
+    const table = document.createElement('table'), caption = document.createElement('caption'); caption.textContent = 'Movimientos y ganancia guardada de cierres por día'; table.append(caption);
+    const head = document.createElement('thead'), header = document.createElement('tr');
+    for (const label of ['Fecha','Pagos','Devoluciones','Neto','Ganancia estimada de cierres','Ventanas sin ganancia']) { const th = document.createElement('th'); th.scope='col'; th.textContent=label; header.append(th); }
+    head.append(header); table.append(head); const body = document.createElement('tbody');
+    for (const day of result.dias) { const row = document.createElement('tr'); for (const value of [day.fecha, `$${day.pagos}`, `$${day.devoluciones}`, `$${day.neto}`, availableAmount(day.ganancia_finalizados, day.ganancias_disponibles, day.ganancias_faltantes), day.ganancias_faltantes]) { const td = document.createElement('td'); td.textContent=value; row.append(td); } body.append(row); }
+    table.append(body); financeResults.append(table);
+    const weekTitle = document.createElement('h3'); weekTitle.textContent = 'Ingreso neto promedio por día de la semana'; financeResults.append(weekTitle);
+    const week = document.createElement('ul'), names = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    for (const item of result.dias_semana) { const row = document.createElement('li'); row.textContent = `${names[item.dia]}: ${item.promedio_neto === null ? 'sin ocurrencias en el periodo' : `$${item.promedio_neto} · ${item.ocurrencias} día(s)${item.mayor ? ' · mayor promedio' : ''}`}`; week.append(row); } financeResults.append(week);
+    const current = result.actual, currentTitle = document.createElement('h3'); currentTitle.textContent = 'Situación actual de pedidos aceptados activos'; financeResults.append(currentTitle);
+    const currentLine = document.createElement('p'); currentLine.textContent = `Saldos pendientes: ${availableAmount(current.saldo, current.con_saldo, current.sin_saldo)} · Excedentes: ${availableAmount(current.excedente, current.con_saldo, current.sin_saldo)} · Pedidos sin saldo calculable: ${current.sin_saldo}`; financeResults.append(currentLine);
+    const gain = document.createElement('p'); gain.textContent = `Ganancia estimada guardada: ${availableAmount(current.ganancia, current.con_ganancia, current.faltantes)} · Ventanas sin ganancia: ${current.faltantes} · Ventanas con ganancia desactualizada: ${current.desactualizadas}`; financeResults.append(gain);
+    const closed = document.createElement('p'); closed.textContent = `Ganancia estimada guardada de pedidos finalizados en el periodo: ${availableAmount(result.finalizados.ganancia, result.finalizados.con_ganancia, result.finalizados.faltantes)} · Ventanas sin ganancia: ${result.finalizados.faltantes}`; financeResults.append(closed);
+  } catch (error) { financeResults.textContent = error.message; }
+});

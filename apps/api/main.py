@@ -556,6 +556,95 @@ def dashboard_departures(periodo: Literal["semana", "mes", "ano"], fecha: str):
             "promedios_diarios": {area: value / len(days) for area, value in totals.items()}}
 
 
+def format_cents(cents):
+    sign = "-" if cents < 0 else ""
+    amount = abs(cents)
+    return f"{sign}{amount // 100}.{amount % 100:02d}"
+
+
+def average_cents(cents, count):
+    quotient, remainder = divmod(abs(cents), count)
+    rounded = quotient + (1 if remainder * 2 >= count else 0)
+    return format_cents(-rounded if cents < 0 else rounded)
+
+
+@app.get("/api/tablero/finanzas")
+def dashboard_finances(periodo: Literal["dia", "semana", "mes", "ano"], fecha: str):
+    start, end = report_period(periodo, fecha)
+    dates = [(start + timedelta(days=offset)).isoformat() for offset in range((end - start).days + 1)]
+    movements = {day: {"pagos": 0, "devoluciones": 0} for day in dates}
+    closed_profit = {day: {"ganancia": 0, "faltantes": 0, "con_ganancia": 0} for day in dates}
+    current = {"ganancia": 0, "faltantes": 0, "con_ganancia": 0, "desactualizadas": 0,
+               "saldo": 0, "excedente": 0, "sin_saldo": 0, "con_saldo": 0}
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN")
+        for day, kind, cents in connection.execute(
+            "SELECT fecha, tipo, importe_centavos FROM movimientos WHERE anulado = 0 AND fecha BETWEEN ? AND ?",
+            (start.isoformat(), end.isoformat()),
+        ):
+            movements[day]["pagos" if kind == "pago" else "devoluciones"] += cents
+        ids = connection.execute(
+            "SELECT p.id, p.fecha_cierre FROM pedidos p WHERE "
+            "(p.fecha_cierre IS NULL AND EXISTS (SELECT 1 FROM aceptaciones a WHERE a.pedido_id = p.id)) "
+            "OR p.fecha_cierre BETWEEN ? AND ?", (start.isoformat(), end.isoformat())
+        ).fetchall()
+        for order_id, closed in ids:
+            order = _get_order(order_id, connection)
+            target = current if closed is None else closed_profit[closed]
+            for window in order["ventanas"]:
+                snapshot = window["costo_materiales"]
+                if snapshot is None or snapshot.get("ganancia") is None:
+                    target["faltantes"] += 1
+                    continue
+                try:
+                    profit = cents_from_input(str(snapshot["ganancia"]))
+                except HTTPException:
+                    target["faltantes"] += 1
+                    continue
+                target["ganancia"] += profit
+                target["con_ganancia"] += 1
+                if closed is None and not snapshot["vigente"]:
+                    target["desactualizadas"] += 1
+            if closed is None:
+                if order["saldo"] is None:
+                    current["sin_saldo"] += 1
+                else:
+                    current["con_saldo"] += 1
+                    current["saldo"] += cents_from_input(order["saldo"])
+                    current["excedente"] += cents_from_input(order["excedente"])
+    totals = {"pagos": 0, "devoluciones": 0, "neto": 0}
+    daily = []
+    weekdays = [{"ocurrencias": 0, "neto": 0} for _ in range(7)]
+    for day, amounts in movements.items():
+        values = {**amounts, "neto": amounts["pagos"] - amounts["devoluciones"]}
+        for key, value in values.items():
+            totals[key] += value
+        weekday = weekdays[date.fromisoformat(day).weekday()]
+        weekday["ocurrencias"] += 1
+        weekday["neto"] += values["neto"]
+        daily.append({"fecha": day, **{key: format_cents(value) for key, value in values.items()},
+                      "ganancia_finalizados": format_cents(closed_profit[day]["ganancia"]),
+                      "ganancias_faltantes": closed_profit[day]["faltantes"],
+                      "ganancias_disponibles": closed_profit[day]["con_ganancia"]})
+    eligible = [item for item in weekdays if item["ocurrencias"]]
+    best = eligible[0]
+    for item in eligible[1:]:
+        if item["neto"] * best["ocurrencias"] > best["neto"] * item["ocurrencias"]:
+            best = item
+    weekday_report = [{"dia": index, "ocurrencias": item["ocurrencias"],
+                       "promedio_neto": average_cents(item["neto"], item["ocurrencias"]) if item["ocurrencias"] else None,
+                       "mayor": bool(item["ocurrencias"] and item["neto"] * best["ocurrencias"] == best["neto"] * item["ocurrencias"])}
+                      for index, item in enumerate(weekdays)]
+    return {"inicio": start.isoformat(), "fin": end.isoformat(), "dias": daily,
+            "totales": {key: format_cents(value) for key, value in totals.items()},
+            "promedios_diarios": {key: average_cents(value, len(dates)) for key, value in totals.items()},
+            "dias_semana": weekday_report,
+            "actual": {**current, **{key: format_cents(current[key]) for key in ("ganancia", "saldo", "excedente")}},
+            "finalizados": {"ganancia": format_cents(sum(item["ganancia"] for item in closed_profit.values())),
+                            "faltantes": sum(item["faltantes"] for item in closed_profit.values()),
+                            "con_ganancia": sum(item["con_ganancia"] for item in closed_profit.values())}}
+
+
 @app.get("/api/pedidos/historico")
 def list_history():
     with closing(connect_db()) as connection:
