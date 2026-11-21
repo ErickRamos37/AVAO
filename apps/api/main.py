@@ -7,7 +7,8 @@ import sqlite3
 from contextlib import closing, nullcontext
 from typing import Literal
 from decimal import Decimal, ROUND_HALF_UP
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from calendar import monthrange
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException
@@ -454,6 +455,55 @@ def list_order_progress():
             "ensamble": assembly,
         })
     return {"pedidos": orders}
+
+
+def production_by_day(inicio: str, fin: str):
+    try:
+        start, end = date.fromisoformat(inicio), date.fromisoformat(fin)
+        if start.isoformat() != inicio or end.isoformat() != fin or start > end:
+            raise ValueError
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Ingresa un intervalo de fechas válido.") from None
+    with closing(connect_db()) as connection:
+        rows = connection.execute(
+            "SELECT substr(e.fecha_hora, 1, 10), e.area, COUNT(*) FROM eventos_fabricacion e "
+            "WHERE e.accion = 'marcar' AND substr(e.fecha_hora, 1, 10) BETWEEN ? AND ? "
+            "AND NOT EXISTS (SELECT 1 FROM eventos_fabricacion c WHERE c.original_id = e.id) "
+            "GROUP BY substr(e.fecha_hora, 1, 10), e.area ORDER BY 1, 2", (inicio, fin),
+        ).fetchall()
+    days = {}
+    for day, area, count in rows:
+        days.setdefault(day, {"fecha": day, "aluminio": 0, "vidrio": 0, "ensamble": 0})[area] = count
+    return {"dias": list(days.values())}
+
+
+@app.get("/api/produccion")
+def production_report(periodo: Literal["dia", "semana", "mes", "ano"], fecha: str):
+    try:
+        selected = date.fromisoformat(fecha)
+        if selected.isoformat() != fecha or selected > datetime.now(ZoneInfo("America/Tijuana")).date():
+            raise ValueError
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Selecciona una fecha válida que no sea futura.") from None
+    if periodo == "dia":
+        start, end = selected, selected
+    elif periodo == "semana":
+        start = selected - timedelta(days=selected.weekday())
+        end = start + timedelta(days=6)
+    elif periodo == "mes":
+        start = selected.replace(day=1)
+        end = selected.replace(day=monthrange(selected.year, selected.month)[1])
+    else:
+        start, end = date(selected.year, 1, 1), date(selected.year, 12, 31)
+    end = min(end, datetime.now(ZoneInfo("America/Tijuana")).date())
+    recorded = {row["fecha"]: row for row in production_by_day(start.isoformat(), end.isoformat())["dias"]}
+    days = []
+    for offset in range((end - start).days + 1):
+        day = (start + timedelta(days=offset)).isoformat()
+        days.append(recorded.get(day, {"fecha": day, "aluminio": 0, "vidrio": 0, "ensamble": 0}))
+    totals = {area: sum(row[area] for row in days) for area in ("aluminio", "vidrio", "ensamble")}
+    return {"inicio": start.isoformat(), "fin": end.isoformat(), "dias": days, "totales": totals,
+            "promedios_diarios": {area: total / len(days) for area, total in totals.items()}}
 
 
 @app.get("/api/pedidos/historico")
@@ -1216,6 +1266,11 @@ def mark_assembly(window_id: int, mark: AssemblyMark):
 @app.get("/pedidos/{order_id}", include_in_schema=False)
 def order_page(order_id: int):
     return FileResponse(WEB / "index.html")
+
+
+@app.get("/dashboard", include_in_schema=False)
+def dashboard_page():
+    return FileResponse(WEB / "dashboard.html")
 
 
 @app.get("/costos", include_in_schema=False)
