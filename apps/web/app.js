@@ -564,13 +564,29 @@ async function openOrder(id) {
     document.querySelector('#history').hidden = false;
     document.querySelector('#budgets').hidden = false;
     document.querySelector('#orders').hidden = false;
+    const eventsView = () => {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = 'Hitos del pedido'; details.append(summary);
+      const names = {presupuesto_creado: 'Presupuesto creado', aceptado: 'Anticipo mínimo alcanzado', aceptacion_revocada: 'Aceptación revocada', liquidado: 'Liquidado', liquidacion_perdida: 'Liquidación perdida', instalado: 'Instalado', instalacion_desmarcada: 'Instalación desmarcada', cierre: 'Pedido cerrado'};
+      if (!order.eventos.some(event => event.tipo === 'presupuesto_creado')) {
+        const line = document.createElement('p'); line.textContent = 'No hay fecha y hora de creación disponibles; los hitos anteriores al registro pueden faltar.'; details.append(line);
+      }
+      {
+        for (const event of order.eventos) {
+          const line = document.createElement('p');
+          line.textContent = `${names[event.tipo] ?? event.tipo}: ${new Date(event.fecha_hora).toLocaleString('es-MX', {timeZone: 'America/Tijuana'})} (Tijuana)`;
+          details.append(line);
+        }
+      }
+      return details;
+    };
     if (order.fecha_cierre) {
       document.querySelector('#history').hidden = true;
       document.querySelector('#budgets').hidden = true;
       document.querySelector('#orders').hidden = true;
       const view = document.createElement('section'); view.id = 'history-detail';
       const title = document.createElement('h1'); title.textContent = `Pedido ${order.id} · finalizado y liquidado`;
-      view.append(title);
+      view.append(title, eventsView());
       const add = (label, value) => { const p = document.createElement('p'); p.textContent = `${label}: ${value ?? 'Sin dato'}`; view.append(p); };
       add('Fecha de cierre', order.fecha_cierre); add('Fecha de instalación', order.fecha_real); add('Fecha programada', order.fecha_programada);
       const c = order.cliente; add('Cliente', c ? [c.nombre, c.apellido_1, c.apellido_2].filter(Boolean).join(' ') : null);
@@ -609,6 +625,7 @@ async function openOrder(id) {
       document.querySelector('#client-details').open = false;
     }
     currentOrderData = order;
+    document.querySelector('#order-events').replaceChildren(eventsView());
     document.querySelector('#installation-state').textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
     document.querySelector('#installation-toggle').textContent = order.instalado ? 'Desmarcar instalación' : 'Marcar instalado';
     exitMeasureEdit();

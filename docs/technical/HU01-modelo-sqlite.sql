@@ -136,3 +136,11 @@ CREATE TABLE IF NOT EXISTS movimientos (
  importe_centavos INTEGER NOT NULL CHECK (importe_centavos > 0),
  fecha TEXT NOT NULL, anulado INTEGER NOT NULL DEFAULT 0 CHECK (anulado IN (0, 1)), fecha_anulacion TEXT
 );
+
+-- Cronología de acciones registradas; no se reconstruyen eventos anteriores.
+CREATE TABLE IF NOT EXISTS eventos_pedido (
+    id INTEGER PRIMARY KEY,
+    pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+    tipo TEXT NOT NULL,
+    fecha_hora TEXT NOT NULL
+);
