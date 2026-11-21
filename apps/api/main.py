@@ -94,6 +94,11 @@ class MovementInput(BaseModel):
     importe: StrictStr
 
 
+class InstallationUpdate(BaseModel):
+    instalado: bool
+    confirmar_desmarcado: bool = False
+
+
 class InstallationDateUpdate(BaseModel):
     fecha: StrictStr
 
@@ -330,7 +335,8 @@ def list_order_progress():
     for order in list_orders()["pedidos"]:
         if not order["aceptado"]:
             continue
-        windows = get_order(order["id"])["ventanas"]
+        details = get_order(order["id"])
+        windows = details["ventanas"]
         aluminum_done = sum(
             cut["cortadas"] for window in windows for cut in window["avance_aluminio"]
         )
@@ -367,6 +373,7 @@ def list_order_progress():
             "sin_plan": bool(windows) and not has_plan,
             "porcentaje": round(sum(ratios) / 3 * 100) if all(value is not None for value in ratios) else None,
             "listo_instalacion": bool(windows) and assembly_done == assembly_required and has_plan,
+            "instalado": details["instalado"],
             "aluminio": aluminum,
             "vidrio": glass,
             "ensamble": assembly,
@@ -379,7 +386,7 @@ def get_order(order_id: int):
     with closing(connect_db()) as connection:
         order_row = connection.execute(
             "SELECT p.id, p.etiqueta, p.notas, c.nombre, c.apellido_1, c.apellido_2, "
-            "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada FROM pedidos AS p "
+            "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada, p.instalado, p.fecha_real FROM pedidos AS p "
             "LEFT JOIN clientes AS c ON c.id = p.cliente_id WHERE p.id = ?", (order_id,)
         ).fetchone()
         if order_row is None:
@@ -488,6 +495,8 @@ def get_order(order_id: int):
         "etiqueta": label,
         "aceptado": accepted,
         "fecha_programada": order_row[9],
+        "instalado": bool(order_row[10]),
+        "fecha_real": order_row[11],
         "anticipo_minimo": minimum,
         "anticipo_requerido": None if total_cents is None else f"{Decimal((total_cents * minimum + 99) // 100) / 100:.2f}",
         "movimientos": [{"id": mid, "tipo": kind, "importe": f"{Decimal(cents) / 100:.2f}", "fecha": day, "anulado": bool(void), "fecha_anulacion": void_day} for mid, kind, cents, day, void, void_day in movement_rows],
@@ -610,6 +619,32 @@ def void_movement(order_id: int, movement_id: int):
     return get_order(order_id)
 
 
+@app.put("/api/pedidos/{order_id}/instalacion")
+def set_installation(order_id: int, change: InstallationUpdate):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            order = get_order(order_id)
+            if order["instalado"] == change.instalado:
+                raise HTTPException(status_code=409, detail="El pedido ya tiene ese estado de instalación.")
+            if change.instalado:
+                windows = order["ventanas"]
+                if not order["aceptado"] or not windows or any(
+                    not w["ensamblada"] or len(w["plan_aluminio"]) != 10 or len(w["avance_aluminio"]) != 10
+                    or any(cut["pendientes"] != 0 for cut in w["avance_aluminio"])
+                    or not w["plan_vidrio"] or not w["avance_vidrio"] or w["avance_vidrio"]["pendientes"] != 0
+                    for w in windows
+                ):
+                    raise HTTPException(status_code=409, detail="Completa todos los cortes y ensambles activos antes de marcar instalado.")
+                today = datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()
+                connection.execute("UPDATE pedidos SET instalado = 1, fecha_real = ? WHERE id = ?", (today, order_id))
+            else:
+                if not change.confirmar_desmarcado:
+                    raise HTTPException(status_code=409, detail="Confirma que deseas desmarcar la instalación.")
+                connection.execute("UPDATE pedidos SET instalado = 0, fecha_real = NULL WHERE id = ?", (order_id,))
+    return get_order(order_id)
+
+
 @app.put("/api/pedidos/{order_id}/fecha-programada")
 def update_installation_date(order_id: int, update: InstallationDateUpdate):
     try:
@@ -639,6 +674,12 @@ def update_delivery(order_id: int, update: DeliveryUpdate):
     return get_order(order_id)
 
 
+def require_not_installed(connection, window_id):
+    installed = connection.execute("SELECT p.instalado FROM pedidos p JOIN ventanas v ON v.pedido_id = p.id WHERE v.id = ?", (window_id,)).fetchone()
+    if installed and installed[0]:
+        raise HTTPException(status_code=409, detail="Desmarca la instalación antes de modificar ventanas o fabricación.")
+
+
 @app.put("/api/ventanas/{window_id}/descarte")
 def set_window_discard(window_id: int, change: WindowDiscard):
     with closing(connect_db()) as connection:
@@ -652,6 +693,7 @@ def set_window_discard(window_id: int, change: WindowDiscard):
             if row is None:
                 raise HTTPException(status_code=404, detail="Ventana no encontrada.")
             order_id, number, discarded, label = row
+            require_not_installed(connection, window_id)
             if bool(discarded) == change.descartada:
                 raise HTTPException(status_code=409, detail="La ventana ya tiene ese estado.")
             if change.descartada and not change.confirmar_descarte:
@@ -729,6 +771,7 @@ def _apply_window_measure_correction(
         window = connection.execute(query, (window_id,)).fetchone()
     if window is None:
         raise HTTPException(status_code=404, detail=f"Ventana {window_id} no encontrada en este pedido.")
+    require_not_installed(connection, window_id)
     if window[3]:
         raise HTTPException(status_code=409, detail="Reincorpora la ventana antes de corregir sus medidas.")
     if (window[0], window[1]) == (width, height):
@@ -841,6 +884,7 @@ def save_order_client(order_id: int, details: OrderClient):
 
 
 def require_accepted_window(connection, window_id):
+    require_not_installed(connection, window_id)
     if not connection.execute("SELECT 1 FROM ventanas v JOIN aceptaciones a ON a.pedido_id = v.pedido_id WHERE v.id = ?", (window_id,)).fetchone():
         raise HTTPException(status_code=409, detail="Registra el anticipo mínimo antes de marcar fabricación.")
 
