@@ -632,13 +632,39 @@ async function openOrder(id) {
       day.addEventListener('change', showCounts); period.addEventListener('change', showCounts); showCounts();
       return details;
     };
+    const changesView = () => {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = 'Cambios de medidas y piezas afectadas'; details.append(summary);
+      if (!order.cambios_medidas.length) {
+        const line = document.createElement('p'); line.textContent = 'No hay cambios registrados después de la aceptación.'; details.append(line);
+      }
+      for (const change of order.cambios_medidas) {
+        const section = document.createElement('section');
+        const heading = document.createElement('p');
+        heading.textContent = `${new Date(change.fecha_hora).toLocaleString('es-MX', {timeZone: 'America/Tijuana'})} (Tijuana) · Ventana ${change.ventana}: ${change.anterior.ancho} × ${change.anterior.alto} → ${change.nueva.ancho} × ${change.nueva.alto} pulgadas`;
+        section.append(heading);
+        if (!change.afectadas.length) {
+          const line = document.createElement('p'); line.textContent = 'Sin piezas cortadas afectadas.'; section.append(line);
+        } else {
+          const list = document.createElement('ul');
+          for (const piece of change.afectadas) {
+            const item = document.createElement('li');
+            item.textContent = `${piece.tipo === 'vidrio' ? 'Vidrio' : piece.perfil}: ${piece.cantidad} pieza(s), ${piece.anterior} → ${piece.nueva} pulgadas${piece.clasificacion ? ` · ${piece.clasificacion}` : ''}`;
+            list.append(item);
+          }
+          section.append(list);
+        }
+        details.append(section);
+      }
+      return details;
+    };
     if (order.fecha_cierre) {
       document.querySelector('#history').hidden = true;
       document.querySelector('#budgets').hidden = true;
       document.querySelector('#orders').hidden = true;
       const view = document.createElement('section'); view.id = 'history-detail';
       const title = document.createElement('h1'); title.textContent = `Pedido ${order.id} · finalizado y liquidado`;
-      view.append(title, eventsView(), productionView());
+      view.append(title, eventsView(), productionView(), changesView());
       const add = (label, value) => { const p = document.createElement('p'); p.textContent = `${label}: ${value ?? 'Sin dato'}`; view.append(p); };
       add('Fecha de cierre', order.fecha_cierre); add('Fecha de instalación', order.fecha_real); add('Fecha programada', order.fecha_programada);
       const c = order.cliente; add('Cliente', c ? [c.nombre, c.apellido_1, c.apellido_2].filter(Boolean).join(' ') : null);
@@ -677,7 +703,7 @@ async function openOrder(id) {
       document.querySelector('#client-details').open = false;
     }
     currentOrderData = order;
-    document.querySelector('#order-events').replaceChildren(eventsView(), productionView());
+    document.querySelector('#order-events').replaceChildren(eventsView(), productionView(), changesView());
     document.querySelector('#installation-state').textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
     document.querySelector('#installation-toggle').textContent = order.instalado ? 'Desmarcar instalación' : 'Marcar instalado';
     exitMeasureEdit();

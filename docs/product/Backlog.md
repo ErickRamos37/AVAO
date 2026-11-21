@@ -413,7 +413,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 | ID | HU | Épica | Esfuerzo aceptado | Prioridad | Estado |
 | --- | --- | --- | --- | --- | --- |
 | HU-28 | Consultar hitos y avance de fabricación | E5 | 8 | Alta | Implementada y aceptada; subtareas #96 y #97 |
-| HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | Alta | Propuesta por refinar |
+| HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | Alta | Implementada y aceptada; subtarea #99 |
 | HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Propuesta por refinar |
 | HU-31 | Consultar producción por periodos | E5 | 5 | Media | División propuesta por refinar |
 | HU-32 | Consultar pedidos e instalaciones | E5 | 5 | Media | División propuesta por refinar |
@@ -442,18 +442,20 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 ### HU-29 — Consultar cambios de medida y piezas afectadas
 
+- **Estado:** implementada y aceptada por el usuario; subtarea [#99](https://github.com/ErickRamos37/AVAO/issues/99).
+
 - **Área:** Visibilidad · **Épica:** E5.
 
 - **Prioridad/esfuerzo aceptados:** Alta / 5. Reutiliza HU-07 y los eventos, pero debe distinguir causas y piezas afectadas.
 
 - **Historia:** **Como** encargado, **necesito** consultar cambios de medida posteriores a la aceptación y piezas cortadas afectadas, **para** conocer su incidencia en el trabajo del taller.
-- **Criterios de aceptación propuestos:**
-  - [ ] Se registran y consultan los cambios de medidas base posteriores a la aceptación, con las medidas anteriores y nuevas y el momento del cambio; se excluyen las correcciones realizadas mientras se trata de un presupuesto.
-  - [ ] Cuando cambiar las dimensiones modifica una medida derivada y HU-07 deshace automáticamente marcas, se registran la cantidad previamente cortada afectada, el tipo de perfil o vidrio, la edición relacionada y la fecha y hora. Las piezas sin cambio de medida derivada conservan su marca y no cuentan como afectadas; desmarcar manualmente no cuenta como este caso.
-  - [ ] Para perfiles de aluminio, si la nueva longitud requerida supera la ya cortada, las piezas afectadas se clasifican como «sobrante recuperable por cambio de medida». Si la nueva longitud es menor, se registran como afectadas y queda abierta la posibilidad de recorte; si es igual, no se consideran afectadas por longitud.
-  - [ ] Los eventos de corte originales permanecen en la producción histórica; los eventos de cambio y piezas afectadas se consultan por separado y se conservan tras el cierre.
+- **Criterios de aceptación:**
+  - [x] Se registran y consultan los cambios de medidas base posteriores a la aceptación, con las medidas anteriores y nuevas y el momento del cambio; se excluyen las correcciones realizadas mientras se trata de un presupuesto.
+  - [x] Cuando cambiar las dimensiones modifica una medida derivada y HU-07 deshace automáticamente marcas, se registran la cantidad previamente cortada afectada, el tipo de perfil o vidrio, la edición relacionada y la fecha y hora. Las piezas sin cambio de medida derivada conservan su marca y no cuentan como afectadas; desmarcar manualmente no cuenta como este caso.
+  - [x] Para perfiles de aluminio, si la nueva longitud requerida supera la ya cortada, las piezas afectadas se clasifican como «sobrante recuperable por cambio de medida». Si la nueva longitud es menor, se registran como afectadas y queda abierta la posibilidad de recorte; si es igual, no se consideran afectadas por longitud.
+  - [x] Los eventos de corte originales permanecen en la producción histórica; los eventos de cambio y piezas afectadas se consultan por separado y se conservan tras el cierre.
 - **Dependencias y límites:** depende de HU-07 y del registro de HU-28. La clasificación no implica desperdicio definitivo, cargo monetario de HU-26 ni inventario automático de sobrantes; un cambio no demuestra por sí solo error de medición. La regla de longitud mayor o menor se refiere a perfiles y no se extiende al vidrio sin confirmación.
-- **Subtarea [#99](https://github.com/ErickRamos37/AVAO/issues/99) — Consultar cambios de medidas y piezas cortadas afectadas:** registrar y consultar cambios posteriores a la aceptación, sus medidas anteriores y nuevas y las piezas previamente cortadas afectadas; clasificar perfiles según longitud, conservar producción original y eventos al cierre, y comprobar que correcciones de presupuesto quedan fuera.
+- **Subtarea [#99](https://github.com/ErickRamos37/AVAO/issues/99), implementada y aceptada — Consultar cambios de medidas y piezas cortadas afectadas:** registrar y consultar cambios posteriores a la aceptación, sus medidas anteriores y nuevas y las piezas previamente cortadas afectadas; clasificar perfiles según longitud, conservar producción original y eventos al cierre, y comprobar que correcciones de presupuesto quedan fuera.
 - **Reglas confirmadas:** el vidrio afectado se registra sin clasificación de recuperación; descartar una ventana conserva la producción ya registrada.
 
 ### HU-30 — Consultar programación y reprogramaciones
@@ -467,7 +469,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
   - [ ] Se conservan y consultan la fecha programada original y cada reprogramación, con fecha anterior y nueva y momento de registro.
   - [ ] Al reprogramar se exige un motivo: falta de material, fabricación pendiente, disponibilidad del cliente, disponibilidad del taller/transporte u «Otros» con texto; la fecha real de instalación conserva fecha y hora. Un pedido no instalado queda visiblemente atrasado al pasar la fecha actualmente acordada.
 - **Dependencias y límites:** amplía las fechas de HU-15 y el registro de HU-28. La reprogramación y el atraso no tienen necesariamente el mismo motivo.
-- **Subtarea vertical propuesta — Consultar fechas y motivos de instalación:** conservar y mostrar fecha original, reprogramaciones con valores anterior y nuevo y momento, y motivo obligatorio de catálogo o «Otros» con texto; señalar atraso al pasar la fecha acordada sin instalar y comprobar consulta tras cerrar.
+- **Subtarea [#101](https://github.com/ErickRamos37/AVAO/issues/101) propuesta — Consultar fechas y motivos de instalación:** conservar y mostrar fecha original, reprogramaciones con valores anterior y nuevo y momento, y motivo obligatorio de catálogo o «Otros» con texto; señalar atraso al pasar la fecha acordada sin instalar y comprobar consulta tras cerrar.
 - **Regla confirmada:** catálogo de motivos: falta de material, fabricación pendiente, disponibilidad del cliente, disponibilidad del taller/transporte y «Otros» con texto.
 
 ### HU-31 — Consultar producción por periodos

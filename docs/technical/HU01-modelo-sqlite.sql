@@ -161,3 +161,15 @@ CREATE TABLE IF NOT EXISTS marcas_fabricacion_vigentes (
     area TEXT NOT NULL,
     orden INTEGER NOT NULL
 );
+
+-- Cambios de medidas y solo las piezas cortadas afectadas por cada cambio.
+CREATE TABLE IF NOT EXISTS cambios_medidas (
+    id INTEGER PRIMARY KEY,
+    ventana_id INTEGER NOT NULL REFERENCES ventanas(id),
+    fecha_hora TEXT NOT NULL,
+    ancho_anterior_16 INTEGER NOT NULL,
+    alto_anterior_16 INTEGER NOT NULL,
+    ancho_nuevo_16 INTEGER NOT NULL,
+    alto_nuevo_16 INTEGER NOT NULL,
+    afectadas_json TEXT NOT NULL
+);

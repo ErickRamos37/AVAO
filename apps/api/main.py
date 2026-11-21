@@ -501,6 +501,12 @@ def _get_order(order_id, existing_connection=None):
             "EXISTS(SELECT 1 FROM eventos_fabricacion c WHERE c.original_id = e.id) "
             "FROM eventos_fabricacion e JOIN ventanas v ON v.id = e.ventana_id WHERE e.pedido_id = ? ORDER BY e.id", (order_id,)
         ).fetchall()
+        measure_changes = connection.execute(
+            "SELECT c.fecha_hora, v.numero_en_pedido, c.ancho_anterior_16, c.alto_anterior_16, "
+            "c.ancho_nuevo_16, c.alto_nuevo_16, c.afectadas_json "
+            "FROM cambios_medidas c JOIN ventanas v ON v.id = c.ventana_id "
+            "WHERE v.pedido_id = ? ORDER BY c.id", (order_id,)
+        ).fetchall()
         minimum = connection.execute("SELECT porcentaje FROM configuracion_anticipo WHERE id = 1").fetchone()[0]
         glass_waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
         cost_rows = connection.execute(
@@ -588,6 +594,13 @@ def _get_order(order_id, existing_connection=None):
                                   "accion": action, "fecha_hora": timestamp, "original_id": original,
                                   "corregido": bool(corrected)}
                                  for event_id, window_id, number, area, action, timestamp, original, corrected in production],
+        "cambios_medidas": [
+            {"fecha_hora": timestamp, "ventana": number,
+             "anterior": {"ancho": format_measure(old_width), "alto": format_measure(old_height)},
+             "nueva": {"ancho": format_measure(new_width), "alto": format_measure(new_height)},
+             "afectadas": json.loads(affected)}
+            for timestamp, number, old_width, old_height, new_width, new_height, affected in measure_changes
+        ],
         "fecha_programada": order_row[9],
         "instalado": bool(order_row[10]),
         "fecha_real": order_row[11],
@@ -952,6 +965,28 @@ def _apply_window_measure_correction(
     preserved_glass = min(old_glass[3], glass_quantity) if glass_unchanged else 0
     cleared_marks = aluminum_cut_count + glass_cut_count - preserved_aluminum - preserved_glass
     assembly_was_marked = bool(window[2])
+
+    accepted = connection.execute(
+        "SELECT 1 FROM ventanas v JOIN aceptaciones a ON a.pedido_id = v.pedido_id WHERE v.id = ?", (window_id,)
+    ).fetchone()
+    if accepted:
+        affected = []
+        for (_, profile, old_length, _, cut), (new_profile, new_length, _) in zip(old_aluminum, aluminum, strict=True):
+            if cut and old_length != new_length:
+                affected.append({"tipo": "aluminio", "perfil": profile, "cantidad": cut,
+                                 "anterior": format_measure(old_length), "nueva": format_measure(new_length),
+                                 "clasificacion": "sobrante recuperable por cambio de medida" if new_length > old_length else "posible recorte"})
+        if glass_cut_count and not glass_unchanged:
+            affected.append({"tipo": "vidrio", "cantidad": glass_cut_count,
+                             "anterior": f"{format_measure(old_glass[0])} × {format_measure(old_glass[1])}",
+                             "nueva": f"{format_measure(glass_width)} × {format_measure(glass_height)}",
+                             "clasificacion": None})
+        connection.execute(
+            "INSERT INTO cambios_medidas (ventana_id, fecha_hora, ancho_anterior_16, alto_anterior_16, "
+            "ancho_nuevo_16, alto_nuevo_16, afectadas_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (window_id, datetime.now(ZoneInfo("America/Tijuana")).isoformat(timespec="seconds"),
+             window[0], window[1], width, height, json.dumps(affected, ensure_ascii=False)),
+        )
 
     # Los cortes afectados siguen en el historial, pero dejan de representar marcas vigentes.
     associations = connection.execute(
