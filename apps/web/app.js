@@ -407,6 +407,9 @@ async function loadOrders() {
         progress.setAttribute('aria-label', `Avance general del pedido ${order.etiqueta ?? order.id}`);
         item.append(progress);
       }
+      if (order.instalacion_atrasada) {
+        const late = document.createElement('p'); late.textContent = 'Instalación atrasada'; item.append(late);
+      }
       if (order.instalado) {
         const installed = document.createElement('p'); installed.textContent = 'Instalado ✓'; item.append(installed);
       } else if (order.listo_instalacion) {
@@ -658,13 +661,29 @@ async function openOrder(id) {
       }
       return details;
     };
+    const scheduleView = () => {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = 'Historial de programación'; details.append(summary);
+      if (!order.programaciones.some(item => item.anterior === null)) {
+        const line = document.createElement('p'); line.textContent = 'Fecha original de programación no disponible.'; details.append(line);
+      }
+      for (const item of order.programaciones) {
+        const line = document.createElement('p');
+        const when = new Date(item.fecha_hora).toLocaleString('es-MX', {timeZone: 'America/Tijuana'});
+        line.textContent = item.anterior === null
+          ? `Fecha original: ${item.nueva} · registrada ${when} (Tijuana)`
+          : `${item.anterior} → ${item.nueva} · ${when} (Tijuana) · ${item.motivo}${item.motivo_otro ? `: ${item.motivo_otro}` : ''}`;
+        details.append(line);
+      }
+      return details;
+    };
     if (order.fecha_cierre) {
       document.querySelector('#history').hidden = true;
       document.querySelector('#budgets').hidden = true;
       document.querySelector('#orders').hidden = true;
       const view = document.createElement('section'); view.id = 'history-detail';
       const title = document.createElement('h1'); title.textContent = `Pedido ${order.id} · finalizado y liquidado`;
-      view.append(title, eventsView(), productionView(), changesView());
+      view.append(title, eventsView(), productionView(), changesView(), scheduleView());
       const add = (label, value) => { const p = document.createElement('p'); p.textContent = `${label}: ${value ?? 'Sin dato'}`; view.append(p); };
       add('Fecha de cierre', order.fecha_cierre); add('Fecha de instalación', order.fecha_real); add('Fecha programada', order.fecha_programada);
       const c = order.cliente; add('Cliente', c ? [c.nombre, c.apellido_1, c.apellido_2].filter(Boolean).join(' ') : null);
@@ -703,7 +722,7 @@ async function openOrder(id) {
       document.querySelector('#client-details').open = false;
     }
     currentOrderData = order;
-    document.querySelector('#order-events').replaceChildren(eventsView(), productionView(), changesView());
+    document.querySelector('#order-events').replaceChildren(eventsView(), productionView(), changesView(), scheduleView());
     document.querySelector('#installation-state').textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
     document.querySelector('#installation-toggle').textContent = order.instalado ? 'Desmarcar instalación' : 'Marcar instalado';
     exitMeasureEdit();
@@ -805,13 +824,16 @@ async function openOrder(id) {
       table.append(head, body); details.append(summary, table); glassDetails.append(details);
     }
     document.querySelector('#installation-date-error').hidden = true;
+    document.querySelector('#reschedule-reason').hidden = true;
+    document.querySelector('#reschedule-reason-select').value = '';
+    document.querySelector('#reschedule-other').value = '';
     document.querySelector('#installation-date').value = order.fecha_programada ?? '';
     const needsDate = order.aceptado && !order.fecha_programada;
     document.querySelector('#installation-date').disabled = !needsDate;
     document.querySelector('#installation-date-actions').hidden = !needsDate;
     document.querySelector('#installation-date-edit').hidden = needsDate;
     document.querySelector('#installation-date-status').textContent = order.fecha_programada
-      ? `Fecha programada: ${order.fecha_programada}`
+      ? `Fecha programada: ${order.fecha_programada}${order.instalacion_atrasada ? ' · Instalación atrasada' : ''}`
       : (order.aceptado ? 'Fecha obligatoria pendiente: registra la fecha programada de instalación.' : 'Sin fecha programada.');
     const paymentStatus = document.querySelector('#payment-status');
     paymentStatus.replaceChildren();
@@ -1062,29 +1084,45 @@ const installationDate = document.querySelector('#installation-date');
 const installationDateActions = document.querySelector('#installation-date-actions');
 const installationDateError = document.querySelector('#installation-date-error');
 const installationDateEdit = document.querySelector('#installation-date-edit');
+const rescheduleReason = document.querySelector('#reschedule-reason');
+const rescheduleSelect = document.querySelector('#reschedule-reason-select');
+const rescheduleOtherRow = document.querySelector('#reschedule-other-row');
+const rescheduleOther = document.querySelector('#reschedule-other');
+function refreshRescheduleReason() {
+  rescheduleReason.hidden = !currentOrderData.fecha_programada || installationDate.value === currentOrderData.fecha_programada || !installationDate.value;
+  rescheduleOtherRow.hidden = rescheduleReason.hidden || rescheduleSelect.value !== 'Otros';
+}
+
 installationDateEdit.addEventListener('click', () => {
   installationDateError.hidden = true;
   installationDate.value = currentOrderData.fecha_programada ?? '';
   installationDate.disabled = false; installationDateActions.hidden = false; installationDateEdit.hidden = true;
+  rescheduleSelect.value = ''; rescheduleOther.value = ''; refreshRescheduleReason();
   installationDate.focus();
 });
 document.querySelector('#installation-date-cancel').addEventListener('click', () => {
   installationDateError.hidden = true;
   installationDate.value = currentOrderData.fecha_programada ?? '';
   installationDate.disabled = true; installationDateActions.hidden = true; installationDateEdit.hidden = false;
+  rescheduleReason.hidden = true; rescheduleSelect.value = ''; rescheduleOther.value = '';
 });
-installationDate.addEventListener('input', () => { installationDateError.hidden = true; });
+installationDate.addEventListener('input', () => { installationDateError.hidden = true; refreshRescheduleReason(); });
+rescheduleSelect.addEventListener('change', refreshRescheduleReason);
 installationDateForm.addEventListener('submit', async event => {
   event.preventDefault();
   if (!installationDate.value || !installationDate.validity.valid) {
     installationDateError.textContent = 'Ingresa una fecha programada válida para guardar.';
     installationDateError.hidden = false; installationDate.focus(); return;
   }
+  if (!rescheduleReason.hidden && (!rescheduleSelect.value || (rescheduleSelect.value === 'Otros' && !rescheduleOther.value.trim()))) {
+    installationDateError.textContent = 'Selecciona y completa el motivo de reprogramación.';
+    installationDateError.hidden = false; return;
+  }
   installationDateError.hidden = true;
   const button = installationDateForm.querySelector('button[type="submit"]'); button.disabled = true;
   try {
     const response = await fetch(`/api/pedidos/${currentOrderId}/fecha-programada`, {
-      method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({fecha: installationDate.value}),
+      method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({fecha: installationDate.value, motivo: rescheduleReason.hidden ? null : rescheduleSelect.value, motivo_otro: rescheduleOther.value}),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo guardar la fecha.');

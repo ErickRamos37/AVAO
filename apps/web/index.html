@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu29-cambios" defer></script>
+    <script src="/static/app.js?v=hu30-programacion" defer></script>
   </head>
   <body>
     <main>
@@ -106,6 +106,17 @@
                 <button id="installation-date-edit" type="button">Editar fecha</button>
                 <form id="installation-date-form" novalidate>
                   <p><label>Fecha programada <input id="installation-date" type="date" required disabled></label></p>
+                  <div id="reschedule-reason" hidden>
+                    <p><label>Motivo de reprogramación <select id="reschedule-reason-select">
+                      <option value="">Selecciona un motivo</option>
+                      <option value="falta de material">Falta de material</option>
+                      <option value="fabricación pendiente">Fabricación pendiente</option>
+                      <option value="disponibilidad del cliente">Disponibilidad del cliente</option>
+                      <option value="disponibilidad del taller/transporte">Disponibilidad del taller/transporte</option>
+                      <option value="Otros">Otros</option>
+                    </select></label></p>
+                    <p id="reschedule-other-row" hidden><label>Describe el motivo <input id="reschedule-other" type="text"></label></p>
+                  </div>
                   <p id="installation-date-error" role="alert" hidden></p>
                   <div id="installation-date-actions" hidden>
                     <button type="submit">Guardar</button>
