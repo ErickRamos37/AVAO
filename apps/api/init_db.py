@@ -35,6 +35,9 @@ if __name__ == "__main__":
             if "instalado" not in columns:
                 connection.execute("ALTER TABLE pedidos ADD COLUMN instalado INTEGER NOT NULL DEFAULT 0 CHECK (instalado IN (0, 1))")
                 connection.commit()
+            if "fecha_cierre" not in columns:
+                connection.execute("ALTER TABLE pedidos ADD COLUMN fecha_cierre TEXT")
+                connection.commit()
             if "fecha_real" not in columns:
                 connection.execute("ALTER TABLE pedidos ADD COLUMN fecha_real TEXT")
                 connection.commit()

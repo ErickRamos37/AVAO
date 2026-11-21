@@ -25,7 +25,7 @@ class InstallationTests(unittest.TestCase):
 
     def accept(self):
         calculate_window_cost(self.window_id)
-        add_movement(self.order_id, MovementInput(tipo="pago", importe=get_order(self.order_id)["total_pedido"]))
+        add_movement(self.order_id, MovementInput(tipo="pago", importe=get_order(self.order_id)["anticipo_requerido"]))
 
     def finish(self):
         window = get_order(self.order_id)["ventanas"][0]
@@ -87,8 +87,7 @@ class InstallationTests(unittest.TestCase):
         for operation in operations:
             with self.subTest(operation=operation), self.assertRaises(HTTPException): operation()
         result = add_movement(self.order_id, MovementInput(tipo="pago", importe="1"))
-        self.assertEqual(result["excedente"], "1.00")
-        result = add_movement(self.order_id, MovementInput(tipo="devolucion", importe="1"))
-        self.assertEqual(result["excedente"], "0.00")
+        self.assertFalse(result["liquidado"])
+        self.assertIsNone(result["fecha_cierre"])
 
 if __name__ == "__main__": unittest.main()
