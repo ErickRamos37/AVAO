@@ -401,15 +401,59 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 HU-14 y HU-17 comparten movimientos: HU-14 los registra y calcula el saldo; HU-17 usa ese resultado para cerrar, evitando construir dos registros de pagos.
 
-## Ciclo 5: propuesta inicial para decidir
+## Ciclo 5 propuesto: medición del taller
 
-**Objetivo propuesto:** apoyar decisiones del taller mediante consultas sencillas sobre tiempos de producción por área, posibles cuellos de botella, fechas próximas o vencidas y satisfacción del cliente. Son temas a conversar, no historias, prioridades ni compromisos definitivos.
+El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las siguientes historias son propuestas para refinar; sus identificadores aún no implican incidencias ni estado en GitHub Projects. Esfuerzo y prioridad quedan por acordar. Las dependencias orientan el orden, sin sustituir la decisión del usuario.
 
-**Posible primera entrega, por acordar:** una consulta de fechas programadas próximas y vencidas para ayudar a organizar instalaciones. Antes de definirla hay que decidir qué significa «próxima» y qué pedidos incluir. Después podrían evaluarse tiempos por área y cuellos de botella, y cómo recoger satisfacción; el usuario decide el orden.
+| ID | HU | Épica | Esfuerzo propuesto | Prioridad propuesta | Estado |
+| --- | --- | --- | --- | --- | --- |
+| HU-28 | Consultar hitos y avance de fabricación | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
+| HU-29 | Consultar cambios de medida y piezas afectadas | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
+| HU-30 | Consultar programación y reprogramaciones | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
+| HU-31 | Consultar el flujo del taller por periodos | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
 
-**Datos y límites observados:** actualmente se guardan fechas programada y real de instalación, fecha de cierre y fechas de movimientos. El esquema revisado no registra inicios ni finales por área; el cierre además elimina marcas y resumen de avance. No se puede prometer reconstruir tiempos históricos por área con estos datos. Las marcas existentes no equivalen a tiempos activos; satisfacción requiere definir cómo y cuándo se registra.
+### HU-28 — Consultar hitos y avance de fabricación
 
-**Preguntas para elegir el primer resultado:** ¿qué decisión diaria o semanal debe apoyar primero: fechas, tiempos/cuello de botella o satisfacción? Para tiempos, ¿se busca tiempo transcurrido entre inicio y fin, o tiempo efectivo de trabajo excluyendo pausas? Para fechas, ¿cuántos días anticipados cuentan como próximos y qué pedidos deben incluirse?
+- **Historia:** **Como** encargado, **necesito** consultar cuándo se registraron los hitos comerciales y el avance de fabricación de cada pedido, **para** conocer su recorrido y contar el trabajo registrado por periodo.
+- **Criterios de aceptación propuestos:**
+  - [ ] Al crear un presupuesto, alcanzar el anticipo mínimo, registrar el primer corte de aluminio o vidrio, registrar cortes y ensambles completos, instalar, liquidar y cerrar, se registran automáticamente los eventos correspondientes con fecha y hora. El anticipo mínimo señala el inicio comercial; el primer corte señala el inicio de fabricación.
+  - [ ] Se pueden consultar los eventos vinculados al pedido y, cuando corresponda, la ventana y el área. Se cuentan piezas físicas individuales de aluminio o vidrio cortadas y ventanas completas ensambladas por día, semana y mes.
+  - [ ] Una corrección manual que deshace una marca ajusta el conteo del día original y conserva el evento de corrección. Una corrección de dimensiones que afecta piezas previamente cortadas conserva la producción original como ocurrida y se distingue según HU-29.
+  - [ ] Los eventos ligeros permanecen consultables tras el cierre, sin conservar por ello planes de corte ni desglose individual de materiales y costos.
+- **Dependencias y límites:** depende de la aceptación y movimientos de HU-14, instalación de HU-16 y cierre de HU-17. La hora es del registro, que puede hacerse por tandas después del trabajo: no demuestra la hora real del trabajo, tiempo efectivo ni productividad individual. Los datos antiguos no permiten reconstruir con fiabilidad los eventos que no se registraron.
+- **Pregunta abierta:** si un pedido deja de estar liquidado por cambio de total o anulación y después vuelve a liquidarse, ¿qué fecha o fechas se conservan y muestran?
+
+### HU-29 — Consultar cambios de medida y piezas afectadas
+
+- **Historia:** **Como** encargado, **necesito** consultar cambios de medida posteriores a la aceptación y piezas cortadas afectadas, **para** conocer su incidencia en el trabajo del taller.
+- **Criterios de aceptación propuestos:**
+  - [ ] Se registran y consultan los cambios de medidas base posteriores a la aceptación, con las medidas anteriores y nuevas y el momento del cambio; se excluyen las correcciones realizadas mientras se trata de un presupuesto.
+  - [ ] Cuando cambiar las dimensiones modifica una medida derivada y HU-07 deshace automáticamente marcas, se registran la cantidad previamente cortada afectada, el tipo de perfil o vidrio, la edición relacionada y la fecha y hora. Las piezas sin cambio de medida derivada conservan su marca y no cuentan como afectadas; desmarcar manualmente no cuenta como este caso.
+  - [ ] Para perfiles de aluminio, si la nueva longitud requerida supera la ya cortada, las piezas afectadas se clasifican como «sobrante recuperable por cambio de medida». Si la nueva longitud es menor, se registran como afectadas y queda abierta la posibilidad de recorte; si es igual, no se consideran afectadas por longitud.
+  - [ ] Los eventos de corte originales permanecen en la producción histórica; los eventos de cambio y piezas afectadas se consultan por separado y se conservan tras el cierre.
+- **Dependencias y límites:** depende de HU-07 y del registro de HU-28. La clasificación no implica desperdicio definitivo, cargo monetario de HU-26 ni inventario automático de sobrantes; un cambio no demuestra por sí solo error de medición. La regla de longitud mayor o menor se refiere a perfiles y no se extiende al vidrio sin confirmación.
+- **Preguntas abiertas:** ¿cómo clasificar los vidrios afectados cuando cambian sus dimensiones? Si se descarta una ventana, ¿cómo afecta a los conteos ya registrados?
+
+### HU-30 — Consultar programación y reprogramaciones
+
+- **Historia:** **Como** encargado, **necesito** consultar la fecha de instalación acordada y sus cambios, **para** dar seguimiento a los compromisos con el cliente.
+- **Criterios de aceptación propuestos:**
+  - [ ] Se conservan y consultan la fecha programada original y cada reprogramación, con fecha anterior y nueva y momento de registro.
+  - [ ] Se registra y consulta el motivo de reprogramación o atraso conforme a las reglas que se acuerden; la fecha real de instalación conserva fecha y hora.
+- **Dependencias y límites:** amplía las fechas de HU-15 y el registro de HU-28. La reprogramación y el atraso no tienen necesariamente el mismo motivo.
+- **Preguntas abiertas:** ¿cuándo se captura el motivo, si es obligatorio y qué opciones necesita el taller? ¿Qué situación determina que una instalación está atrasada?
+
+### HU-31 — Consultar el flujo del taller por periodos
+
+- **Historia:** **Como** encargado, **necesito** consultar un tablero con el avance y los compromisos del taller, **para** identificar pendientes y orientar decisiones de organización.
+- **Criterios de aceptación propuestos:**
+  - [ ] Se consultan conteos por día, semana y mes de piezas de aluminio y vidrio cortadas y ventanas ensambladas, basados en los eventos y correcciones de HU-28.
+  - [ ] Se consultan pedidos listos y pendientes, instalaciones y pagos; el detalle y definiciones se acuerdan antes de implementar.
+  - [ ] Se distingue la fecha y hora de registro de la actividad efectivamente realizada, sin presentar conteos como tiempo efectivo, productividad individual o prueba de una causa de cuello de botella.
+- **Dependencias y límites:** utiliza los datos de HU-28 y HU-30; el alcance de cambios de medida y piezas afectadas depende de HU-29. Cortes de distinta longitud o complejidad no son directamente equivalentes. No promete mediciones retrospectivas sin datos registrados.
+- **Preguntas abiertas:** ¿qué significa estar listo o pendiente para esta consulta y qué periodos y datos de pagos e instalaciones son útiles? ¿Cuántos días anticipados hacen que una fecha sea próxima?
+
+**Temas futuros sin reglas ni historias aprobadas:** definir cómo registrar material surtido o faltante, bloqueos y sus causas, estimaciones de fabricación y satisfacción del cliente. La investigación no fija todavía su alcance ni los incorpora automáticamente a estas entregas.
 
 ## Secuencia comercial prevista: datos, precios, aceptación y liquidación
 
