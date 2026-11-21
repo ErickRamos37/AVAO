@@ -82,3 +82,72 @@ productionForm.addEventListener('submit', async event => {
   }
 });
 
+
+const ordersDashboard = document.querySelector('#orders-dashboard');
+async function loadDashboardOrders() {
+  try {
+    const response = await fetch('/api/tablero/pedidos');
+    if (!response.ok) throw new Error('No se pudieron consultar los pedidos.');
+    const groups = await response.json();
+    ordersDashboard.replaceChildren();
+    for (const [key, title] of [['pendientes', 'Pendientes de fabricación'], ['listos', 'Listos para instalar'],
+      ['instalados_por_liquidar', 'Instalados por liquidar'], ['atrasados', 'Instalaciones atrasadas'], ['proximos', 'Instalaciones próximas: hoy y cinco días']]) {
+      const section = document.createElement('section');
+      const heading = document.createElement('h3'); heading.textContent = `${title}: ${groups[key].length}`; section.append(heading);
+      if (!groups[key].length) { const line = document.createElement('p'); line.textContent = 'Ninguno.'; section.append(line); }
+      const list = document.createElement('ul');
+      for (const order of groups[key]) {
+        const row = document.createElement('li'); const link = document.createElement('a');
+        link.href = `/pedidos/${order.id}`; link.textContent = order.etiqueta ? `Pedido ${order.etiqueta}` : `Pedido ${order.id}`; row.append(link);
+        const info = [];
+        if (order.fecha_programada) info.push(`instalación ${order.fecha_programada}`);
+        if (order.instalacion_atrasada) info.push('atrasada');
+        if (key === 'pendientes') {
+          if (order.sin_ventanas) info.push('sin ventanas activas');
+          else {
+            const missing = [['aluminio', 'aluminio'], ['vidrio', 'vidrio'], ['ensamble', 'ensamble']]
+              .filter(([area]) => order[area].porcentaje !== 100).map(([, label]) => label);
+            if (missing.length) info.push(`pendiente: ${missing.join(', ')}`);
+            if (order.sin_plan) info.push('plan incompleto');
+          }
+        }
+        if (info.length) row.append(document.createTextNode(` · ${info.join(' · ')}`));
+        list.append(row);
+      }
+      section.append(list); ordersDashboard.append(section);
+    }
+  } catch (error) { ordersDashboard.textContent = error.message; }
+}
+loadDashboardOrders();
+
+const departuresForm = document.querySelector('#departures-form');
+const departuresDate = document.querySelector('#departures-date');
+const departuresPeriod = document.querySelector('#departures-period');
+const departuresResults = document.querySelector('#departures-results');
+departuresDate.value = departuresDate.max = productionDate.max;
+departuresForm.addEventListener('submit', async event => {
+  event.preventDefault(); departuresResults.replaceChildren();
+  try {
+    const query = new URLSearchParams({fecha: departuresDate.value, periodo: departuresPeriod.value});
+    const response = await fetch(`/api/tablero/salidas?${query}`);
+    const result = await response.json();
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudieron consultar las salidas.');
+    const heading = document.createElement('p'); heading.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} día(s), incluidos días sin registros`; departuresResults.append(heading);
+    for (const [key, label] of [['instalados', 'Pedidos instalados'], ['finalizados', 'Pedidos finalizados']]) {
+      const section = document.createElement('section'); const title = document.createElement('h3');
+      title.textContent = `${label}: total ${result.totales[key]} · promedio diario ${result.promedios_diarios[key].toFixed(2)}`;
+      section.append(title, productionChart(result.dias, key, label));
+      if (!result.totales[key]) { const empty = document.createElement('p'); empty.textContent = 'Sin registros en este periodo.'; section.append(empty); }
+      departuresResults.append(section);
+    }
+    const table = document.createElement('table'); const caption = document.createElement('caption'); caption.textContent = 'Instalaciones vigentes y cierres por día'; table.append(caption);
+    const head = document.createElement('thead'); const header = document.createElement('tr');
+    for (const label of ['Fecha', 'Instalados', 'Finalizados']) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = label; header.append(th); }
+    head.append(header); table.append(head); const body = document.createElement('tbody');
+    for (const day of result.dias) { const row = document.createElement('tr');
+      for (const value of [day.fecha, day.instalados, day.finalizados]) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
+      body.append(row);
+    }
+    table.append(body); departuresResults.append(table);
+  } catch (error) { departuresResults.textContent = error.message; }
+});

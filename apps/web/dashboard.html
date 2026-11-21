@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Dashboard</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/dashboard.js?v=hu31-graficas" defer></script>
+    <script src="/static/dashboard.js?v=hu32-pedidos" defer></script>
   </head>
   <body>
     <main>
@@ -15,6 +15,21 @@
         <a href="/costos">Inventario de insumos</a>
       </header>
       <p><a href="/">Volver a pedidos</a></p>
+      <section aria-labelledby="orders-dashboard-title">
+        <h1 id="orders-dashboard-title">Pedidos e instalaciones</h1>
+        <div id="orders-dashboard" aria-live="polite">Cargando pedidos…</div>
+        <h2>Instalaciones y pedidos finalizados</h2>
+        <p>Se cuenta una instalación vigente por pedido y cada cierre por su fecha. Los datos anteriores pueden estar incompletos; se incluyen fechas conocidas sin inventar horas.</p>
+        <form id="departures-form">
+          <p><label>Fecha de referencia <input id="departures-date" type="date" required></label></p>
+          <p><label>Periodo <select id="departures-period">
+            <option value="semana">Semana</option><option value="mes">Mes</option><option value="ano">Año</option>
+          </select></label></p>
+          <button type="submit">Consultar salidas</button>
+        </form>
+        <div id="departures-results" aria-live="polite"></div>
+      </section>
+
       <section id="production-report" aria-labelledby="production-report-title">
         <h2 id="production-report-title">Producción registrada</h2>
         <p>Solo eventos registrados; los datos anteriores pueden estar incompletos. Las tandas se cuentan en la fecha de registro.</p>
