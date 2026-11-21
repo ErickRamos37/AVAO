@@ -536,7 +536,9 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 **Distinción de importes:** el costo base actualizado de materiales se distingue del precio sugerido con ganancia y del precio acordado elegido. El usuario quiere conocer la ganancia o pérdida al absorber un cambio. La fórmula confirmada de ganancia estimada es precio cobrado elegido menos costo actualizado de materiales; no se resta el precio sugerido que ya incluye ganancia. Esta cifra no es utilidad neta porque no incluye mano de obra ni gastos. Un cambio no se atribuye automáticamente a culpa del taller.
 
-**Reglas pendientes antes de implementar:** decidir si la vista previa usa costos de insumos guardados en el cálculo anterior o costos actuales del inventario, y cómo incorpora la merma y sus consecuencias en la comparación. Si se conserva el precio acordado con un costo diferente, mostrar la ganancia estimada confirmada, o pérdida cuando sea negativa; precisar su presentación. Precisar el comportamiento para presupuestos y pedidos aceptados antes de definir la entrega.
+**Reglas confirmadas para la vista previa:** al editar una ventana se usan los costos vigentes del inventario solo para las ventanas editadas; las demás conservan sus importes guardados. Se recalcula la merma del pedido conservando su selección incluida o desmarcada y la vista previa resume la diferencia del cargo. Un cambio de inventario por sí solo no modifica pedidos en segundo plano; el cálculo ocurre al editar o realizar una nueva captura. Se conserva el porcentaje de ganancia guardado.
+
+**Reglas pendientes antes de implementar:** precisar la presentación de la pérdida y la comparación en presupuesto y pedido aceptado. Si se conserva el precio acordado con un costo diferente, mostrar la ganancia estimada confirmada, o pérdida cuando sea negativa; precisar su presentación. Precisar el comportamiento para presupuestos y pedidos aceptados antes de definir la entrega.
 
 **Épica propuesta, por aprobar:** E6 — Facilitar el trabajo cotidiano del taller. Los identificadores siguientes son propuestas locales, no incidencias ni prioridad aprobada. Las estimaciones son relativas y revisables.
 
@@ -569,18 +571,19 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 - **Criterios propuestos:**
   - [ ] Al capturar o cambiar medidas válidas se actualiza la vista provisional de las ventanas y total; si faltan datos se informa sin presentar importes inexistentes como cero.
   - [ ] La vista provisional se distingue del precio guardado y no modifica un precio aceptado por cambios de inventario en segundo plano.
-- **Límites y preguntas:** depende de confirmar qué costos de insumos usa el cálculo y el tratamiento de merma; la captura incompleta no implica un precio definitivo. Sin rediseño visual.
+- **Límites y preguntas:** el cálculo de captura nueva usa costos vigentes y conserva la selección de merma; la captura incompleta no implica un precio definitivo. Precisar cómo mostrar el efecto de la merma. Sin rediseño visual.
 
 ### HU-38 — Revisar impacto de cambios antes de guardar
 
 - **Historia:** **Como** empleado, **necesito** revisar el impacto de una edición y elegir el precio antes de guardarla, **para** conservar el acuerdo con el cliente o actualizarlo conscientemente.
 - **Criterios propuestos:**
   - [ ] La primera confirmación revisa la intención de aplicar la edición; antes de guardar, la segunda muestra solo ventanas afectadas, su etiqueta, medidas anteriores y nuevas, precio anterior y sugerido, y diferencia total del pedido, sin filas de materiales ni ventanas no afectadas.
+  - [ ] La vista previa usa costos vigentes de inventario solo en ventanas editadas, conserva los importes guardados de las demás y el porcentaje de ganancia guardado, y recalcula la merma del pedido manteniendo su selección incluida o desmarcada. El resumen muestra la diferencia del cargo de merma. Cambiar inventario por sí solo no modifica pedidos en segundo plano.
   - [ ] Se puede conservar el precio acordado, actualizarlo o cancelar toda la acción. Guardar ocurre conjuntamente después de la decisión final; cancelar conserva todos los datos originales. El precio conservado no impide actualizar el costo de materiales.
   - [ ] Se distingue costo base de materiales, precio sugerido y precio cobrado elegido. La ganancia estimada es precio cobrado elegido menos costo actualizado de materiales; un resultado negativo es pérdida. No se presenta como utilidad neta ni se presume culpa del taller.
   - [ ] Cambiar solo cliente o fecha y cambios de costos de inventario en segundo plano no alteran los precios aceptados.
 - **Dependencias y límites:** depende de reglas de cálculo y edición acordadas para HU-36/HU-37; no guarda parcialmente ni modifica datos al cancelar. La etiqueta de un presupuesto sin código debe seguir su identificación por ID.
-- **Preguntas abiertas:** ¿usar los costos de insumos guardados o los vigentes para la vista previa? ¿Cómo recalcular la merma preservando su selección desmarcada y cómo mostrar su efecto? ¿Cómo presentar la pérdida y la comparación en presupuesto y pedido aceptado?
+- **Pregunta abierta:** ¿cómo presentar la pérdida y la comparación en presupuesto y pedido aceptado?
 
 **Apoyos posibles, sin instalar ni adoptar por anticipado:** Impeccable (audit, clarify y distill) para revisar usabilidad; ProMax si más adelante se solicita trabajo visual; y los flujos de simplicidad y entrega vertical existentes para mantener el alcance pequeño.
 
