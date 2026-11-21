@@ -59,6 +59,8 @@ Las HU completas se conservan a continuación como especificación e historial d
 
 #### HU-22 — Identificar pedidos y ventanas con códigos cortos de taller
 
+> **Regla posterior confirmada:** el presupuesto sin anticipo mínimo se identifica por ID y no ocupa etiqueta de letras. La etiqueta y los códigos de sus ventanas se asignan al aceptar el pedido mediante el anticipo mínimo. Si una anulación devuelve el pedido a presupuesto, se libera la etiqueta; al aceptarlo de nuevo se asigna una letra disponible. Se conservan el ID, las ventanas y los eventos. Esta actualización no modifica el registro histórico de la entrega.
+
 - **Área:** Pedidos y medidas · **Épica:** E1 · **Esfuerzo histórico:** **5**. Incluye asignación y consulta estable de etiquetas y números sin repetir etiquetas entre pedidos activos; la liberación automática requiere HU-16 y HU-17.
 - **Historia:** **Como** trabajador del taller, **necesito** ver un código corto para cada ventana de los pedidos activos, **para** escribirlo a mano en sus piezas y distinguirlas durante la fabricación.
 - **Criterios de aceptación:**
@@ -331,7 +333,7 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
   - [ ] Antes de alcanzar el anticipo mínimo, el presupuesto queda fuera de la cola y el taller y no admite marcas de fabricación. Si se anula un anticipo y el neto queda bajo el mínimo, vuelve a presupuesto.
   - [ ] Cada pago o devolución conserva importe y fecha automática del día de la acción; la anulación registra también su fecha automáticamente; solo se permite anular cuando todos los precios del pedido están completos. Si el total es parcial o falta, se bloquea la anulación sin modificar el movimiento. Un movimiento anulado sigue visible y se excluye del neto, saldo y liquidación. El pedido se considera liquidado si pagos menos devoluciones no anulados alcanza el total, incluso antes de instalar.
 - **Subtarea [#81](https://github.com/ErickRamos37/AVAO/issues/81), implementada y aceptada — Registrar aceptación, anticipo y consultar saldo:** Configurar el porcentaje mínimo de anticipo en inventario (entero 1–100, inicialmente 50 %); exigir el total completo calculado y registrar el anticipo con importe y fecha automática y confirmar el pedido cuando el anticipo neto alcance el mínimo. Solicitar después la fecha programada obligatoria sin impedir ni perder el registro del anticipo por faltar la fecha. Consultar total vigente, movimientos y saldo; permitir varios pagos y devoluciones con fecha automática de la acción, mostrar el excedente y permitir devolver hasta el importe excedente (neto menos total) o conservarlo si el cliente así lo decide. Mantener la aceptación tras cambios de total aunque el anticipo quede bajo el mínimo; si se anula un anticipo y el neto queda bajo el mínimo, volver a presupuesto; mantener el presupuesto fuera de la cola y taller, sin marcas, hasta alcanzar el mínimo. Cambios posteriores al total recalculan el saldo como total vigente menos pagos netos. Permitir anular un movimiento incorrecto solo con todos los precios del pedido completos; si el total es parcial o falta, bloquear la anulación sin modificar el movimiento. Conservar el movimiento anulado visible y registrar el correcto; no definir edición ni cancelación sin decisión previa.
-- **Dependencias, límites y preguntas:** Depende del total del pedido y de las decisiones sobre presupuesto previo, etiqueta, cola y marcas. La asignación de etiqueta antes del anticipo, la cancelación y la edición de movimientos siguen abiertas; una anulación que deja el neto por debajo del mínimo devuelve el pedido a presupuesto.
+- **Dependencias, límites y preguntas:** Depende del total del pedido y de las decisiones sobre presupuesto previo, etiqueta, cola y marcas. El presupuesto se identifica por ID sin etiqueta; al alcanzar el anticipo mínimo se asignan etiqueta y códigos de ventana. Si una anulación lo devuelve a presupuesto, se libera la etiqueta y, al aceptarlo de nuevo, se asigna una letra disponible conservando ID, ventanas y eventos; la cancelación y la edición de movimientos siguen abiertas; una anulación que deja el neto por debajo del mínimo devuelve el pedido a presupuesto.
 
 ### HU-15 — Registrar y consultar fechas de instalación
 
@@ -394,9 +396,9 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 **Decisiones confirmadas de HU-17:** el cierre es definitivo y el histórico es solo de consulta, sin reapertura, devoluciones, anulaciones ni otras correcciones. Se registra automáticamente la fecha de cierre al cumplirse instalación y liquidación. Se conservan importes agregados por ventana (costo, precio y ganancia si aplica), total del pedido, merma, traslado y movimientos; no se almacena el desglose individual de materiales ni sus costos. No se conservan marcas ni resumen del avance de corte y ensamble. El detalle presenta ventanas, mermas y traslado, total del pedido y pagos, en ese orden; pagos se despliega desde un encabezado con el total pagado y muestra movimientos con fecha y detalles. El histórico identifica el pedido por ID y fecha de cierre y «Ventanas:» y una lista numerada de solo medidas base ancho × alto, sin prefijos, tabla ni códigos, sin conservar ni mostrar etiqueta de letras ni códigos de taller.
 
-**Por decidir antes de implementar:** asignación de etiqueta al presupuesto y otros detalles de cancelación. La cancelación, ajustes y comprobantes siguen abiertos cuando correspondan. El usuario autorizó reiniciar los datos de prueba; se preparará respaldo y se conservará el catálogo de costos.
+**Por decidir antes de implementar:** otros detalles de cancelación. La cancelación, ajustes y comprobantes siguen abiertos cuando correspondan. El usuario autorizó reiniciar los datos de prueba; se preparará respaldo y se conservará el catálogo de costos.
 
-**Tensión con el flujo actual:** al guardar medidas hoy se asignan etiqueta, cola y cortes. El presupuesto anterior al anticipo mínimo debe quedar fuera de cola y taller sin marcas; todavía falta decidir cuándo se asigna su etiqueta Una anulación que reduce el neto bajo el mínimo devuelve el pedido a presupuesto; un cambio de total por sí solo no revierte la aceptación.
+**Tensión con el flujo actual:** al guardar medidas hoy se asignan etiqueta, cola y cortes. El presupuesto anterior al anticipo mínimo queda fuera de cola y taller, sin marcas ni etiqueta, identificado por ID; al aceptarse por anticipo mínimo se asignan etiqueta y códigos de ventana. Una anulación que reduce el neto bajo el mínimo devuelve el pedido a presupuesto y libera su etiqueta; al aceptarlo de nuevo se asigna una letra disponible y se conservan ID, ventanas y eventos; un cambio de total por sí solo no revierte la aceptación.
 
 **Límite por confirmar:** modificar medidas aproximadas de un pedido existente no aprueba por sí solo la cotización preliminar sin etiqueta ni posición descrita más abajo. Esa necesidad conserva sus decisiones abiertas; no incorporarla al ciclo 4 sin acordar su alcance.
 
@@ -404,11 +406,13 @@ HU-14 y HU-17 comparten movimientos: HU-14 los registra y calcula el saldo; HU-1
 
 ## Ciclo 5 propuesto: medición del taller
 
+**Regla implementada y aceptada para el flujo actual:** el presupuesto sin anticipo mínimo no ocupa letra y se identifica por ID; al aceptarse por anticipo mínimo se asignan la etiqueta y los códigos de ventana. Si una anulación lo devuelve a presupuesto se libera la etiqueta; al aceptarlo de nuevo se asigna una letra disponible y se conservan ID, ventanas y eventos.
+
 El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las siguientes historias son propuestas para refinar; sus identificadores aún no implican incidencias ni estado en GitHub Projects. El usuario aceptó los esfuerzos relativos y las prioridades del ciclo 5. E5 agrupa las consultas y eventos que apoyan decisiones; la captura de eventos precede a las consultas que dependen de ella, sin fijar otro orden entre historias de igual prioridad. Las dependencias orientan el orden, sin sustituir la decisión del usuario. HU-28 se estima en 8 por la variedad de eventos, correcciones e histórico; si al refinar supera 8, se propondrá dividirla en historias con valor propio antes de implementarla.
 
 | ID | HU | Épica | Esfuerzo aceptado | Prioridad | Estado |
 | --- | --- | --- | --- | --- | --- |
-| HU-28 | Consultar hitos y avance de fabricación | E5 | 8 | Alta | Propuesta por refinar |
+| HU-28 | Consultar hitos y avance de fabricación | E5 | 8 | Alta | Implementada y aceptada; subtareas #96 y #97 |
 | HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | Alta | Propuesta por refinar |
 | HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Propuesta por refinar |
 | HU-31 | Consultar producción por periodos | E5 | 5 | Media | División propuesta por refinar |
@@ -417,20 +421,23 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 ### HU-28 — Consultar hitos y avance de fabricación
 
+- **Estado:** implementada y aceptada por el usuario; subtareas [#96](https://github.com/ErickRamos37/AVAO/issues/96) y [#97](https://github.com/ErickRamos37/AVAO/issues/97). La clasificación detallada de cambios de medida pertenece a HU-29.
+
 - **Área:** Visibilidad · **Épica:** E5.
 
 - **Prioridad/esfuerzo aceptados:** Alta / 8. Integra varios eventos, correcciones y conservación al cierre; requiere revisar tamaño antes de implementar.
 
 - **Historia:** **Como** encargado, **necesito** consultar cuándo se registraron los hitos comerciales y el avance de fabricación de cada pedido, **para** conocer su recorrido y contar el trabajo registrado por periodo.
-- **Criterios de aceptación propuestos:**
-  - [ ] Al crear un presupuesto, alcanzar el anticipo mínimo, registrar el primer corte de aluminio o vidrio, registrar cortes y ensambles completos, instalar, liquidar y cerrar, se registran automáticamente los eventos correspondientes con fecha y hora. El anticipo mínimo señala el inicio comercial; el primer corte señala el inicio de fabricación.
-  - [ ] Se pueden consultar los eventos vinculados al pedido y, cuando corresponda, la ventana y el área. Se cuentan piezas físicas individuales de aluminio o vidrio cortadas y ventanas completas ensambladas por día, semana y mes.
-  - [ ] Una corrección manual que deshace una marca ajusta el conteo del día original y conserva el evento de corrección. Una corrección de dimensiones que afecta piezas previamente cortadas conserva la producción original como ocurrida y se distingue según HU-29.
-  - [ ] Los eventos ligeros permanecen consultables tras el cierre, sin conservar por ello planes de corte ni desglose individual de materiales y costos.
+- **Criterios de aceptación:**
+  - [x] Al crear un presupuesto, alcanzar el anticipo mínimo, registrar el primer corte de aluminio o vidrio, registrar cortes y ensambles completos, instalar, liquidar y cerrar, se registran automáticamente los eventos correspondientes con fecha y hora. El anticipo mínimo señala el inicio comercial; el primer corte señala el inicio de fabricación.
+  - [x] Se pueden consultar los eventos vinculados al pedido y, cuando corresponda, la ventana y el área. Se cuentan piezas físicas individuales de aluminio o vidrio cortadas y ventanas completas ensambladas por día, semana y mes.
+  - [x] Una corrección manual que deshace una marca ajusta el conteo del día original y conserva el evento de corrección.
+  - [ ] La identificación detallada de piezas afectadas por una corrección de dimensiones corresponde a HU-29; la producción original se conserva como ocurrida.
+  - [x] Los eventos ligeros permanecen consultables tras el cierre, sin conservar por ello planes de corte ni desglose individual de materiales y costos.
 - **Dependencias y límites:** depende de la aceptación y movimientos de HU-14, instalación de HU-16 y cierre de HU-17. La hora es del registro, que puede hacerse por tandas después del trabajo: no demuestra la hora real del trabajo, tiempo efectivo ni productividad individual. Los datos antiguos no permiten reconstruir con fiabilidad los eventos que no se registraron.
 - **Subtareas verticales propuestas:**
   1. **[Consultar hitos del pedido (#96)](https://github.com/ErickRamos37/AVAO/issues/96), implementada y aceptada:** registrar creación, aceptación, instalación, liquidación y cierre con fecha y hora; consultar y conservarlos al cerrar. Conservar todos los eventos de pérdida y recuperación de liquidación y mostrar el último.
-  2. **[Consultar cortes y ensambles registrados (#97)](https://github.com/ErickRamos37/AVAO/issues/97), pendiente:** registrar primer corte y avance por pieza o ventana, distinguir correcciones manuales y consultar conteos por periodo; conservar eventos al cerrar. Asignar las tandas al día en que se registran.
+  2. **[Consultar cortes y ensambles registrados (#97)](https://github.com/ErickRamos37/AVAO/issues/97), implementada y aceptada:** registrar primer corte y avance por pieza o ventana, distinguir correcciones manuales y consultar conteos por periodo; conservar eventos al cerrar. Asignar las tandas al día en que se registran.
 - **Reglas confirmadas:** conservar todos los eventos de pérdida y recuperación de liquidación y mostrar el último; fechas y horas en la zona de Tijuana, con semanas de lunes a domingo, incluyendo domingos; las tandas se asignan al día del registro aunque el trabajo fuera anterior.
 
 ### HU-29 — Consultar cambios de medida y piezas afectadas
@@ -446,7 +453,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
   - [ ] Para perfiles de aluminio, si la nueva longitud requerida supera la ya cortada, las piezas afectadas se clasifican como «sobrante recuperable por cambio de medida». Si la nueva longitud es menor, se registran como afectadas y queda abierta la posibilidad de recorte; si es igual, no se consideran afectadas por longitud.
   - [ ] Los eventos de corte originales permanecen en la producción histórica; los eventos de cambio y piezas afectadas se consultan por separado y se conservan tras el cierre.
 - **Dependencias y límites:** depende de HU-07 y del registro de HU-28. La clasificación no implica desperdicio definitivo, cargo monetario de HU-26 ni inventario automático de sobrantes; un cambio no demuestra por sí solo error de medición. La regla de longitud mayor o menor se refiere a perfiles y no se extiende al vidrio sin confirmación.
-- **Subtarea vertical propuesta — Consultar cambios de medidas y piezas cortadas afectadas:** registrar y consultar cambios posteriores a la aceptación, sus medidas anteriores y nuevas y las piezas previamente cortadas afectadas; clasificar perfiles según longitud, conservar producción original y eventos al cierre, y comprobar que correcciones de presupuesto quedan fuera.
+- **Subtarea [#99](https://github.com/ErickRamos37/AVAO/issues/99) — Consultar cambios de medidas y piezas cortadas afectadas:** registrar y consultar cambios posteriores a la aceptación, sus medidas anteriores y nuevas y las piezas previamente cortadas afectadas; clasificar perfiles según longitud, conservar producción original y eventos al cierre, y comprobar que correcciones de presupuesto quedan fuera.
 - **Reglas confirmadas:** el vidrio afectado se registra sin clasificación de recuperación; descartar una ventana conserva la producción ya registrada.
 
 ### HU-30 — Consultar programación y reprogramaciones

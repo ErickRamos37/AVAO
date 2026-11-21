@@ -36,6 +36,9 @@ class HistoryTests(InstallationTests):
         self.assertEqual(closed['ventanas'][0]['numero'], 1)
         other = create_order(NewOrder(ventanas=[{'ancho': '48', 'alto': '36'}]))['id']
         self.assertNotEqual(other, self.order_id)
+        self.assertIsNone(get_order(other)['etiqueta'])
+        calculate_window_cost(get_order(other)['ventanas'][0]['id'])
+        add_movement(other, MovementInput(tipo='pago', importe=get_order(other)['anticipo_requerido']))
         self.assertEqual(get_order(other)['etiqueta'], active_label)
         with sqlite3.connect(database_path()) as connection:
             self.assertEqual(connection.execute('PRAGMA foreign_key_check').fetchall(), [])

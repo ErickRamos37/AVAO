@@ -51,8 +51,8 @@ class PersistenceTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(json.loads(result.stdout), {"pedidos": [
-            {"id": first, "etiqueta": "A", "codigos": ["A1"], "aceptado": False},
-            {"id": second, "etiqueta": "B", "codigos": ["B1", "B2"], "aceptado": False},
+            {"id": first, "etiqueta": None, "codigos": [], "aceptado": False},
+            {"id": second, "etiqueta": None, "codigos": [], "aceptado": False},
         ]})
         self.assertEqual(get_order(first)["ventanas"][0]["ancho"], "24")
         self.assertEqual(
@@ -74,10 +74,10 @@ class PersistenceTests(unittest.TestCase):
             text=True,
         )
         opened = json.loads(result.stdout)
-        self.assertEqual(opened["etiqueta"], "A")
+        self.assertIsNone(opened["etiqueta"])
         self.assertEqual(
             [(window["codigo"], window["ancho"], window["alto"]) for window in opened["ventanas"]],
-            [("A1", "24 5/16", "26 1/2"), ("A2", "48", "36")],
+            [(None, "24 5/16", "26 1/2"), (None, "48", "36")],
         )
         self.assertEqual(opened["ventanas"][1]["plan_aluminio"][6],
                          {"perfil": "Guía", "longitud": "46 1/8", "cantidad": 1})
@@ -124,7 +124,9 @@ class PersistenceTests(unittest.TestCase):
                              {"ancho": "22", "alto": "34", "cantidad": 2})
 
     def test_code_sequence_continues_from_z_to_aa(self):
-        ids = [create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
+        from apps.api.testing import accepted_orders
+        accepted_create = accepted_orders(create_order)
+        ids = [accepted_create(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
                for _ in range(27)]
         self.assertEqual(get_order(ids[25])["ventanas"][0]["codigo"], "Z1")
         self.assertEqual(get_order(ids[26])["ventanas"][0]["codigo"], "AA1")
@@ -157,7 +159,7 @@ class PersistenceTests(unittest.TestCase):
                 self.assertIsNone(get_order(1)["ventanas"][0]["plan_vidrio"])
                 new_id = create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
                 self.assertEqual(new_id, 9)
-                self.assertEqual(get_order(new_id)["ventanas"][0]["codigo"], "A1")
+                self.assertIsNone(get_order(new_id)["ventanas"][0]["codigo"])
                 subprocess.run([sys.executable, "-m", "apps.api.init_db"], check=True, capture_output=True)
                 self.assertEqual(len(list_orders()["pedidos"]), 9)
 
@@ -179,7 +181,7 @@ class PersistenceTests(unittest.TestCase):
         self.assertEqual(self.count("plan_aluminio"), 0)
         self.assertEqual(self.count("plan_vidrio"), 0)
         self.assertEqual(create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"], 1)
-        self.assertEqual(get_order(1)["ventanas"][0]["codigo"], "A1")
+        self.assertIsNone(get_order(1)["ventanas"][0]["codigo"])
 
     def test_rolls_back_order_if_second_window_cannot_be_saved(self):
         with sqlite3.connect(self.path) as connection:
@@ -195,7 +197,7 @@ class PersistenceTests(unittest.TestCase):
         with sqlite3.connect(self.path) as connection:
             connection.execute("DROP TRIGGER fail_second")
         order_id = create_order(NewOrder(ventanas=[{"ancho": "24", "alto": "26"}]))["id"]
-        self.assertEqual(get_order(order_id)["ventanas"][0]["codigo"], "A1")
+        self.assertIsNone(get_order(order_id)["ventanas"][0]["codigo"])
 
     def test_rolls_back_order_windows_and_plan_if_plan_insert_fails(self):
         with sqlite3.connect(self.path) as connection:

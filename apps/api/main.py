@@ -234,10 +234,30 @@ def record_settlement_change(connection, order_id, before):
         record_event(connection, order_id, "liquidado" if after else "liquidacion_perdida")
 
 
+def record_production(connection, window_id, area, order, action):
+    order_id = connection.execute("SELECT pedido_id FROM ventanas WHERE id = ?", (window_id,)).fetchone()[0]
+    original = None
+    if action == "deshacer":
+        row = connection.execute(
+            "SELECT evento_id FROM marcas_fabricacion_vigentes WHERE ventana_id = ? AND area = ? AND orden = ? ORDER BY evento_id DESC LIMIT 1",
+            (window_id, area, order),
+        ).fetchone()
+        if row:
+            original = row[0]
+            connection.execute("DELETE FROM marcas_fabricacion_vigentes WHERE evento_id = ?", (original,))
+    cursor = connection.execute(
+        "INSERT INTO eventos_fabricacion (pedido_id, ventana_id, area, accion, fecha_hora, original_id) VALUES (?, ?, ?, ?, ?, ?)",
+        (order_id, window_id, area, action, datetime.now(ZoneInfo("America/Tijuana")).isoformat(timespec="seconds"), original),
+    )
+    if action == "marcar":
+        connection.execute("INSERT INTO marcas_fabricacion_vigentes VALUES (?, ?, ?, ?)", (cursor.lastrowid, window_id, area, order))
+
+
 def close_order(connection, order_id):
     today = datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()
     record_event(connection, order_id, "cierre")
     simplify_closed_snapshots(connection, order_id)
+    connection.execute("DELETE FROM marcas_fabricacion_vigentes WHERE ventana_id IN (SELECT id FROM ventanas WHERE pedido_id = ?)", (order_id,))
     connection.execute("UPDATE pedidos SET fecha_cierre = ?, etiqueta = NULL WHERE id = ?", (today, order_id))
     for table in ("plan_aluminio", "plan_vidrio"):
         connection.execute(f"DELETE FROM {table} WHERE ventana_id IN (SELECT id FROM ventanas WHERE pedido_id = ?)", (order_id,))
@@ -308,6 +328,14 @@ def following_label(current: str | None) -> str:
     return label
 
 
+def assign_order_label(connection, order_id):
+    used = {row[0] for row in connection.execute("SELECT etiqueta FROM pedidos WHERE etiqueta IS NOT NULL")}
+    label = following_label(None)
+    while label in used:
+        label = following_label(label)
+    connection.execute("UPDATE pedidos SET etiqueta = ? WHERE id = ?", (label, order_id))
+
+
 @app.post("/api/pedidos", status_code=201)
 def create_order(order: NewOrder):
     measurements = []
@@ -328,15 +356,10 @@ def create_order(order: NewOrder):
     if not measurements:
         raise HTTPException(status_code=422, detail="Agrega al menos una ventana con ancho y alto completos.")
 
-    # BEGIN IMMEDIATE serializa la elección de etiqueta entre guardados simultáneos.
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
-            used = {row[0] for row in connection.execute("SELECT etiqueta FROM pedidos WHERE etiqueta IS NOT NULL")}
-            label = following_label(None)
-            while label in used:
-                label = following_label(label)
-            cursor = connection.execute("INSERT INTO pedidos (etiqueta) VALUES (?)", (label,))
+            cursor = connection.execute("INSERT INTO pedidos DEFAULT VALUES")
             order_id = cursor.lastrowid
             record_event(connection, order_id, "presupuesto_creado")
             for number, (width, height, aluminum, glass) in enumerate(measurements, start=1):
@@ -473,6 +496,11 @@ def _get_order(order_id, existing_connection=None):
         accepted = connection.execute("SELECT 1 FROM aceptaciones WHERE pedido_id = ?", (order_id,)).fetchone() is not None
         movement_rows = connection.execute("SELECT id, tipo, importe_centavos, fecha, anulado, fecha_anulacion FROM movimientos WHERE pedido_id = ? ORDER BY id", (order_id,)).fetchall()
         events = connection.execute("SELECT tipo, fecha_hora FROM eventos_pedido WHERE pedido_id = ? ORDER BY id", (order_id,)).fetchall()
+        production = connection.execute(
+            "SELECT e.id, e.ventana_id, v.numero_en_pedido, e.area, e.accion, e.fecha_hora, e.original_id, "
+            "EXISTS(SELECT 1 FROM eventos_fabricacion c WHERE c.original_id = e.id) "
+            "FROM eventos_fabricacion e JOIN ventanas v ON v.id = e.ventana_id WHERE e.pedido_id = ? ORDER BY e.id", (order_id,)
+        ).fetchall()
         minimum = connection.execute("SELECT porcentaje FROM configuracion_anticipo WHERE id = 1").fetchone()[0]
         glass_waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
         cost_rows = connection.execute(
@@ -556,6 +584,10 @@ def _get_order(order_id, existing_connection=None):
         "etiqueta": label,
         "aceptado": accepted,
         "eventos": [{"tipo": kind, "fecha_hora": timestamp} for kind, timestamp in events],
+        "eventos_fabricacion": [{"id": event_id, "ventana_id": window_id, "ventana": number, "area": area,
+                                  "accion": action, "fecha_hora": timestamp, "original_id": original,
+                                  "corregido": bool(corrected)}
+                                 for event_id, window_id, number, area, action, timestamp, original, corrected in production],
         "fecha_programada": order_row[9],
         "instalado": bool(order_row[10]),
         "fecha_real": order_row[11],
@@ -679,6 +711,7 @@ def add_movement(order_id: int, movement: MovementInput):
             if movement.tipo == "pago" and (net + cents) * 100 >= total * order["anticipo_minimo"]:
                 cursor = connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
                 if cursor.rowcount:
+                    assign_order_label(connection, order_id)
                     record_event(connection, order_id, "aceptado")
             record_settlement_change(connection, order_id, order["liquidado"])
             if order["instalado"] and movement.tipo == "pago" and net + cents >= total:
@@ -702,6 +735,7 @@ def void_movement(order_id: int, movement_id: int):
             if net * 100 < cents_from_input(order["total_pedido"]) * order["anticipo_minimo"]:
                 cursor = connection.execute("DELETE FROM aceptaciones WHERE pedido_id = ?", (order_id,))
                 if cursor.rowcount:
+                    connection.execute("UPDATE pedidos SET etiqueta = NULL WHERE id = ?", (order_id,))
                     record_event(connection, order_id, "aceptacion_revocada")
             record_settlement_change(connection, order_id, order["liquidado"])
     return get_order(order_id)
@@ -919,6 +953,24 @@ def _apply_window_measure_correction(
     cleared_marks = aluminum_cut_count + glass_cut_count - preserved_aluminum - preserved_glass
     assembly_was_marked = bool(window[2])
 
+    # Los cortes afectados siguen en el historial, pero dejan de representar marcas vigentes.
+    associations = connection.execute(
+        "SELECT m.evento_id, a.perfil, a.longitud_16 FROM marcas_fabricacion_vigentes m "
+        "JOIN plan_aluminio a ON a.ventana_id = m.ventana_id AND a.orden = m.orden "
+        "WHERE m.ventana_id = ? AND m.area = 'aluminio' ORDER BY m.evento_id DESC", (window_id,)
+    ).fetchall()
+    connection.execute("DELETE FROM marcas_fabricacion_vigentes WHERE ventana_id = ? AND area IN ('aluminio', 'ensamble')", (window_id,))
+    if not glass_unchanged:
+        connection.execute("DELETE FROM marcas_fabricacion_vigentes WHERE ventana_id = ? AND area = 'vidrio'", (window_id,))
+    grouped = {}
+    for event_id, profile, length in associations:
+        grouped.setdefault((profile, length), []).append(event_id)
+    for _, order, profile, length, _, preserved in updated_aluminum:
+        pool = grouped.get((profile, length), [])
+        for event_id in pool[:preserved]:
+            connection.execute("INSERT INTO marcas_fabricacion_vigentes VALUES (?, ?, 'aluminio', ?)", (event_id, window_id, order))
+        del pool[:preserved]
+
     connection.execute(
         "UPDATE ventanas SET ancho_16 = ?, alto_16 = ?, ensamblada = 0 WHERE id = ?",
         (width, height, window_id),
@@ -1023,6 +1075,7 @@ def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
                 "UPDATE plan_aluminio SET cortadas = ? WHERE ventana_id = ? AND orden = ?",
                 (updated, window_id, order),
             )
+            record_production(connection, window_id, "aluminio", order, mark.accion)
     return {"orden": order, "requeridas": required, "cortadas": updated, "pendientes": required - updated}
 
 
@@ -1055,6 +1108,7 @@ def mark_glass(window_id: int, mark: GlassMark):
                 "UPDATE plan_vidrio SET cortadas = ? WHERE ventana_id = ?",
                 (updated, window_id),
             )
+            record_production(connection, window_id, "vidrio", 0, mark.accion)
     return {"requeridas": required, "cortadas": updated, "pendientes": required - updated}
 
 
@@ -1094,6 +1148,7 @@ def mark_assembly(window_id: int, mark: AssemblyMark):
                 "UPDATE ventanas SET ensamblada = ? WHERE id = ?",
                 (int(mark.accion == "marcar"), window_id),
             )
+            record_production(connection, window_id, "ensamble", 0, mark.accion)
     return {"ensamblada": mark.accion == "marcar"}
 
 

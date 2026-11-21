@@ -144,3 +144,20 @@ CREATE TABLE IF NOT EXISTS eventos_pedido (
     tipo TEXT NOT NULL,
     fecha_hora TEXT NOT NULL
 );
+
+-- Eventos de fabricación y asociación temporal a las marcas vigentes.
+CREATE TABLE IF NOT EXISTS eventos_fabricacion (
+    id INTEGER PRIMARY KEY,
+    pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+    ventana_id INTEGER NOT NULL REFERENCES ventanas(id),
+    area TEXT NOT NULL CHECK (area IN ('aluminio', 'vidrio', 'ensamble')),
+    accion TEXT NOT NULL CHECK (accion IN ('marcar', 'deshacer')),
+    fecha_hora TEXT NOT NULL,
+    original_id INTEGER REFERENCES eventos_fabricacion(id)
+);
+CREATE TABLE IF NOT EXISTS marcas_fabricacion_vigentes (
+    evento_id INTEGER PRIMARY KEY REFERENCES eventos_fabricacion(id),
+    ventana_id INTEGER NOT NULL REFERENCES ventanas(id),
+    area TEXT NOT NULL,
+    orden INTEGER NOT NULL
+);
