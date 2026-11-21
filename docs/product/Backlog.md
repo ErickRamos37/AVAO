@@ -467,7 +467,8 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Media / 5. **Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de producción registrada por periodo, **para** observar el comportamiento del taller.
+- **Prioridad/esfuerzo aceptados:** Media / 5. 
+**Historia:** **Como** encargado, **necesito** consultar gráficas y promedios de producción registrada por periodo, **para** observar el comportamiento del taller.
 - **Criterios propuestos:**
   - [ ] Consultar cantidades y gráficas de piezas de aluminio y vidrio cortadas y ventanas ensambladas por día, semana, mes y año; semanas de lunes a domingo en horario de Tijuana, incluyendo domingos.
   - [ ] Consultar promedios por periodo incluyendo los días sin actividad, incluidos domingos; distinguir registro por tandas de hora real de trabajo y aplicar correcciones de HU-28.
@@ -477,7 +478,8 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 - **Área:** Visibilidad · **Épica:** E5.
 
-- **Prioridad/esfuerzo aceptados:** Media / 5. **Historia:** **Como** encargado, **necesito** consultar pedidos listos, pendientes e instalaciones y promedios de salidas, **para** organizar compromisos.
+- **Prioridad/esfuerzo aceptados:** Media / 5. 
+**Historia:** **Como** encargado, **necesito** consultar pedidos listos, pendientes e instalaciones y promedios de salidas, **para** organizar compromisos.
 - **Criterios propuestos:**
   - [ ] Consultar pedidos listos, pendientes y por instalar, con señal visible de instalación atrasada conforme a HU-30.
   - [ ] Consultar por separado pedidos instalados y pedidos finalizados (instalados y liquidados), y sus promedios por semana, mes y año, incluyendo días sin actividad.
