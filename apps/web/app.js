@@ -69,7 +69,7 @@ function showError(text) {
 }
 
 function updateMeasureEditButton(order = currentOrderData) {
-  const visible = Boolean(order?.ventanas.length);
+  const visible = Boolean(order?.ventanas.length) && !order.instalado;
   measureEditButton.hidden = !visible || !measureEditForm.hidden;
 }
 
@@ -203,8 +203,8 @@ function aluminumCutRow(window, cut, progress, label, onProgressChange) {
 
   function refresh() {
     status.textContent = `${label}: ${cut.longitud}″ · requerido ${cut.cantidad}, cortado ${progress.cortadas}, pendiente ${progress.pendientes}`;
-    mark.disabled = !currentOrderData.aceptado || progress.cortadas >= cut.cantidad;
-    undo.disabled = !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
+    mark.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas >= cut.cantidad;
+    undo.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
   }
 
   async function change(action) {
@@ -257,8 +257,8 @@ function glassCutRow(window, onProgressChange) {
 
   function refresh() {
     status.textContent = `Vidrio: ${plan.ancho}″ × ${plan.alto}″ · cortados: ${progress.cortadas} de ${plan.cantidad} · pendientes: ${progress.pendientes}`;
-    mark.disabled = !currentOrderData.aceptado || progress.cortadas >= plan.cantidad;
-    undo.disabled = !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
+    mark.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas >= plan.cantidad;
+    undo.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
   }
 
   async function change(action) {
@@ -316,8 +316,8 @@ function assemblyRow(window, orderId) {
       && window.plan_vidrio && window.avance_vidrio
       && window.avance_vidrio.pendientes === 0;
     status.textContent = `Ensamble de ${window.codigo ?? window.numero}: ${window.ensamblada ? 'ensamblada' : 'pendiente'}`;
-    mark.disabled = !currentOrderData.aceptado || window.ensamblada || !complete;
-    undo.disabled = !currentOrderData.aceptado || !window.ensamblada;
+    mark.disabled = currentOrderData.instalado || !currentOrderData.aceptado || window.ensamblada || !complete;
+    undo.disabled = currentOrderData.instalado || !currentOrderData.aceptado || !window.ensamblada;
   }
 
   async function change(action) {
@@ -393,7 +393,9 @@ async function loadOrders() {
         progress.setAttribute('aria-label', `Avance general del pedido ${order.etiqueta ?? order.id}`);
         item.append(progress);
       }
-      if (order.listo_instalacion) {
+      if (order.instalado) {
+        const installed = document.createElement('p'); installed.textContent = 'Instalado ✓'; item.append(installed);
+      } else if (order.listo_instalacion) {
         const ready = document.createElement('p');
         ready.textContent = 'Listo para instalación';
         item.append(ready);
@@ -552,6 +554,8 @@ async function openOrder(id) {
       document.querySelector('#client-details').open = false;
     }
     currentOrderData = order;
+    document.querySelector('#installation-state').textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
+    document.querySelector('#installation-toggle').textContent = order.instalado ? 'Desmarcar instalación' : 'Marcar instalado';
     exitMeasureEdit();
     document.querySelector('#order-title').textContent = order.etiqueta === null
       ? `Pedido ${order.id} · sin etiqueta`
@@ -717,6 +721,7 @@ async function openOrder(id) {
       measureValue.textContent = `${window.ancho} × ${window.alto}`;
       const discardButton = document.createElement('button');
       discardButton.type = 'button';
+      discardButton.disabled = order.instalado;
       discardButton.textContent = `Descartar ventana ${window.codigo ?? window.numero}`;
       discardButton.addEventListener('click', () => changeWindowDiscard(window, true, discardButton));
       measureSection.append(measureHeading, measureValue, discardButton);
@@ -782,6 +787,7 @@ async function openOrder(id) {
       measures.textContent = `${window.ancho} × ${window.alto}`;
       const restoreButton = document.createElement('button');
       restoreButton.type = 'button';
+      restoreButton.disabled = order.instalado;
       restoreButton.textContent = `Reincorporar ventana ${window.codigo ?? window.numero}`;
       restoreButton.addEventListener('click', () => changeWindowDiscard(window, false, restoreButton));
       section.append(heading, measures, restoreButton);
@@ -865,6 +871,19 @@ document.querySelector('#glass-waste-included').addEventListener('change', async
     if (!response.ok) throw new Error(result.detail ?? 'No se pudo guardar la selección.');
     message.hidden = true; await openOrder(currentOrderId);
   } catch (error) { checkbox.checked = !checkbox.checked; showError(error.message); } finally { checkbox.disabled = false; }
+});
+
+document.querySelector('#installation-toggle').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  const installed = !currentOrderData.instalado;
+  if (!installed && !window.confirm('¿Desmarcar la instalación? Podrás modificar nuevamente las ventanas y la fabricación.')) return;
+  button.disabled = true;
+  try {
+    const response = await fetch(`/api/pedidos/${currentOrderId}/instalacion`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({instalado: installed, confirmar_desmarcado: !installed})});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail ?? 'No se pudo actualizar la instalación.');
+    message.hidden = true; await openOrder(currentOrderId);
+  } catch (error) { showError(error.message); } finally { button.disabled = false; }
 });
 
 document.querySelector('#payment-form').addEventListener('submit', async event => {

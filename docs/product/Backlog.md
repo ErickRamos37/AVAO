@@ -308,13 +308,13 @@ HU-13 contiene datos del cliente y notas ya trabajados. No se implementan en est
 
 ## Ciclo 4 propuesto: completar el pedido
 
-El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. Las prioridades, esfuerzos y orden son propuestas revisables. HU-27 y su subtarea #79 fueron implementadas y aceptadas; las demás historias y subtareas ya tienen incidencias y aún no están implementadas. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
+El usuario confirmó continuar el flujo comercial con aceptación, pagos, instalación, cierre y merma de vidrio. Las prioridades, esfuerzos y orden son propuestas revisables. HU-14, HU-15, HU-16 y HU-27 fueron implementadas y aceptadas; HU-17 conserva su incidencia y está pendiente de implementación. El 3 propuesto para HU-27 toma como referencia HU-26 y considera el cálculo adicional por área. Las notas de trabajo ya pertenecen a HU-13; no se añaden optimización de corte ni PWA.
 
 | ID | HU | Épica | Esfuerzo propuesto | Prioridad actual propuesta | Estado |
 | --- | --- | --- | ---: | --- | --- |
 | HU-14 | Aceptación, anticipo y saldo | E3 | 5 | Alta | Implementada y aceptada; subtarea #81 |
 | HU-15 | Fechas de instalación | E3 | 2 | Media | Implementada y aceptada; subtarea #83 |
-| HU-16 | Instalación completa | E3 | 2 | Alta | Por refinar y desarrollar |
+| HU-16 | Instalación completa | E3 | 2 | Alta | Implementada y aceptada; subtarea #85 |
 | HU-17 | Pagos, liquidación e histórico | E3 | 5 | Alta | Por refinar y desarrollar |
 | HU-27 | Merma de vidrio | E4 | 3 | — | Implementada y aceptada; subtarea #79 |
 
@@ -347,12 +347,14 @@ El usuario confirmó continuar el flujo comercial con aceptación, pagos, instal
 
 ### HU-16 — Marcar instalación completa del pedido
 
+- **Estado:** implementada y aceptada por el usuario; subtarea [#85](https://github.com/ErickRamos37/AVAO/issues/85).
+
 - **Área:** Instalación · **Épica:** E3 · **Prioridad/esfuerzo:** Alta propuesta / 2 propuesto.
 - **Historia:** **Como** instalador, **necesito** marcar el pedido instalado, **para** distinguir la entrega física de la liquidación del saldo.
-- **Criterios de aceptación propuestos:**
-  - [ ] Si falta un corte o ensamble activo, no permite marcar instalado; una vez completos, la marca y señal verde o texto en la esquina de la tarjeta y en el detalle persisten al consultar; la fecha real se registra automáticamente, sin entrada manual.
-  - [ ] Instalado bloquea ventanas, medidas y fabricación y permite pagos y devoluciones; desmarcar requiere advertencia y devuelve la posibilidad de modificación.
-- **Subtarea vertical propuesta — Marcar instalación completa del pedido:** Permitir marcar instalado cuando todos los cortes y ensambles de las ventanas activas estén completos; mostrar señal verde o texto en la esquina de la tarjeta y en el detalle y registrar automáticamente la fecha real al marcar instalado. Bloquear cambios en ventanas, medidas y fabricación, sin bloquear pagos ni devoluciones; permitir desmarcar con advertencia. No definir reapertura desde histórico sin acordarla.
+- **Criterios de aceptación:**
+  - [x] Si falta un corte o ensamble activo, no permite marcar instalado; una vez completos, la marca y señal verde o texto en la esquina de la tarjeta y en el detalle persisten al consultar; la fecha real se registra automáticamente, sin entrada manual.
+  - [x] Instalado bloquea ventanas, medidas y fabricación y permite pagos y devoluciones; desmarcar requiere advertencia y devuelve la posibilidad de modificación. Al desmarcar se elimina la fecha real actual; al marcar instalado nuevamente se registra automáticamente la nueva fecha.
+- **Subtarea [#85](https://github.com/ErickRamos37/AVAO/issues/85), implementada y aceptada — Marcar instalación completa del pedido:** Permitir marcar instalado cuando todos los cortes y ensambles de las ventanas activas estén completos; mostrar señal verde o texto en la esquina de la tarjeta y en el detalle y registrar automáticamente la fecha real al marcar instalado. Bloquear cambios en ventanas, medidas y fabricación, sin bloquear pagos ni devoluciones; permitir desmarcar con advertencia. No definir reapertura desde histórico sin acordarla.
 - **Dependencias, límites y preguntas:** La instalación requiere cortes y ensambles de ventanas activas completos. El cierre e histórico son HU-17 y no forman parte de esta subtarea; queda por decidir cómo actuar desde el histórico. No se han acordado requisitos adicionales de precio o fecha para marcar instalado.
 
 ### HU-17 — Cerrar y consultar pedidos finalizados
