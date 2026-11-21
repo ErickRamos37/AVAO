@@ -403,16 +403,18 @@ HU-14 y HU-17 comparten movimientos: HU-14 los registra y calcula el saldo; HU-1
 
 ## Ciclo 5 propuesto: medición del taller
 
-El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las siguientes historias son propuestas para refinar; sus identificadores aún no implican incidencias ni estado en GitHub Projects. Esfuerzo y prioridad quedan por acordar. Las dependencias orientan el orden, sin sustituir la decisión del usuario.
+El usuario acordó registrar eventos y consultar el flujo del taller durante meses y años, sin medir tiempo efectivo ni productividad individual. Las siguientes historias son propuestas para refinar; sus identificadores aún no implican incidencias ni estado en GitHub Projects. Esfuerzo y prioridad son propuestas relativas pendientes de aceptación. Las dependencias orientan el orden, sin sustituir la decisión del usuario. HU-28 se estima en 8 por la variedad de eventos, correcciones e histórico; si al refinar supera 8, se propondrá dividirla en historias con valor propio antes de implementarla.
 
 | ID | HU | Épica | Esfuerzo propuesto | Prioridad propuesta | Estado |
 | --- | --- | --- | --- | --- | --- |
-| HU-28 | Consultar hitos y avance de fabricación | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
-| HU-29 | Consultar cambios de medida y piezas afectadas | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
-| HU-30 | Consultar programación y reprogramaciones | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
-| HU-31 | Consultar el flujo del taller por periodos | Por asignar | Por estimar | Por decidir | Propuesta por refinar |
+| HU-28 | Consultar hitos y avance de fabricación | Por asignar | 8 | Alta | Propuesta por refinar |
+| HU-29 | Consultar cambios de medida y piezas afectadas | Por asignar | 5 | Alta | Propuesta por refinar |
+| HU-30 | Consultar programación y reprogramaciones | Por asignar | 5 | Media | Propuesta por refinar |
+| HU-31 | Consultar el flujo del taller por periodos | Por asignar | 8 | Media | Propuesta por refinar |
 
 ### HU-28 — Consultar hitos y avance de fabricación
+
+- **Prioridad/esfuerzo propuestos:** Alta / 8. Integra varios eventos, correcciones y conservación al cierre; requiere revisar tamaño antes de implementar.
 
 - **Historia:** **Como** encargado, **necesito** consultar cuándo se registraron los hitos comerciales y el avance de fabricación de cada pedido, **para** conocer su recorrido y contar el trabajo registrado por periodo.
 - **Criterios de aceptación propuestos:**
@@ -421,9 +423,14 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
   - [ ] Una corrección manual que deshace una marca ajusta el conteo del día original y conserva el evento de corrección. Una corrección de dimensiones que afecta piezas previamente cortadas conserva la producción original como ocurrida y se distingue según HU-29.
   - [ ] Los eventos ligeros permanecen consultables tras el cierre, sin conservar por ello planes de corte ni desglose individual de materiales y costos.
 - **Dependencias y límites:** depende de la aceptación y movimientos de HU-14, instalación de HU-16 y cierre de HU-17. La hora es del registro, que puede hacerse por tandas después del trabajo: no demuestra la hora real del trabajo, tiempo efectivo ni productividad individual. Los datos antiguos no permiten reconstruir con fiabilidad los eventos que no se registraron.
-- **Pregunta abierta:** si un pedido deja de estar liquidado por cambio de total o anulación y después vuelve a liquidarse, ¿qué fecha o fechas se conservan y muestran?
+- **Subtareas verticales propuestas:**
+  1. **Consultar hitos del pedido:** registrar creación, aceptación, instalación, liquidación y cierre con fecha y hora; consultar y conservarlos al cerrar. Acordar antes el tratamiento de pérdida y recuperación de liquidación.
+  2. **Consultar cortes y ensambles registrados:** registrar primer corte y avance por pieza o ventana, distinguir correcciones manuales y consultar conteos por periodo; conservar eventos al cerrar. Acordar cómo asignar el día a tandas registradas después.
+- **Preguntas abiertas:** si un pedido deja de estar liquidado por cambio de total o anulación y después vuelve a liquidarse, ¿qué fecha o fechas se conservan y muestran? ¿Las tandas se asignan automáticamente al día del registro aunque el trabajo fuera anterior? ¿Las fechas y horas se interpretan en la zona local de Tijuana?
 
 ### HU-29 — Consultar cambios de medida y piezas afectadas
+
+- **Prioridad/esfuerzo propuestos:** Alta / 5. Reutiliza HU-07 y los eventos, pero debe distinguir causas y piezas afectadas.
 
 - **Historia:** **Como** encargado, **necesito** consultar cambios de medida posteriores a la aceptación y piezas cortadas afectadas, **para** conocer su incidencia en el trabajo del taller.
 - **Criterios de aceptación propuestos:**
@@ -432,18 +439,24 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
   - [ ] Para perfiles de aluminio, si la nueva longitud requerida supera la ya cortada, las piezas afectadas se clasifican como «sobrante recuperable por cambio de medida». Si la nueva longitud es menor, se registran como afectadas y queda abierta la posibilidad de recorte; si es igual, no se consideran afectadas por longitud.
   - [ ] Los eventos de corte originales permanecen en la producción histórica; los eventos de cambio y piezas afectadas se consultan por separado y se conservan tras el cierre.
 - **Dependencias y límites:** depende de HU-07 y del registro de HU-28. La clasificación no implica desperdicio definitivo, cargo monetario de HU-26 ni inventario automático de sobrantes; un cambio no demuestra por sí solo error de medición. La regla de longitud mayor o menor se refiere a perfiles y no se extiende al vidrio sin confirmación.
+- **Subtarea vertical propuesta — Consultar cambios de medidas y piezas cortadas afectadas:** registrar y consultar cambios posteriores a la aceptación, sus medidas anteriores y nuevas y las piezas previamente cortadas afectadas; clasificar perfiles según longitud, conservar producción original y eventos al cierre, y comprobar que correcciones de presupuesto quedan fuera.
 - **Preguntas abiertas:** ¿cómo clasificar los vidrios afectados cuando cambian sus dimensiones? Si se descarta una ventana, ¿cómo afecta a los conteos ya registrados?
 
 ### HU-30 — Consultar programación y reprogramaciones
+
+- **Prioridad/esfuerzo propuestos:** Media / 5. Amplía fechas existentes con historial y motivos por definir.
 
 - **Historia:** **Como** encargado, **necesito** consultar la fecha de instalación acordada y sus cambios, **para** dar seguimiento a los compromisos con el cliente.
 - **Criterios de aceptación propuestos:**
   - [ ] Se conservan y consultan la fecha programada original y cada reprogramación, con fecha anterior y nueva y momento de registro.
   - [ ] Se registra y consulta el motivo de reprogramación o atraso conforme a las reglas que se acuerden; la fecha real de instalación conserva fecha y hora.
 - **Dependencias y límites:** amplía las fechas de HU-15 y el registro de HU-28. La reprogramación y el atraso no tienen necesariamente el mismo motivo.
+- **Subtarea vertical propuesta — Consultar fechas y motivos de instalación:** conservar y mostrar fecha original, reprogramaciones con valores anterior y nuevo y momento, y motivo según se acuerde; comprobar consulta tras cerrar. No imponer catálogo ni obligatoriedad sin decisión.
 - **Preguntas abiertas:** ¿cuándo se captura el motivo, si es obligatorio y qué opciones necesita el taller? ¿Qué situación determina que una instalación está atrasada?
 
 ### HU-31 — Consultar el flujo del taller por periodos
+
+- **Prioridad/esfuerzo propuestos:** Media / 8. Reúne varias consultas y reglas de periodos; revisar tamaño tras definir el primer resultado.
 
 - **Historia:** **Como** encargado, **necesito** consultar un tablero con el avance y los compromisos del taller, **para** identificar pendientes y orientar decisiones de organización.
 - **Criterios de aceptación propuestos:**
@@ -451,7 +464,10 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
   - [ ] Se consultan pedidos listos y pendientes, instalaciones y pagos; el detalle y definiciones se acuerdan antes de implementar.
   - [ ] Se distingue la fecha y hora de registro de la actividad efectivamente realizada, sin presentar conteos como tiempo efectivo, productividad individual o prueba de una causa de cuello de botella.
 - **Dependencias y límites:** utiliza los datos de HU-28 y HU-30; el alcance de cambios de medida y piezas afectadas depende de HU-29. Cortes de distinta longitud o complejidad no son directamente equivalentes. No promete mediciones retrospectivas sin datos registrados.
-- **Preguntas abiertas:** ¿qué significa estar listo o pendiente para esta consulta y qué periodos y datos de pagos e instalaciones son útiles? ¿Cuántos días anticipados hacen que una fecha sea próxima?
+- **Subtareas verticales propuestas:**
+  1. **Consultar producción por periodos:** mostrar cortes y ensambles registrados por día, semana y mes con correcciones y zona horaria acordadas; identificar que son momentos de registro.
+  2. **Consultar pedidos e instalaciones pendientes:** mostrar estados y fechas útiles según definiciones acordadas y consultar pagos pertinentes; comprobar pedidos activos e históricos.
+- **Preguntas abiertas:** ¿qué significa estar listo o pendiente para esta consulta y qué datos de pagos e instalaciones son útiles? ¿Cuántos días anticipados hacen que una fecha sea próxima? ¿Cómo empiezan y terminan los periodos de calendario y qué zona horaria se aplica? No se presentan predicciones sin reglas y datos acordados.
 
 **Temas futuros sin reglas ni historias aprobadas:** definir cómo registrar material surtido o faltante, bloqueos y sus causas, estimaciones de fabricación y satisfacción del cliente. La investigación no fija todavía su alcance ni los incorpora automáticamente a estas entregas.
 
