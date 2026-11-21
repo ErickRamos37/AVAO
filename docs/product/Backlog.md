@@ -416,7 +416,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 | HU-29 | Consultar cambios de medida y piezas afectadas | E5 | 5 | Alta | Implementada y aceptada; subtarea #99 |
 | HU-30 | Consultar programación y reprogramaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #101 |
 | HU-31 | Consultar producción por periodos | E5 | 5 | Media | Implementada y aceptada; subtarea #103 |
-| HU-32 | Consultar pedidos e instalaciones | E5 | 5 | Media | División propuesta por refinar |
+| HU-32 | Consultar pedidos e instalaciones | E5 | 5 | Media | Implementada y aceptada; subtarea #112 |
 | HU-33 | Consultar ingresos y ganancia estimada | E5 | 8 | Media | División propuesta por refinar |
 
 ### HU-28 — Consultar hitos y avance de fabricación
@@ -493,15 +493,17 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
 
 ### HU-32 — Consultar pedidos e instalaciones
 
+- **Estado:** implementada y aceptada por el usuario; subtarea [#112](https://github.com/ErickRamos37/AVAO/issues/112).
+
 - **Área:** Visibilidad · **Épica:** E5.
 
 - **Prioridad/esfuerzo aceptados:** Media / 5. 
 **Historia:** **Como** encargado, **necesito** consultar pedidos listos, pendientes e instalaciones y promedios de salidas, **para** organizar compromisos.
-- **Criterios propuestos:**
-  - [ ] Mostrar estas consultas en la misma página exclusiva de tablero que producción, accesible desde la navegación principal.
-  - [ ] Consultar pedidos listos para instalar (todas sus ventanas activas ensambladas y aún no instalado), pendientes por área y por instalar, con señal visible de instalación atrasada conforme a HU-30.
-  - [ ] Consultar por separado pedidos instalados y pedidos finalizados (instalados y liquidados), y sus promedios por semana, mes y año, incluyendo días sin actividad.
-- **Subtarea propuesta — Consultar pedidos y salidas:** mostrar listas y promedios con fechas de instalación e histórico. **Dependencias:** HU-28 y HU-30. **Preguntas abiertas:** ¿cuántos días anticipados cuentan como instalación próxima? ¿Cómo deben contarse las instalaciones cuando se desmarca y vuelve a marcar instalado?
+- **Criterios de aceptación:**
+  - [x] Mostrar estas consultas en la misma página exclusiva de tablero que producción, accesible desde la navegación principal.
+  - [x] Consultar pedidos listos para instalar (al menos una ventana activa, todas las activas ensambladas y aún no instalado), pendientes por área y por instalar; pendiente es un pedido aceptado activo que no está listo ni instalado. Indicar los pedidos sin ventanas activas y señalar instalaciones atrasadas conforme a HU-30. Una instalación próxima es la programada en cinco días o menos.
+  - [x] Consultar por separado pedidos instalados y pedidos finalizados (instalados y liquidados), y sus promedios diarios por semana, mes y año con la regla de HU-31, incluidos días sin actividad. Se cuenta una instalación vigente por pedido: al desmarcar se retira del conteo y al marcar de nuevo cuenta la nueva instalación; los eventos históricos permanecen.
+- **Subtarea [#112](https://github.com/ErickRamos37/AVAO/issues/112), implementada y aceptada — Consultar pedidos y salidas:** mostrar listas y promedios diarios con fechas de instalación e histórico, próximas a cinco días o menos e instalación vigente por pedido. **Dependencias:** HU-28 y HU-30. **Reglas confirmadas:** las próximas son a cinco días o menos; el conteo usa la instalación vigente y conserva el historial de eventos. Los promedios diarios siguen HU-31.
 
 ### HU-33 — Consultar ingresos y ganancia estimada
 
@@ -512,7 +514,7 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
   - [ ] Mostrar estas consultas en la misma página exclusiva de tablero que producción y pedidos, accesible desde la navegación principal.
   - [ ] Consultar gráficas y promedios de pagos recibidos, devoluciones e ingresos netos, además de saldos y distribución por día de la semana en que entra dinero; incluir días sin actividad y excluir anulaciones conforme a HU-14.
   - [ ] Mostrar dos indicadores de ganancia estimada usando la ganancia guardada de ventanas activas no descartadas: pedidos activos aceptados como situación actual, incluidos los ya pagados que aún no están instalados; y pedidos finalizados, instalados y con pagos netos iguales o superiores al total, agrupados por fecha de cierre. No incluir presupuestos, merma ni traslado como ganancia; no presentarla como utilidad neta porque faltan mano de obra y gastos.
-- **Subtarea propuesta — Consultar movimientos y ganancia estimada:** integrar gráficas y promedios con pagos, devoluciones y saldos, y mostrar por separado la ganancia guardada de ventanas de pedidos activos aceptados y finalizados agrupados por cierre. **Dependencias:** HU-14, HU-17 y reglas de agregación pendientes. La ganancia de activos es una instantánea actual, no se atribuye al cobro y no permite comparaciones históricas sin capturas adicionales. **Pregunta abierta:** ¿cómo se agregan saldos y promedios por semana, mes y año?
+- **Subtarea [#113](https://github.com/ErickRamos37/AVAO/issues/113) propuesta — Consultar movimientos y ganancia estimada:** integrar gráficas y promedios con pagos, devoluciones y saldos, y mostrar por separado la ganancia guardada de ventanas de pedidos activos aceptados y finalizados agrupados por cierre. **Dependencias:** HU-14, HU-17 y reglas de agregación pendientes. La ganancia de activos es una instantánea actual, no se atribuye al cobro y no permite comparaciones históricas sin capturas adicionales. **Pregunta abierta:** ¿cómo se agregan saldos y promedios por semana, mes y año?
 
 ### HU-34 — Seguimiento de presupuestos, fuera del ciclo 5
 

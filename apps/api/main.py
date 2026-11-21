@@ -450,6 +450,7 @@ def list_order_progress():
             "listo_instalacion": bool(windows) and assembly_done == assembly_required and has_plan,
             "instalado": details["instalado"],
             "instalacion_atrasada": details["instalacion_atrasada"],
+            "fecha_programada": details["fecha_programada"],
             "aluminio": aluminum,
             "vidrio": glass,
             "ensamble": assembly,
@@ -477,8 +478,7 @@ def production_by_day(inicio: str, fin: str):
     return {"dias": list(days.values())}
 
 
-@app.get("/api/produccion")
-def production_report(periodo: Literal["dia", "semana", "mes", "ano"], fecha: str):
+def report_period(periodo, fecha):
     try:
         selected = date.fromisoformat(fecha)
         if selected.isoformat() != fecha or selected > datetime.now(ZoneInfo("America/Tijuana")).date():
@@ -496,6 +496,12 @@ def production_report(periodo: Literal["dia", "semana", "mes", "ano"], fecha: st
     else:
         start, end = date(selected.year, 1, 1), date(selected.year, 12, 31)
     end = min(end, datetime.now(ZoneInfo("America/Tijuana")).date())
+    return start, end
+
+
+@app.get("/api/produccion")
+def production_report(periodo: Literal["dia", "semana", "mes", "ano"], fecha: str):
+    start, end = report_period(periodo, fecha)
     recorded = {row["fecha"]: row for row in production_by_day(start.isoformat(), end.isoformat())["dias"]}
     days = []
     for offset in range((end - start).days + 1):
@@ -504,6 +510,50 @@ def production_report(periodo: Literal["dia", "semana", "mes", "ano"], fecha: st
     totals = {area: sum(row[area] for row in days) for area in ("aluminio", "vidrio", "ensamble")}
     return {"inicio": start.isoformat(), "fin": end.isoformat(), "dias": days, "totales": totals,
             "promedios_diarios": {area: total / len(days) for area, total in totals.items()}}
+
+
+@app.get("/api/tablero/pedidos")
+def dashboard_orders():
+    today = datetime.now(ZoneInfo("America/Tijuana")).date()
+    orders = list_order_progress()["pedidos"]
+    pending, ready, installed, late, upcoming = [], [], [], [], []
+    for order in orders:
+        if order["instalado"]:
+            installed.append(order)
+            continue
+        (ready if order["listo_instalacion"] else pending).append(order)
+        day = order["fecha_programada"]
+        if day:
+            parsed = date.fromisoformat(day)
+            if parsed < today:
+                late.append(order)
+            elif parsed <= today + timedelta(days=5):
+                upcoming.append(order)
+    late.sort(key=lambda order: (order["fecha_programada"], order["id"]))
+    upcoming.sort(key=lambda order: (order["fecha_programada"], order["id"]))
+    return {"pendientes": pending, "listos": ready, "instalados_por_liquidar": installed,
+            "atrasados": late, "proximos": upcoming}
+
+
+@app.get("/api/tablero/salidas")
+def dashboard_departures(periodo: Literal["semana", "mes", "ano"], fecha: str):
+    start, end = report_period(periodo, fecha)
+    with closing(connect_db()) as connection:
+        rows = connection.execute(
+            "SELECT CASE WHEN instalado = 1 THEN fecha_real END, fecha_cierre FROM pedidos WHERE (instalado = 1 AND fecha_real BETWEEN ? AND ?) "
+            "OR fecha_cierre BETWEEN ? AND ?", (start.isoformat(), end.isoformat(), start.isoformat(), end.isoformat())
+        ).fetchall()
+    days = [{"fecha": (start + timedelta(days=offset)).isoformat(), "instalados": 0, "finalizados": 0}
+            for offset in range((end - start).days + 1)]
+    by_date = {row["fecha"]: row for row in days}
+    for installation, closed in rows:
+        if installation in by_date:
+            by_date[installation]["instalados"] += 1
+        if closed in by_date:
+            by_date[closed]["finalizados"] += 1
+    totals = {area: sum(day[area] for day in days) for area in ("instalados", "finalizados")}
+    return {"inicio": start.isoformat(), "fin": end.isoformat(), "dias": days, "totales": totals,
+            "promedios_diarios": {area: value / len(days) for area, value in totals.items()}}
 
 
 @app.get("/api/pedidos/historico")
