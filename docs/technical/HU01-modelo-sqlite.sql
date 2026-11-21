@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS pedidos (
     traslado_centavos INTEGER CHECK (traslado_centavos IS NULL OR traslado_centavos >= 0),
     fecha_programada TEXT,
     instalado INTEGER NOT NULL DEFAULT 0 CHECK (instalado IN (0, 1)),
-    fecha_real TEXT
+    fecha_real TEXT,
+    fecha_cierre TEXT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS pedidos_etiqueta_unica ON pedidos (etiqueta);

@@ -201,9 +201,44 @@ def update_cost(codigo: str, update: CostUpdate):
     return serialize_cost(item, cents)
 
 
+def require_open_order(connection, order_id):
+    row = connection.execute("SELECT fecha_cierre FROM pedidos WHERE id = ?", (order_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+    if row[0] is not None:
+        raise HTTPException(status_code=409, detail="El pedido finalizado es de solo lectura.")
+
+
+def simplify_closed_snapshots(connection, order_id):
+    rows = connection.execute(
+        "SELECT c.ventana_id, c.resultado_json FROM costos_ventana c "
+        "JOIN ventanas v ON v.id = c.ventana_id WHERE v.pedido_id = ?", (order_id,)
+    ).fetchall()
+    for window_id, result_json in rows:
+        result = json.loads(result_json)
+        summary = {key: result[key] for key in ("costo_base", "porcentaje_ganancia", "ganancia", "precio") if key in result}
+        connection.execute("UPDATE costos_ventana SET resultado_json = ?, plan_fingerprint = '' WHERE ventana_id = ?",
+                           (json.dumps(summary, ensure_ascii=False), window_id))
+    for table in ("merma_pedido", "merma_vidrio_pedido"):
+        connection.execute(f"UPDATE {table} SET detalle_json = '[]' WHERE pedido_id = ?", (order_id,))
+
+
+def close_order(connection, order_id):
+    today = datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()
+    simplify_closed_snapshots(connection, order_id)
+    connection.execute("UPDATE pedidos SET fecha_cierre = ?, etiqueta = NULL WHERE id = ?", (today, order_id))
+    for table in ("plan_aluminio", "plan_vidrio"):
+        connection.execute(f"DELETE FROM {table} WHERE ventana_id IN (SELECT id FROM ventanas WHERE pedido_id = ?)", (order_id,))
+    connection.execute("UPDATE ventanas SET ensamblada = 0 WHERE pedido_id = ?", (order_id,))
+
+
 @app.post("/api/ventanas/{window_id}/costo-materiales")
 def calculate_window_cost(window_id: int):
     with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        parent = connection.execute("SELECT pedido_id FROM ventanas WHERE id = ?", (window_id,)).fetchone()
+        if parent:
+            require_open_order(connection, parent[0])
         window = connection.execute(
             "SELECT ancho_16, alto_16 FROM ventanas WHERE id = ?", (window_id,)
         ).fetchone()
@@ -283,11 +318,10 @@ def create_order(order: NewOrder):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
-            latest = connection.execute(
-                "SELECT etiqueta FROM pedidos WHERE etiqueta IS NOT NULL "
-                "ORDER BY LENGTH(etiqueta) DESC, etiqueta DESC LIMIT 1"
-            ).fetchone()
-            label = following_label(latest[0] if latest else None)
+            used = {row[0] for row in connection.execute("SELECT etiqueta FROM pedidos WHERE etiqueta IS NOT NULL")}
+            label = following_label(None)
+            while label in used:
+                label = following_label(label)
             cursor = connection.execute("INSERT INTO pedidos (etiqueta) VALUES (?)", (label,))
             order_id = cursor.lastrowid
             for number, (width, height, aluminum, glass) in enumerate(measurements, start=1):
@@ -317,7 +351,7 @@ def list_orders():
         rows = connection.execute(
             "SELECT p.id, p.etiqueta, v.numero_en_pedido, EXISTS(SELECT 1 FROM aceptaciones a WHERE a.pedido_id = p.id) "
             "FROM pedidos AS p LEFT JOIN ventanas AS v ON v.pedido_id = p.id AND v.descartada = 0 "
-            "ORDER BY p.id ASC, v.numero_en_pedido ASC"
+            "WHERE p.fecha_cierre IS NULL ORDER BY p.id ASC, v.numero_en_pedido ASC"
         ).fetchall()
     orders = {}
     for order_id, label, number, accepted in rows:
@@ -381,12 +415,19 @@ def list_order_progress():
     return {"pedidos": orders}
 
 
+@app.get("/api/pedidos/historico")
+def list_history():
+    with closing(connect_db()) as connection:
+        rows = connection.execute("SELECT id, fecha_cierre FROM pedidos WHERE fecha_cierre IS NOT NULL ORDER BY fecha_cierre DESC, id DESC").fetchall()
+    return {"pedidos": [{"id": row[0], "fecha_cierre": row[1]} for row in rows]}
+
+
 @app.get("/api/pedidos/{order_id}")
 def get_order(order_id: int):
     with closing(connect_db()) as connection:
         order_row = connection.execute(
             "SELECT p.id, p.etiqueta, p.notas, c.nombre, c.apellido_1, c.apellido_2, "
-            "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada, p.instalado, p.fecha_real FROM pedidos AS p "
+            "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada, p.instalado, p.fecha_real, p.fecha_cierre FROM pedidos AS p "
             "LEFT JOIN clientes AS c ON c.id = p.cliente_id WHERE p.id = ?", (order_id,)
         ).fetchone()
         if order_row is None:
@@ -471,7 +512,7 @@ def get_order(order_id: int):
             "costo_materiales": (
                 None if window_id not in saved_costs else {
                     **saved_costs[window_id][1],
-                    "vigente": saved_costs[window_id][0] == window_plan_fingerprint(
+                    "vigente": bool(order_row[12]) or saved_costs[window_id][0] == window_plan_fingerprint(
                         aluminum_for_cost[window_id], glass_for_cost.get(window_id)
                     ),
                 }
@@ -497,9 +538,11 @@ def get_order(order_id: int):
         "fecha_programada": order_row[9],
         "instalado": bool(order_row[10]),
         "fecha_real": order_row[11],
+        "fecha_cierre": order_row[12],
         "anticipo_minimo": minimum,
         "anticipo_requerido": None if total_cents is None else f"{Decimal((total_cents * minimum + 99) // 100) / 100:.2f}",
         "movimientos": [{"id": mid, "tipo": kind, "importe": f"{Decimal(cents) / 100:.2f}", "fecha": day, "anulado": bool(void), "fecha_anulacion": void_day} for mid, kind, cents, day, void, void_day in movement_rows],
+        "pagado_neto": f"{Decimal(net) / 100:.2f}",
         "saldo": None if total_cents is None else f"{Decimal(max(0, total_cents - net)) / 100:.2f}",
         "excedente": None if total_cents is None else f"{Decimal(max(0, net - total_cents)) / 100:.2f}",
         "liquidado": total_cents is not None and accepted and net >= total_cents,
@@ -527,6 +570,7 @@ def calculate_order_waste(order_id: int):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
             ids = [row[0] for row in connection.execute("SELECT id FROM ventanas WHERE pedido_id = ? AND descartada = 0", (order_id,))]
@@ -544,7 +588,9 @@ def calculate_order_waste(order_id: int):
 @app.put("/api/pedidos/{order_id}/merma")
 def select_order_waste(order_id: int, selection: WasteSelection):
     with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             cursor = connection.execute("UPDATE merma_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Calcula primero la merma del pedido.")
@@ -556,6 +602,7 @@ def calculate_order_glass_waste(order_id: int):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
             plans = connection.execute(
@@ -574,7 +621,9 @@ def calculate_order_glass_waste(order_id: int):
 @app.put("/api/pedidos/{order_id}/merma-vidrio")
 def select_order_glass_waste(order_id: int, selection: WasteSelection):
     with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             cursor = connection.execute("UPDATE merma_vidrio_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Calcula primero la merma de vidrio del pedido.")
@@ -589,6 +638,7 @@ def add_movement(order_id: int, movement: MovementInput):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             order = get_order(order_id)
             if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
                 raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de registrar movimientos.")
@@ -599,6 +649,8 @@ def add_movement(order_id: int, movement: MovementInput):
             connection.execute("INSERT INTO movimientos (pedido_id, tipo, importe_centavos, fecha) VALUES (?, ?, ?, ?)", (order_id, movement.tipo, cents, datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()))
             if movement.tipo == "pago" and (net + cents) * 100 >= total * order["anticipo_minimo"]:
                 connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
+            if order["instalado"] and movement.tipo == "pago" and net + cents >= total:
+                close_order(connection, order_id)
     return get_order(order_id)
 
 
@@ -607,6 +659,7 @@ def void_movement(order_id: int, movement_id: int):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             order = get_order(order_id)
             if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
                 raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de anular.")
@@ -624,6 +677,7 @@ def set_installation(order_id: int, change: InstallationUpdate):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             order = get_order(order_id)
             if order["instalado"] == change.instalado:
                 raise HTTPException(status_code=409, detail="El pedido ya tiene ese estado de instalación.")
@@ -638,6 +692,8 @@ def set_installation(order_id: int, change: InstallationUpdate):
                     raise HTTPException(status_code=409, detail="Completa todos los cortes y ensambles activos antes de marcar instalado.")
                 today = datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()
                 connection.execute("UPDATE pedidos SET instalado = 1, fecha_real = ? WHERE id = ?", (today, order_id))
+                if order["liquidado"]:
+                    close_order(connection, order_id)
             else:
                 if not change.confirmar_desmarcado:
                     raise HTTPException(status_code=409, detail="Confirma que deseas desmarcar la instalación.")
@@ -654,7 +710,9 @@ def update_installation_date(order_id: int, update: InstallationDateUpdate):
     except ValueError:
         raise HTTPException(status_code=422, detail="Ingresa una fecha válida.") from None
     with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             cursor = connection.execute("UPDATE pedidos SET fecha_programada = ? WHERE id = ?", (update.fecha, order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
@@ -667,7 +725,9 @@ def update_delivery(order_id: int, update: DeliveryUpdate):
     if cents is not None and cents > 9223372036854775807:
         raise HTTPException(status_code=422, detail="El importe es demasiado grande.")
     with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             cursor = connection.execute("UPDATE pedidos SET traslado_centavos = ? WHERE id = ?", (cents, order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
@@ -738,6 +798,7 @@ def correct_order_window_measures(order_id: int, correction: OrderWindowCorrecti
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
             for item in correction.ventanas:
@@ -858,6 +919,7 @@ def save_order_client(order_id: int, details: OrderClient):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_open_order(connection, order_id)
             order = connection.execute("SELECT cliente_id FROM pedidos WHERE id = ?", (order_id,)).fetchone()
             if order is None:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
@@ -895,6 +957,7 @@ def mark_aluminum(window_id: int, order: int, mark: AluminumMark):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_not_installed(connection, window_id)
             row = connection.execute(
                 "SELECT cantidad, cortadas FROM plan_aluminio "
                 "WHERE ventana_id = ? AND orden = ?",
@@ -927,6 +990,7 @@ def mark_glass(window_id: int, mark: GlassMark):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
+            require_not_installed(connection, window_id)
             row = connection.execute(
                 "SELECT cantidad, cortadas FROM plan_vidrio WHERE ventana_id = ?",
                 (window_id,),

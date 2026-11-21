@@ -351,6 +351,18 @@ function assemblyRow(window, orderId) {
 async function loadOrders() {
   const list = document.querySelector('#order-list');
   try {
+    const historyResponse = await fetch('/api/pedidos/historico');
+    if (!historyResponse.ok) throw new Error();
+    const history = await historyResponse.json();
+    const historyList = document.querySelector('#history-list');
+    historyList.replaceChildren();
+    if (!history.pedidos.length) historyList.textContent = 'No hay pedidos finalizados.';
+    for (const order of history.pedidos) {
+      const line = document.createElement('p');
+      const link = document.createElement('a'); link.href = `/pedidos/${order.id}`;
+      link.textContent = `Pedido ${order.id} · cerrado el ${order.fecha_cierre}`;
+      line.append(link); historyList.append(line);
+    }
     const response = await fetch('/api/pedidos/avance');
     if (!response.ok) throw new Error();
     const data = await response.json();
@@ -548,6 +560,49 @@ async function openOrder(id) {
     const response = await fetch(`/api/pedidos/${encodeURIComponent(id)}`);
     if (!response.ok) throw new Error(response.status === 404 ? 'Pedido no encontrado.' : 'No se pudo consultar el pedido.');
     const order = await response.json();
+    document.querySelector('#history-detail')?.remove();
+    document.querySelector('#history').hidden = false;
+    document.querySelector('#budgets').hidden = false;
+    document.querySelector('#orders').hidden = false;
+    if (order.fecha_cierre) {
+      document.querySelector('#history').hidden = true;
+      document.querySelector('#budgets').hidden = true;
+      document.querySelector('#orders').hidden = true;
+      const view = document.createElement('section'); view.id = 'history-detail';
+      const title = document.createElement('h1'); title.textContent = `Pedido ${order.id} · finalizado y liquidado`;
+      view.append(title);
+      const add = (label, value) => { const p = document.createElement('p'); p.textContent = `${label}: ${value ?? 'Sin dato'}`; view.append(p); };
+      add('Fecha de cierre', order.fecha_cierre); add('Fecha de instalación', order.fecha_real); add('Fecha programada', order.fecha_programada);
+      const c = order.cliente; add('Cliente', c ? [c.nombre, c.apellido_1, c.apellido_2].filter(Boolean).join(' ') : null);
+      if (c) { add('Celular', c.celular); add('Dirección', c.direccion || null); }
+      add('Notas', order.notas || null);
+      const windowsTitle = document.createElement('p'); windowsTitle.textContent = 'Ventanas:'; view.append(windowsTitle);
+      const windows = document.createElement('ol');
+      for (const w of [...order.ventanas, ...order.ventanas_descartadas].sort((a, b) => a.numero - b.numero)) {
+        const item = document.createElement('li');
+        item.append(document.createTextNode(`${w.ancho} × ${w.alto}${w.descartada ? ' (descartada)' : ''}`));
+        const cost = document.createElement('p');
+        cost.textContent = w.costo_materiales?.costo_base == null ? 'Costo de materiales: Sin dato' : `Costo de materiales: $${w.costo_materiales.costo_base}`;
+        item.append(cost); windows.append(item);
+      }
+      view.append(windows);
+      for (const [name, waste] of [['Merma de aluminio', order.merma], ['Merma de vidrio', order.merma_vidrio]]) {
+        if (waste) add(name, `$${waste.cargo} · ${waste.incluida ? 'incluida' : 'no incluida'}`);
+      }
+      add('Traslado', order.traslado === null ? null : `$${order.traslado}`);
+      add('Total del pedido', order.total_pedido === null ? null : `$${order.total_pedido}`);
+      const payments = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = `Total pagado neto: $${order.pagado_neto}`; payments.append(summary);
+      for (const m of order.movimientos) {
+        const line = document.createElement('p');
+        line.textContent = `${m.tipo === 'pago' ? 'Pago' : 'Devolución'}: $${m.importe} · ${m.fecha}${m.anulado ? ` · anulado el ${m.fecha_anulacion}` : ''}`;
+        payments.append(line);
+      }
+      view.append(payments);
+      const back = document.createElement('a'); back.href = '/'; back.textContent = 'Volver al inicio'; view.append(back);
+      document.querySelector('main').append(view);
+      return;
+    }
     if (currentOrderId !== order.id) {
       currentOrderId = order.id;
       showArea('medidas');
