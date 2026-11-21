@@ -429,8 +429,8 @@ El usuario acordó registrar eventos y consultar el flujo del taller durante mes
   - [ ] Los eventos ligeros permanecen consultables tras el cierre, sin conservar por ello planes de corte ni desglose individual de materiales y costos.
 - **Dependencias y límites:** depende de la aceptación y movimientos de HU-14, instalación de HU-16 y cierre de HU-17. La hora es del registro, que puede hacerse por tandas después del trabajo: no demuestra la hora real del trabajo, tiempo efectivo ni productividad individual. Los datos antiguos no permiten reconstruir con fiabilidad los eventos que no se registraron.
 - **Subtareas verticales propuestas:**
-  1. **Consultar hitos del pedido:** registrar creación, aceptación, instalación, liquidación y cierre con fecha y hora; consultar y conservarlos al cerrar. Conservar todos los eventos de pérdida y recuperación de liquidación y mostrar el último.
-  2. **Consultar cortes y ensambles registrados:** registrar primer corte y avance por pieza o ventana, distinguir correcciones manuales y consultar conteos por periodo; conservar eventos al cerrar. Asignar las tandas al día en que se registran.
+  1. **[Consultar hitos del pedido (#96)](https://github.com/ErickRamos37/AVAO/issues/96), implementada y aceptada:** registrar creación, aceptación, instalación, liquidación y cierre con fecha y hora; consultar y conservarlos al cerrar. Conservar todos los eventos de pérdida y recuperación de liquidación y mostrar el último.
+  2. **[Consultar cortes y ensambles registrados (#97)](https://github.com/ErickRamos37/AVAO/issues/97), pendiente:** registrar primer corte y avance por pieza o ventana, distinguir correcciones manuales y consultar conteos por periodo; conservar eventos al cerrar. Asignar las tandas al día en que se registran.
 - **Reglas confirmadas:** conservar todos los eventos de pérdida y recuperación de liquidación y mostrar el último; fechas y horas en la zona de Tijuana, con semanas de lunes a domingo, incluyendo domingos; las tandas se asignan al día del registro aunque el trabajo fuera anterior.
 
 ### HU-29 — Consultar cambios de medida y piezas afectadas

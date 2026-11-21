@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
-from contextlib import closing
+from contextlib import closing, nullcontext
 from typing import Literal
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, date
@@ -223,8 +223,20 @@ def simplify_closed_snapshots(connection, order_id):
         connection.execute(f"UPDATE {table} SET detalle_json = '[]' WHERE pedido_id = ?", (order_id,))
 
 
+def record_event(connection, order_id, kind):
+    connection.execute("INSERT INTO eventos_pedido (pedido_id, tipo, fecha_hora) VALUES (?, ?, ?)",
+                       (order_id, kind, datetime.now(ZoneInfo("America/Tijuana")).isoformat(timespec="seconds")))
+
+
+def record_settlement_change(connection, order_id, before):
+    after = _get_order(order_id, connection)["liquidado"]
+    if before != after:
+        record_event(connection, order_id, "liquidado" if after else "liquidacion_perdida")
+
+
 def close_order(connection, order_id):
     today = datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()
+    record_event(connection, order_id, "cierre")
     simplify_closed_snapshots(connection, order_id)
     connection.execute("UPDATE pedidos SET fecha_cierre = ?, etiqueta = NULL WHERE id = ?", (today, order_id))
     for table in ("plan_aluminio", "plan_vidrio"):
@@ -273,12 +285,14 @@ def calculate_window_cost(window_id: int):
                       precio=str((base + profit).quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
         fingerprint = window_plan_fingerprint(aluminum, glass)
         with connection:
+            before = _get_order(parent[0], connection)["liquidado"]
             connection.execute(
                 "INSERT INTO costos_ventana (ventana_id, plan_fingerprint, resultado_json) "
                 "VALUES (?, ?, ?) ON CONFLICT(ventana_id) DO UPDATE SET "
                 "plan_fingerprint = excluded.plan_fingerprint, resultado_json = excluded.resultado_json",
                 (window_id, fingerprint, json.dumps(result, ensure_ascii=False)),
             )
+            record_settlement_change(connection, parent[0], before)
     return {**result, "vigente": True}
 
 
@@ -324,6 +338,7 @@ def create_order(order: NewOrder):
                 label = following_label(label)
             cursor = connection.execute("INSERT INTO pedidos (etiqueta) VALUES (?)", (label,))
             order_id = cursor.lastrowid
+            record_event(connection, order_id, "presupuesto_creado")
             for number, (width, height, aluminum, glass) in enumerate(measurements, start=1):
                 window_cursor = connection.execute(
                     "INSERT INTO ventanas (pedido_id, numero_en_pedido, ancho_16, alto_16) "
@@ -424,7 +439,11 @@ def list_history():
 
 @app.get("/api/pedidos/{order_id}")
 def get_order(order_id: int):
-    with closing(connect_db()) as connection:
+    return _get_order(order_id)
+
+
+def _get_order(order_id, existing_connection=None):
+    with (nullcontext(existing_connection) if existing_connection else closing(connect_db())) as connection:
         order_row = connection.execute(
             "SELECT p.id, p.etiqueta, p.notas, c.nombre, c.apellido_1, c.apellido_2, "
             "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada, p.instalado, p.fecha_real, p.fecha_cierre FROM pedidos AS p "
@@ -453,6 +472,7 @@ def get_order(order_id: int):
         waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
         accepted = connection.execute("SELECT 1 FROM aceptaciones WHERE pedido_id = ?", (order_id,)).fetchone() is not None
         movement_rows = connection.execute("SELECT id, tipo, importe_centavos, fecha, anulado, fecha_anulacion FROM movimientos WHERE pedido_id = ? ORDER BY id", (order_id,)).fetchall()
+        events = connection.execute("SELECT tipo, fecha_hora FROM eventos_pedido WHERE pedido_id = ? ORDER BY id", (order_id,)).fetchall()
         minimum = connection.execute("SELECT porcentaje FROM configuracion_anticipo WHERE id = 1").fetchone()[0]
         glass_waste_row = connection.execute("SELECT cargo_centavos, incluida, detalle_json FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone()
         cost_rows = connection.execute(
@@ -535,6 +555,7 @@ def get_order(order_id: int):
         "id": order_id,
         "etiqueta": label,
         "aceptado": accepted,
+        "eventos": [{"tipo": kind, "fecha_hora": timestamp} for kind, timestamp in events],
         "fecha_programada": order_row[9],
         "instalado": bool(order_row[10]),
         "fecha_real": order_row[11],
@@ -571,6 +592,7 @@ def calculate_order_waste(order_id: int):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
             if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
             ids = [row[0] for row in connection.execute("SELECT id FROM ventanas WHERE pedido_id = ? AND descartada = 0", (order_id,))]
@@ -582,6 +604,7 @@ def calculate_order_waste(order_id: int):
             connection.execute("INSERT INTO merma_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
                                "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
                                (order_id, cents, json.dumps(details, ensure_ascii=False)))
+            record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
 
@@ -591,9 +614,11 @@ def select_order_waste(order_id: int, selection: WasteSelection):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
             cursor = connection.execute("UPDATE merma_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Calcula primero la merma del pedido.")
+            record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
 
@@ -603,6 +628,7 @@ def calculate_order_glass_waste(order_id: int):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
             if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
             plans = connection.execute(
@@ -615,6 +641,7 @@ def calculate_order_glass_waste(order_id: int):
             connection.execute("INSERT INTO merma_vidrio_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
                                "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
                                (order_id, cents, json.dumps(details, ensure_ascii=False)))
+            record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
 
@@ -624,9 +651,11 @@ def select_order_glass_waste(order_id: int, selection: WasteSelection):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
             cursor = connection.execute("UPDATE merma_vidrio_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Calcula primero la merma de vidrio del pedido.")
+            record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
 
@@ -639,7 +668,7 @@ def add_movement(order_id: int, movement: MovementInput):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
-            order = get_order(order_id)
+            order = _get_order(order_id, connection)
             if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
                 raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de registrar movimientos.")
             total = cents_from_input(order["total_pedido"])
@@ -648,7 +677,10 @@ def add_movement(order_id: int, movement: MovementInput):
                 raise HTTPException(status_code=409, detail="La devolución no puede superar el excedente.")
             connection.execute("INSERT INTO movimientos (pedido_id, tipo, importe_centavos, fecha) VALUES (?, ?, ?, ?)", (order_id, movement.tipo, cents, datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()))
             if movement.tipo == "pago" and (net + cents) * 100 >= total * order["anticipo_minimo"]:
-                connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
+                cursor = connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
+                if cursor.rowcount:
+                    record_event(connection, order_id, "aceptado")
+            record_settlement_change(connection, order_id, order["liquidado"])
             if order["instalado"] and movement.tipo == "pago" and net + cents >= total:
                 close_order(connection, order_id)
     return get_order(order_id)
@@ -660,7 +692,7 @@ def void_movement(order_id: int, movement_id: int):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
-            order = get_order(order_id)
+            order = _get_order(order_id, connection)
             if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
                 raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de anular.")
             cursor = connection.execute("UPDATE movimientos SET anulado = 1, fecha_anulacion = ? WHERE id = ? AND pedido_id = ? AND anulado = 0", (datetime.now(ZoneInfo("America/Tijuana")).date().isoformat(), movement_id, order_id))
@@ -668,7 +700,10 @@ def void_movement(order_id: int, movement_id: int):
                 raise HTTPException(status_code=404, detail="Movimiento no encontrado o ya anulado.")
             net = connection.execute("SELECT COALESCE(SUM(CASE tipo WHEN 'pago' THEN importe_centavos ELSE -importe_centavos END), 0) FROM movimientos WHERE pedido_id = ? AND anulado = 0", (order_id,)).fetchone()[0]
             if net * 100 < cents_from_input(order["total_pedido"]) * order["anticipo_minimo"]:
-                connection.execute("DELETE FROM aceptaciones WHERE pedido_id = ?", (order_id,))
+                cursor = connection.execute("DELETE FROM aceptaciones WHERE pedido_id = ?", (order_id,))
+                if cursor.rowcount:
+                    record_event(connection, order_id, "aceptacion_revocada")
+            record_settlement_change(connection, order_id, order["liquidado"])
     return get_order(order_id)
 
 
@@ -678,7 +713,7 @@ def set_installation(order_id: int, change: InstallationUpdate):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
-            order = get_order(order_id)
+            order = _get_order(order_id, connection)
             if order["instalado"] == change.instalado:
                 raise HTTPException(status_code=409, detail="El pedido ya tiene ese estado de instalación.")
             if change.instalado:
@@ -692,12 +727,14 @@ def set_installation(order_id: int, change: InstallationUpdate):
                     raise HTTPException(status_code=409, detail="Completa todos los cortes y ensambles activos antes de marcar instalado.")
                 today = datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()
                 connection.execute("UPDATE pedidos SET instalado = 1, fecha_real = ? WHERE id = ?", (today, order_id))
+                record_event(connection, order_id, "instalado")
                 if order["liquidado"]:
                     close_order(connection, order_id)
             else:
                 if not change.confirmar_desmarcado:
                     raise HTTPException(status_code=409, detail="Confirma que deseas desmarcar la instalación.")
                 connection.execute("UPDATE pedidos SET instalado = 0, fecha_real = NULL WHERE id = ?", (order_id,))
+                record_event(connection, order_id, "instalacion_desmarcada")
     return get_order(order_id)
 
 
@@ -728,9 +765,11 @@ def update_delivery(order_id: int, update: DeliveryUpdate):
         connection.execute("BEGIN IMMEDIATE")
         with connection:
             require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
             cursor = connection.execute("UPDATE pedidos SET traslado_centavos = ? WHERE id = ?", (cents, order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+            record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
 
@@ -753,6 +792,8 @@ def set_window_discard(window_id: int, change: WindowDiscard):
             if row is None:
                 raise HTTPException(status_code=404, detail="Ventana no encontrada.")
             order_id, number, discarded, label = row
+            require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
             require_not_installed(connection, window_id)
             if bool(discarded) == change.descartada:
                 raise HTTPException(status_code=409, detail="La ventana ya tiene ese estado.")
@@ -762,6 +803,7 @@ def set_window_discard(window_id: int, change: WindowDiscard):
                 "UPDATE ventanas SET descartada = ? WHERE id = ?",
                 (int(change.descartada), window_id),
             )
+            record_settlement_change(connection, order_id, before)
     return {
         "pedido_id": order_id,
         "ventana_id": window_id,
