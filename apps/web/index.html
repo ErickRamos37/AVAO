@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=dashboard" defer></script>
+    <script src="/static/app.js?v=hu35-merma" defer></script>
   </head>
   <body>
     <main>
@@ -39,32 +39,28 @@
       <section id="detail" hidden>
         <h1 id="order-title"></h1>
         <div id="order-events"></div>
-        <section aria-labelledby="installation-status-title">
-          <h2 id="installation-status-title">Instalación</h2>
-          <p id="installation-state" aria-live="polite"></p>
-          <button id="installation-toggle" type="button">Marcar instalado</button>
-        </section>
-        <details id="client-details">
-          <summary>Cliente y notas del pedido</summary>
-          <p id="client-status"></p>
-          <form id="client-form">
-            <p><label>Nombre <input name="nombre" required autocomplete="off"></label></p>
-            <p><label>Primer apellido <input name="apellido_1" required autocomplete="off"></label></p>
-            <p><label>Segundo apellido (opcional) <input name="apellido_2" autocomplete="off"></label></p>
-            <p><label>Celular <input name="celular" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required autocomplete="off"></label></p>
-            <p><label>Dirección (opcional) <input name="direccion" autocomplete="off"></label></p>
-            <p><label>Notas del pedido para el taller (opcional) <textarea name="notas"></textarea></label></p>
-            <button type="submit">Guardar datos del cliente</button>
-          </form>
-        </details>
-        <nav id="area-nav" aria-label="Áreas del pedido">
-          <button type="button" data-area="medidas" aria-pressed="true">Medidas</button>
-          <button type="button" data-area="aluminio" aria-pressed="false">Aluminio</button>
-          <button type="button" data-area="vidrio" aria-pressed="false">Vidrio</button>
-          <button type="button" data-area="ensamble" aria-pressed="false">Ensamble</button>
+        <nav id="area-nav" aria-label="Secciones del pedido">
+          <button type="button" data-area="resumen" aria-pressed="true">Resumen del pedido</button>
+          <button type="button" data-area="taller" aria-pressed="false">Taller</button>
+          <button type="button" data-area="instalacion" aria-pressed="false">Instalación</button>
         </nav>
         <div id="order-content">
-          <section id="area-medidas" data-area-panel>
+          <section id="area-resumen" data-area-panel>
+            <h2>Resumen del pedido</h2>
+            <details id="client-details">
+              <summary>Cliente y notas del pedido</summary>
+              <p id="client-status"></p>
+              <form id="client-form">
+                <p><label>Nombre <input name="nombre" required autocomplete="off"></label></p>
+                <p><label>Primer apellido <input name="apellido_1" required autocomplete="off"></label></p>
+                <p><label>Segundo apellido (opcional) <input name="apellido_2" autocomplete="off"></label></p>
+                <p><label>Celular <input name="celular" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required autocomplete="off"></label></p>
+                <p><label>Dirección (opcional) <input name="direccion" autocomplete="off"></label></p>
+                <p><label>Notas del pedido para el taller (opcional) <textarea name="notas"></textarea></label></p>
+                <button type="submit">Guardar datos del cliente</button>
+              </form>
+            </details>
+
             <div class="measure-heading">
               <h2>Medidas</h2>
               <button id="edit-measures" type="button" hidden>Editar</button>
@@ -86,21 +82,60 @@
                 </div>
               </form>
               <section aria-labelledby="waste-title">
-                <h3 id="waste-title">Cargo por merma de aluminio</h3>
+                <h3 id="waste-title">Cargo por merma</h3>
                 <p id="waste-value"></p>
-                <div id="waste-details"></div>
                 <p>El cargo guardado solo cambia al recalcular la merma.</p>
                 <p><label><input id="waste-included" type="checkbox"> Incluir cargo por merma</label></p>
-                <button id="waste-recalculate" type="button">Recalcular merma</button>
-              </section>
-              <section aria-labelledby="glass-waste-title">
-                <h3 id="glass-waste-title">Cargo por merma de vidrio</h3>
-                <p id="glass-waste-value"></p><div id="glass-waste-details"></div>
-                <p>El cálculo estima áreas; no comprueba el acomodo de las piezas en la hoja. El cargo solo cambia al recalcular.</p>
-                <p><label><input id="glass-waste-included" type="checkbox"> Incluir cargo por merma de vidrio</label></p>
-                <button id="glass-waste-recalculate" type="button">Recalcular merma de vidrio</button>
+                <button id="waste-recalculate" type="button">Calcular merma</button>
+                <details><summary>Ver desglose de merma</summary>
+                  <h4>Aluminio</h4><p id="aluminum-waste-value"></p><div id="waste-details"></div>
+                  <h4>Vidrio</h4><p id="glass-waste-value"></p><div id="glass-waste-details"></div>
+                </details>
               </section>
               <p id="order-grand-total" aria-live="polite"></p>
+              <section aria-labelledby="payments-title">
+                <h3 id="payments-title">Anticipo y movimientos</h3>
+                <div id="payment-status" aria-live="polite"></div>
+                <button id="pending-installation" type="button" hidden>Registrar fecha de instalación</button>
+                <form id="payment-form">
+                  <p><label>Tipo <select name="tipo"><option value="pago">Pago</option><option value="devolucion">Devolución de excedente</option></select></label></p>
+                  <p><label>Importe <input name="importe" type="number" min="0.01" step="0.01" required></label></p>
+                  <button type="submit">Registrar movimiento</button>
+                </form>
+                <div id="payment-list"></div>
+              </section>
+            </section>
+            <section id="discarded-windows" hidden>
+              <h3>Ventanas descartadas</h3>
+              <div id="discarded-window-list"></div>
+            </section>
+            <form id="measure-edit-form" hidden>
+              <div id="measure-edit-rows"></div>
+              <div class="measure-actions">
+                <button id="cancel-measure-edit" type="button">Cancelar</button>
+                <button type="submit">Guardar cambios</button>
+              </div>
+            </form>
+          </section>
+          <section id="area-taller" data-area-panel hidden>
+            <h2>Taller</h2>
+            <h3>Notas del pedido</h3>
+            <p id="workshop-notes"></p>
+            <nav id="workshop-nav" aria-label="Áreas de taller">
+              <button type="button" data-workshop="aluminio" aria-pressed="true">Aluminio</button>
+              <button type="button" data-workshop="vidrio" aria-pressed="false">Vidrio</button>
+              <button type="button" data-workshop="ensamble" aria-pressed="false">Ensamble</button>
+            </nav>
+            <section id="workshop-aluminio" data-workshop-panel><h3>Aluminio</h3><div id="order-aluminum"></div></section>
+            <section id="workshop-vidrio" data-workshop-panel hidden><h3>Vidrio</h3><div id="order-glass"></div></section>
+            <section id="workshop-ensamble" data-workshop-panel hidden><h3>Ensamble</h3><div id="order-assembly"></div></section>
+          </section>
+          <section id="area-instalacion" data-area-panel hidden>
+            <section aria-labelledby="installation-status-title">
+              <h2 id="installation-status-title">Instalación</h2>
+              <p id="installation-state" aria-live="polite"></p>
+              <button id="installation-toggle" type="button">Marcar instalado</button>
+            </section>
               <section aria-labelledby="installation-date-title">
                 <h3 id="installation-date-title">Fecha programada de instalación</h3>
                 <p id="installation-date-status" aria-live="polite"></p>
@@ -125,40 +160,6 @@
                   </div>
                 </form>
               </section>
-              <section aria-labelledby="payments-title">
-                <h3 id="payments-title">Anticipo y movimientos</h3>
-                <div id="payment-status" aria-live="polite"></div>
-                <form id="payment-form">
-                  <p><label>Tipo <select name="tipo"><option value="pago">Pago</option><option value="devolucion">Devolución de excedente</option></select></label></p>
-                  <p><label>Importe <input name="importe" type="number" min="0.01" step="0.01" required></label></p>
-                  <button type="submit">Registrar movimiento</button>
-                </form>
-                <div id="payment-list"></div>
-              </section>
-            </section>
-            <section id="discarded-windows" hidden>
-              <h3>Ventanas descartadas</h3>
-              <div id="discarded-window-list"></div>
-            </section>
-            <form id="measure-edit-form" hidden>
-              <div id="measure-edit-rows"></div>
-              <div class="measure-actions">
-                <button id="cancel-measure-edit" type="button">Cancelar</button>
-                <button type="submit">Guardar cambios</button>
-              </div>
-            </form>
-          </section>
-          <section id="area-aluminio" data-area-panel hidden>
-            <h2>Aluminio</h2>
-            <div id="order-aluminum"></div>
-          </section>
-          <section id="area-vidrio" data-area-panel hidden>
-            <h2>Vidrio</h2>
-            <div id="order-glass"></div>
-          </section>
-          <section id="area-ensamble" data-area-panel hidden>
-            <h2>Ensamble</h2>
-            <div id="order-assembly"></div>
           </section>
         </div>
         <a href="/">Crear otro pedido</a>

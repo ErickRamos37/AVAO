@@ -831,6 +831,20 @@ def _get_order(order_id, existing_connection=None):
     }
 
 
+def _calculate_aluminum_waste(connection, order_id):
+    if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+    ids = [row[0] for row in connection.execute("SELECT id FROM ventanas WHERE pedido_id = ? AND descartada = 0", (order_id,))]
+    plans = [[{"perfil": name, "longitud_16": length, "cantidad": qty} for name, length, qty in connection.execute(
+        "SELECT perfil, longitud_16, cantidad FROM plan_aluminio WHERE ventana_id = ?", (window_id,))] for window_id in ids]
+    costs = dict(connection.execute("SELECT codigo, costo_centavos FROM costos_insumos"))
+    threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
+    cents, details = calcular_merma(plans, costs, threshold, incluir_detalle=True)
+    connection.execute("INSERT INTO merma_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
+                       "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
+                       (order_id, cents, json.dumps(details, ensure_ascii=False)))
+
+
 @app.post("/api/pedidos/{order_id}/merma")
 def calculate_order_waste(order_id: int):
     with closing(connect_db()) as connection:
@@ -838,17 +852,7 @@ def calculate_order_waste(order_id: int):
         with connection:
             require_open_order(connection, order_id)
             before = _get_order(order_id, connection)["liquidado"]
-            if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
-                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
-            ids = [row[0] for row in connection.execute("SELECT id FROM ventanas WHERE pedido_id = ? AND descartada = 0", (order_id,))]
-            plans = [[{"perfil": name, "longitud_16": length, "cantidad": qty} for name, length, qty in connection.execute(
-                "SELECT perfil, longitud_16, cantidad FROM plan_aluminio WHERE ventana_id = ?", (window_id,))] for window_id in ids]
-            costs = dict(connection.execute("SELECT codigo, costo_centavos FROM costos_insumos"))
-            threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
-            cents, details = calcular_merma(plans, costs, threshold, incluir_detalle=True)
-            connection.execute("INSERT INTO merma_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
-                               "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
-                               (order_id, cents, json.dumps(details, ensure_ascii=False)))
+            _calculate_aluminum_waste(connection, order_id)
             record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
@@ -867,6 +871,21 @@ def select_order_waste(order_id: int, selection: WasteSelection):
     return get_order(order_id)
 
 
+def _calculate_glass_waste(connection, order_id):
+    if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+    plans = connection.execute(
+        "SELECT g.ancho_16, g.alto_16, g.cantidad FROM ventanas v LEFT JOIN plan_vidrio g ON g.ventana_id = v.id "
+        "WHERE v.pedido_id = ? AND v.descartada = 0", (order_id,)).fetchall()
+    plans = [None if row[0] is None else row for row in plans]
+    row = connection.execute("SELECT costo_centavos FROM costos_insumos WHERE codigo = 'vidrio_doble_fuerza'").fetchone()
+    threshold = connection.execute("SELECT umbral FROM configuracion_merma_vidrio WHERE id = 1").fetchone()[0]
+    cents, details = calcular_merma_vidrio(plans, None if row is None else row[0], threshold)
+    connection.execute("INSERT INTO merma_vidrio_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
+                       "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
+                       (order_id, cents, json.dumps(details, ensure_ascii=False)))
+
+
 @app.post("/api/pedidos/{order_id}/merma-vidrio")
 def calculate_order_glass_waste(order_id: int):
     with closing(connect_db()) as connection:
@@ -874,18 +893,7 @@ def calculate_order_glass_waste(order_id: int):
         with connection:
             require_open_order(connection, order_id)
             before = _get_order(order_id, connection)["liquidado"]
-            if connection.execute("SELECT 1 FROM pedidos WHERE id = ?", (order_id,)).fetchone() is None:
-                raise HTTPException(status_code=404, detail="Pedido no encontrado.")
-            plans = connection.execute(
-                "SELECT g.ancho_16, g.alto_16, g.cantidad FROM ventanas v LEFT JOIN plan_vidrio g ON g.ventana_id = v.id "
-                "WHERE v.pedido_id = ? AND v.descartada = 0", (order_id,)).fetchall()
-            plans = [None if row[0] is None else row for row in plans]
-            row = connection.execute("SELECT costo_centavos FROM costos_insumos WHERE codigo = 'vidrio_doble_fuerza'").fetchone()
-            threshold = connection.execute("SELECT umbral FROM configuracion_merma_vidrio WHERE id = 1").fetchone()[0]
-            cents, details = calcular_merma_vidrio(plans, None if row is None else row[0], threshold)
-            connection.execute("INSERT INTO merma_vidrio_pedido (pedido_id, cargo_centavos, detalle_json) VALUES (?, ?, ?) "
-                               "ON CONFLICT(pedido_id) DO UPDATE SET cargo_centavos = excluded.cargo_centavos, detalle_json = excluded.detalle_json",
-                               (order_id, cents, json.dumps(details, ensure_ascii=False)))
+            _calculate_glass_waste(connection, order_id)
             record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
@@ -900,6 +908,41 @@ def select_order_glass_waste(order_id: int, selection: WasteSelection):
             cursor = connection.execute("UPDATE merma_vidrio_pedido SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Calcula primero la merma de vidrio del pedido.")
+            record_settlement_change(connection, order_id, before)
+    return get_order(order_id)
+
+
+@app.post("/api/pedidos/{order_id}/merma-conjunta")
+def calculate_combined_waste(order_id: int):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
+            selections = [connection.execute(f"SELECT incluida FROM {table} WHERE pedido_id = ?", (order_id,)).fetchone()
+                          for table in ("merma_pedido", "merma_vidrio_pedido")]
+            if all(selections) and selections[0] != selections[1]:
+                raise HTTPException(status_code=409, detail="Las selecciones de merma son distintas; revisa el pedido antes de unificarlas.")
+            _calculate_aluminum_waste(connection, order_id)
+            _calculate_glass_waste(connection, order_id)
+            included = next((row[0] for row in selections if row is not None), 1)
+            for table in ("merma_pedido", "merma_vidrio_pedido"):
+                connection.execute(f"UPDATE {table} SET incluida = ? WHERE pedido_id = ?", (included, order_id))
+            record_settlement_change(connection, order_id, before)
+    return get_order(order_id)
+
+
+@app.put("/api/pedidos/{order_id}/merma-conjunta")
+def select_combined_waste(order_id: int, selection: WasteSelection):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            require_open_order(connection, order_id)
+            before = _get_order(order_id, connection)["liquidado"]
+            for table in ("merma_pedido", "merma_vidrio_pedido"):
+                cursor = connection.execute(f"UPDATE {table} SET incluida = ? WHERE pedido_id = ?", (int(selection.incluida), order_id))
+                if cursor.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="Calcula primero la merma del pedido.")
             record_settlement_change(connection, order_id, before)
     return get_order(order_id)
 
