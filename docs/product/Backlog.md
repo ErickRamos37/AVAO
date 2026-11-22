@@ -548,7 +548,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 | ID | Historia | Épica | Esfuerzo aceptado | Prioridad aceptada | Estado |
 | --- | --- | --- | --- | --- | --- |
 | HU-35 | Navegar según el flujo del pedido | E6 | 5 | Alta | Propuesta por refinar |
-| HU-36 | Editar y cancelar por bloque | E6 | 5 | Alta | Propuesta por refinar |
+| HU-36 | Editar y cancelar por bloque | E6 | 5 | Alta | Implementada y aceptada |
 | HU-37 | Consultar presupuesto durante la captura | E6 | 5 | Alta | Propuesta por refinar |
 | HU-38 | Revisar impacto de cambios antes de guardar | E6 | 8 | Alta | Propuesta por refinar |
 
@@ -569,11 +569,12 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 ### HU-36 — Editar y cancelar por bloque
 
+- **Estado:** implementada y aceptada por el usuario; subtarea [#120](https://github.com/ErickRamos37/AVAO/issues/120).
 - **Historia:** **Como** empleado, **necesito** editar cada bloque de información de manera explícita, **para** guardar o cancelar mis cambios sin perderlos accidentalmente.
 - **Criterios propuestos:**
   - [ ] Los datos del cliente se consultan en Información de Resumen. Un bloque se consulta y entra en edición explícitamente; guardar persiste sus cambios y cancelar conserva los valores anteriores.
   - [ ] Si hay cambios sin guardar, se advierte antes de abandonar o cambiar de contexto. Editar datos del cliente o fechas no cambia precios acordados.
-- **Subtarea [#120](https://github.com/ErickRamos37/AVAO/issues/120) — Editar información por bloque:** activar edición explícita con guardar y cancelar, advertir cambios pendientes al salir y comprobar persistencia, cancelación y navegación libre entre secciones durante la captura.
+- **Subtarea [#120](https://github.com/ErickRamos37/AVAO/issues/120), implementada y aceptada — Editar información por bloque:** activar edición explícita con guardar y cancelar, advertir cambios pendientes al salir y comprobar persistencia, cancelación y navegación libre entre secciones durante la captura.
 - **Límites:** cliente y notas se consultan en Información de Resumen; fecha y traslado ya cuentan con patrones de edición, guardar y cancelar. Los movimientos financieros no se editan: se conserva la regla existente de anulación. Durante la captura se puede volver libremente entre secciones; cambios de medidas con impacto de precio en pedidos aceptados dependen de HU-38. Sin rediseño visual.
 
 ### HU-37 — Consultar presupuesto durante la captura
