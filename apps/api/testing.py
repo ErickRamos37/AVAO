@@ -11,3 +11,12 @@ def accepted_orders(create):
             assign_order_label(connection, result["id"])
         return result
     return create_accepted
+
+
+def order_with_client(create):
+    def create_with_client(order):
+        from apps.api.main import OrderClient, save_order_client
+        result = create(order)
+        save_order_client(result["id"], OrderClient(nombre="Ana", apellido_1="Pérez", celular="1234567890"))
+        return result
+    return create_with_client

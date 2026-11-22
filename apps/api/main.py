@@ -1,6 +1,7 @@
 """Primer recorrido vertical de HU-01: guardar y reabrir un pedido."""
 
 import json
+import hashlib
 import os
 from pathlib import Path
 import sqlite3
@@ -59,6 +60,22 @@ class OrderClient(BaseModel):
     celular: StrictStr
     direccion: StrictStr = ""
     notas: StrictStr = ""
+
+
+class BudgetPreview(BaseModel):
+    ventanas: list[NewWindow]
+    traslado: StrictStr | None = None
+    incluir_merma: bool = True
+
+
+class BudgetSave(BudgetPreview):
+    cliente: OrderClient
+    version: StrictStr
+
+
+class BudgetWithPayment(BudgetSave):
+    importe: StrictStr
+    token: StrictStr
 
 
 class WindowCorrection(BaseModel):
@@ -339,7 +356,6 @@ def assign_order_label(connection, order_id):
     connection.execute("UPDATE pedidos SET etiqueta = ? WHERE id = ?", (label, order_id))
 
 
-@app.post("/api/pedidos", status_code=201)
 def create_order(order: NewOrder):
     measurements = []
     for row_number, window in enumerate(order.ventanas, start=1):
@@ -384,6 +400,113 @@ def create_order(order: NewOrder):
                 )
 
     return {"id": order_id}
+
+
+def budget_calculation(connection, data: BudgetPreview):
+    costs = dict(connection.execute("SELECT codigo, costo_centavos FROM costos_insumos"))
+    percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
+    aluminum_threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
+    glass_threshold = connection.execute("SELECT umbral FROM configuracion_merma_vidrio WHERE id = 1").fetchone()[0]
+    transport = None if data.traslado is None or not data.traslado.strip() else cents_from_input(data.traslado)
+    if transport is not None and transport > 9223372036854775807:
+        raise HTTPException(status_code=422, detail="El importe de traslado es demasiado grande.")
+    windows, errors = [], []
+    for index, row in enumerate(data.ventanas, 1):
+        width, height = row.ancho.strip(), row.alto.strip()
+        if not width and not height:
+            continue
+        if not width or not height:
+            errors.append(f"Ventana {index}: completa ancho y alto o descarta la fila.")
+            continue
+        try:
+            w, h = parse_measure(width), parse_measure(height)
+            aluminum = [{"perfil": name, "longitud_16": length, "cantidad": qty} for name, length, qty in calcular_plan_aluminio(w, h)]
+            glass_tuple = calcular_plan_vidrio(w, h)
+            glass = dict(zip(("ancho_16", "alto_16", "cantidad"), glass_tuple))
+            cost = calculate_window_material_cost(aluminum, glass, costs, width_16=w, height_16=h)
+            if cost["completo"]:
+                base = Decimal(cost["costo_base"]); profit = base * Decimal(percentage) / 100
+                cost.update(porcentaje_ganancia=percentage, ganancia=str(profit.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
+                            precio=str((base + profit).quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
+            windows.append({"fila": index, "ancho_16": w, "alto_16": h, "aluminio": aluminum, "vidrio": glass, "costo": cost})
+        except ValueError as error:
+            errors.append(f"Ventana {index}: {error}")
+    waste = None; waste_error = None
+    if windows and not errors:
+        try:
+            ac, ad = calcular_merma([w["aluminio"] for w in windows], costs, aluminum_threshold, incluir_detalle=True)
+            gc, gd = calcular_merma_vidrio([tuple(w["vidrio"][k] for k in ("ancho_16", "alto_16", "cantidad")) for w in windows], costs.get("vidrio_doble_fuerza"), glass_threshold)
+            waste = {"aluminio": ac, "vidrio": gc, "detalle_aluminio": ad, "detalle_vidrio": gd}
+        except HTTPException as error:
+            waste_error = error.detail
+    result = {"ventanas": windows, "errores": errors, "merma": waste, "merma_error": waste_error,
+              "traslado_centavos": transport, "incluir_merma": data.incluir_merma, "porcentaje_ganancia": percentage}
+    version_data = {"resultado": result, "costos": costs, "umbral_aluminio": aluminum_threshold, "umbral_vidrio": glass_threshold}
+    result["version"] = hashlib.sha256(json.dumps(version_data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    return result
+
+
+@app.post("/api/presupuestos/vista-previa")
+def preview_budget(data: BudgetPreview):
+    with closing(connect_db()) as connection:
+        return budget_calculation(connection, data)
+
+
+def _save_budget(connection, data, client):
+    result = budget_calculation(connection, data)
+    if result["version"] != data.version:
+        raise HTTPException(status_code=409, detail="Cambió la estimación. Revísala de nuevo antes de guardar.")
+    if result["errores"]:
+        raise HTTPException(status_code=422, detail=result["errores"][0])
+    if not result["ventanas"]:
+        raise HTTPException(status_code=422, detail="Agrega al menos una ventana con ancho y alto completos.")
+    cursor = connection.execute("INSERT INTO clientes (nombre, apellido_1, apellido_2, celular, direccion) VALUES (?, ?, ?, ?, ?)", client[:5])
+    pending = data.incluir_merma and result["merma"] is None
+    cursor = connection.execute("INSERT INTO pedidos (cliente_id, notas, traslado_centavos, merma_pendiente) VALUES (?, ?, ?, ?)", (cursor.lastrowid, client[5], result["traslado_centavos"], int(pending)))
+    order_id = cursor.lastrowid; record_event(connection, order_id, "presupuesto_creado")
+    for number, window in enumerate(result["ventanas"], 1):
+        cursor = connection.execute("INSERT INTO ventanas (pedido_id, numero_en_pedido, ancho_16, alto_16) VALUES (?, ?, ?, ?)", (order_id, number, window["ancho_16"], window["alto_16"]))
+        window_id = cursor.lastrowid
+        connection.executemany("INSERT INTO plan_aluminio (ventana_id, orden, perfil, longitud_16, cantidad) VALUES (?, ?, ?, ?, ?)", [(window_id, n, row["perfil"], row["longitud_16"], row["cantidad"]) for n, row in enumerate(window["aluminio"], 1)])
+        glass = window["vidrio"]
+        connection.execute("INSERT INTO plan_vidrio (ventana_id, ancho_16, alto_16, cantidad) VALUES (?, ?, ?, ?)", (window_id, glass["ancho_16"], glass["alto_16"], glass["cantidad"]))
+        if window["costo"]["completo"]:
+            connection.execute("INSERT INTO costos_ventana VALUES (?, ?, ?)", (window_id, window_plan_fingerprint(window["aluminio"], glass), json.dumps(window["costo"], ensure_ascii=False)))
+    if result["merma"] is not None:
+        waste = result["merma"]
+        for table, amount, detail in (("merma_pedido", "aluminio", "detalle_aluminio"), ("merma_vidrio_pedido", "vidrio", "detalle_vidrio")):
+            connection.execute(f"INSERT INTO {table} (pedido_id, cargo_centavos, incluida, detalle_json) VALUES (?, ?, ?, ?)", (order_id, waste[amount], int(data.incluir_merma), json.dumps(waste[detail], ensure_ascii=False)))
+    return order_id
+
+
+@app.post("/api/pedidos", status_code=201)
+def save_budget(data: BudgetSave):
+    client = validate_client(data.cliente)
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            order_id = _save_budget(connection, data, client)
+    return {"id": order_id}
+
+
+@app.post("/api/presupuestos/con-anticipo", status_code=201)
+def save_budget_with_payment(data: BudgetWithPayment):
+    if not data.token or len(data.token) > 128:
+        raise HTTPException(status_code=422, detail="Identificador de intento inválido.")
+    fingerprint = hashlib.sha256(data.model_dump_json().encode()).hexdigest()
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            prior = connection.execute("SELECT pedido_id, contenido_hash FROM capturas_pago WHERE token = ?", (data.token,)).fetchone()
+            if prior:
+                if prior[1] != fingerprint:
+                    raise HTTPException(status_code=409, detail="Este intento ya corresponde a otros datos. Consulta los pedidos antes de volver a cobrar.")
+                return {"id": prior[0], "repetido": True}
+            client = validate_client(data.cliente)
+            order_id = _save_budget(connection, data, client)
+            _add_movement(connection, order_id, MovementInput(tipo="pago", importe=data.importe))
+            connection.execute("INSERT INTO capturas_pago (token, pedido_id, contenido_hash) VALUES (?, ?, ?)", (data.token, order_id, fingerprint))
+    return {"id": order_id, "repetido": False}
 
 
 @app.get("/api/pedidos")
@@ -661,7 +784,7 @@ def _get_order(order_id, existing_connection=None):
     with (nullcontext(existing_connection) if existing_connection else closing(connect_db())) as connection:
         order_row = connection.execute(
             "SELECT p.id, p.etiqueta, p.notas, c.nombre, c.apellido_1, c.apellido_2, "
-            "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada, p.instalado, p.fecha_real, p.fecha_cierre FROM pedidos AS p "
+            "c.celular, c.direccion, p.traslado_centavos, p.fecha_programada, p.instalado, p.fecha_real, p.fecha_cierre, p.merma_pendiente FROM pedidos AS p "
             "LEFT JOIN clientes AS c ON c.id = p.cliente_id WHERE p.id = ?", (order_id,)
         ).fetchone()
         if order_row is None:
@@ -779,7 +902,7 @@ def _get_order(order_id, existing_connection=None):
 
     waste_cents = waste_row[0] if waste_row and waste_row[1] else 0
     waste_cents += glass_waste_row[0] if glass_waste_row and glass_waste_row[1] else 0
-    total_cents = None if total is None or missing_price else total * 100 + (order_row[8] or 0) + waste_cents
+    total_cents = None if total is None or missing_price or order_row[13] else total * 100 + (order_row[8] or 0) + waste_cents
     net = sum((cents if kind == "pago" else -cents) for _, kind, cents, _, void, _ in movement_rows if not void)
     return {
         "id": order_id,
@@ -812,6 +935,7 @@ def _get_order(order_id, existing_connection=None):
         "saldo": None if total_cents is None else f"{Decimal(max(0, total_cents - net)) / 100:.2f}",
         "excedente": None if total_cents is None else f"{Decimal(max(0, net - total_cents)) / 100:.2f}",
         "liquidado": total_cents is not None and accepted and net >= total_cents,
+        "merma_pendiente": bool(order_row[13]),
         "merma_vidrio": None if glass_waste_row is None else {"cargo": f"{Decimal(glass_waste_row[0]) / 100:.2f}", "incluida": bool(glass_waste_row[1]), "detalle": json.loads(glass_waste_row[2])},
         "merma": None if waste_row is None else {"cargo": f"{Decimal(waste_row[0]) / 100:.2f}", "incluida": bool(waste_row[1]), "detalle": None if waste_row[2] is None else json.loads(waste_row[2])},
         "traslado": None if order_row[8] is None else f"{Decimal(order_row[8]) / 100:.2f}",
@@ -925,6 +1049,7 @@ def calculate_combined_waste(order_id: int):
                 raise HTTPException(status_code=409, detail="Las selecciones de merma son distintas; revisa el pedido antes de unificarlas.")
             _calculate_aluminum_waste(connection, order_id)
             _calculate_glass_waste(connection, order_id)
+            connection.execute("UPDATE pedidos SET merma_pendiente = 0 WHERE id = ?", (order_id,))
             included = next((row[0] for row in selections if row is not None), 1)
             for table in ("merma_pedido", "merma_vidrio_pedido"):
                 connection.execute(f"UPDATE {table} SET incluida = ? WHERE pedido_id = ?", (included, order_id))
@@ -947,31 +1072,44 @@ def select_combined_waste(order_id: int, selection: WasteSelection):
     return get_order(order_id)
 
 
-@app.post("/api/pedidos/{order_id}/movimientos")
-def add_movement(order_id: int, movement: MovementInput):
+def _add_movement(connection, order_id, movement):
     cents = cents_from_input(movement.importe)
     if not 0 < cents <= 9223372036854775807:
         raise HTTPException(status_code=422, detail="Ingresa un importe positivo válido.")
+    require_open_order(connection, order_id)
+    order = _get_order(order_id, connection)
+    if movement.tipo == "pago":
+        if order["cliente"] is None:
+            raise HTTPException(status_code=409, detail="Registra los datos del cliente antes de agregar pagos.")
+        try:
+            validate_client(OrderClient(**order["cliente"]))
+        except HTTPException as error:
+            raise HTTPException(status_code=409, detail="Completa los datos del cliente antes de agregar pagos.") from error
+    if order["merma_pendiente"]:
+        raise HTTPException(status_code=409, detail="Calcula la merma pendiente antes de registrar movimientos.")
+    if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
+        raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de registrar movimientos.")
+    total = cents_from_input(order["total_pedido"])
+    net = sum((cents_from_input(m["importe"]) if m["tipo"] == "pago" else -cents_from_input(m["importe"])) for m in order["movimientos"] if not m["anulado"])
+    if movement.tipo == "devolucion" and cents > max(0, net - total):
+        raise HTTPException(status_code=409, detail="La devolución no puede superar el excedente.")
+    connection.execute("INSERT INTO movimientos (pedido_id, tipo, importe_centavos, fecha) VALUES (?, ?, ?, ?)", (order_id, movement.tipo, cents, datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()))
+    if movement.tipo == "pago" and (net + cents) * 100 >= total * order["anticipo_minimo"]:
+        cursor = connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
+        if cursor.rowcount:
+            assign_order_label(connection, order_id)
+            record_event(connection, order_id, "aceptado")
+    record_settlement_change(connection, order_id, order["liquidado"])
+    if order["instalado"] and movement.tipo == "pago" and net + cents >= total:
+        close_order(connection, order_id)
+
+
+@app.post("/api/pedidos/{order_id}/movimientos")
+def add_movement(order_id: int, movement: MovementInput):
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         with connection:
-            require_open_order(connection, order_id)
-            order = _get_order(order_id, connection)
-            if order["total_pedido"] is None or order["total_ventanas"]["sin_precio"]:
-                raise HTTPException(status_code=409, detail="Calcula el precio de todas las ventanas antes de registrar movimientos.")
-            total = cents_from_input(order["total_pedido"])
-            net = sum((cents_from_input(m["importe"]) if m["tipo"] == "pago" else -cents_from_input(m["importe"])) for m in order["movimientos"] if not m["anulado"])
-            if movement.tipo == "devolucion" and cents > max(0, net - total):
-                raise HTTPException(status_code=409, detail="La devolución no puede superar el excedente.")
-            connection.execute("INSERT INTO movimientos (pedido_id, tipo, importe_centavos, fecha) VALUES (?, ?, ?, ?)", (order_id, movement.tipo, cents, datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()))
-            if movement.tipo == "pago" and (net + cents) * 100 >= total * order["anticipo_minimo"]:
-                cursor = connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
-                if cursor.rowcount:
-                    assign_order_label(connection, order_id)
-                    record_event(connection, order_id, "aceptado")
-            record_settlement_change(connection, order_id, order["liquidado"])
-            if order["instalado"] and movement.tipo == "pago" and net + cents >= total:
-                close_order(connection, order_id)
+            _add_movement(connection, order_id, movement)
     return get_order(order_id)
 
 
@@ -1289,8 +1427,7 @@ def _apply_window_measure_correction(
     }
 
 
-@app.put("/api/pedidos/{order_id}/cliente")
-def save_order_client(order_id: int, details: OrderClient):
+def validate_client(details: OrderClient):
     name = details.nombre.strip()
     first_surname = details.apellido_1.strip()
     phone = details.celular.strip()
@@ -1302,6 +1439,13 @@ def save_order_client(order_id: int, details: OrderClient):
             raise HTTPException(status_code=422, detail=f"El {field} no puede contener números.")
     if len(phone) != 10 or not phone.isascii() or not phone.isdigit():
         raise HTTPException(status_code=422, detail="El celular debe tener diez dígitos.")
+
+    return (name, first_surname, details.apellido_2.strip() or None, phone, details.direccion.strip() or None, details.notas.strip() or None)
+
+
+@app.put("/api/pedidos/{order_id}/cliente")
+def save_order_client(order_id: int, details: OrderClient):
+    name, first_surname, second_surname, phone, address, notes = validate_client(details)
 
     with closing(connect_db()) as connection:
         connection.execute("BEGIN IMMEDIATE")

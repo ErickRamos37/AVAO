@@ -29,6 +29,9 @@ if __name__ == "__main__":
             if "traslado_centavos" not in columns:
                 connection.execute("ALTER TABLE pedidos ADD COLUMN traslado_centavos INTEGER CHECK (traslado_centavos IS NULL OR traslado_centavos >= 0)")
                 connection.commit()
+            if "merma_pendiente" not in columns:
+                connection.execute("ALTER TABLE pedidos ADD COLUMN merma_pendiente INTEGER NOT NULL DEFAULT 0 CHECK (merma_pendiente IN (0, 1))")
+                connection.commit()
             if "fecha_programada" not in columns:
                 connection.execute("ALTER TABLE pedidos ADD COLUMN fecha_programada TEXT")
                 connection.commit()

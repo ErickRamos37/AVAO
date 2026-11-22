@@ -15,6 +15,9 @@ from apps.api.main import (NewOrder, MovementInput, InventoryUpdate, AluminumMar
     list_costs, list_order_progress, mark_aluminum, mark_glass, mark_assembly, DeliveryUpdate, update_delivery)
 
 
+from apps.api.testing import order_with_client
+create_order = order_with_client(create_order)
+
 class PaymentTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory(); self.addCleanup(folder.cleanup)

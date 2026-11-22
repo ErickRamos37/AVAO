@@ -15,6 +15,9 @@ from apps.api.main import (NewOrder, InstallationUpdate, AluminumMark, GlassMark
     correct_window_measures, list_order_progress)
 
 
+from apps.api.testing import order_with_client
+create_order = order_with_client(create_order)
+
 class InstallationTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory(); self.addCleanup(folder.cleanup)

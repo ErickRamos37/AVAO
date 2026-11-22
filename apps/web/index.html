@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu36" defer></script>
+    <script src="/static/app.js?v=hu37-anticipo" defer></script>
   </head>
   <body>
     <main>
@@ -17,14 +17,51 @@
       </header>
 
       <section id="capture">
-        <h1>Nuevo pedido</h1>
-        <p>Ventanas California por mitad. Ingresa en pulgadas el ancho y el alto a los que se fabricará cada ventana.</p>
-        <form id="order-form">
-          <div id="window-rows"></div>
-          <button id="add-row" type="button">Añadir ventana</button>
-          <button type="submit">Guardar pedido</button>
+        <h1>Nuevo presupuesto</h1>
+        <p>La captura es provisional hasta guardar el presupuesto.</p>
+        <nav id="capture-nav" aria-label="Secciones del presupuesto">
+          <button type="button" data-capture="medidas" aria-pressed="true">Medidas y precios</button>
+          <button type="button" data-capture="cargos" aria-pressed="false">Cargos</button>
+          <button type="button" data-capture="cliente" aria-pressed="false">Cliente</button>
+          <button type="button" data-capture="anticipo" aria-pressed="false">Anticipo</button>
+        </nav>
+        <form id="order-form" novalidate>
+          <button type="submit">Guardar presupuesto</button>
+          <section id="capture-medidas" data-capture-panel>
+            <h2>Medidas y precios</h2>
+            <p>Ventanas California por mitad. Ingresa ancho y alto de fabricación en pulgadas.</p>
+            <div id="window-rows"></div>
+            <button id="add-row" type="button">Añadir ventana</button>
+            <p class="hint">Puedes escribir un entero o sumar fracciones de 1/2, 1/4, 1/8 y 1/16.</p>
+          </section>
+          <section id="capture-cargos" data-capture-panel hidden>
+            <h2>Cargos</h2>
+            <p><label>Traslado (opcional) <input id="capture-delivery" type="number" min="0" step="0.01"></label></p>
+            <p><label><input id="capture-waste" type="checkbox" checked> Incluir cargo por merma de aluminio y vidrio</label></p>
+            <p id="capture-waste-status"></p>
+            <details><summary>Ver desglose de merma</summary><div id="capture-waste-details"></div></details>
+            <p id="capture-cargos-total" aria-live="polite"></p>
+          </section>
+          <section id="capture-cliente" data-capture-panel hidden>
+            <h2>Cliente</h2>
+            <p><label>Nombre <input name="nombre" required autocomplete="off"></label></p>
+            <p><label>Primer apellido <input name="apellido_1" required autocomplete="off"></label></p>
+            <p><label>Segundo apellido (opcional) <input name="apellido_2" autocomplete="off"></label></p>
+            <p><label>Celular <input name="celular" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required autocomplete="off"></label></p>
+            <p><label>Dirección (opcional) <input name="direccion" autocomplete="off"></label></p>
+            <p><label>Notas del pedido para el taller (opcional) <textarea name="notas"></textarea></label></p>
+          </section>
+          <section id="capture-anticipo" data-capture-panel hidden>
+            <h2>Anticipo</h2>
+            <p>El anticipo requiere precios completos. Puedes registrar un importe menor al mínimo.</p>
+            <p><label>Importe del anticipo <input id="capture-payment" type="number" min="0.01" step="0.01" inputmode="decimal"></label></p>
+            <button type="submit" data-payment="true">Guardar y registrar anticipo</button>
+          </section>
+          <section aria-labelledby="preview-title" aria-live="polite">
+            <h2 id="preview-title">Estimación provisional</h2>
+            <div id="capture-preview">Introduce las medidas para consultar la estimación.</div>
+          </section>
         </form>
-        <p class="hint">Puedes escribir un entero o sumar fracciones de 1/2, 1/4, 1/8 y 1/16.</p>
       </section>
 
       <template id="window-template">

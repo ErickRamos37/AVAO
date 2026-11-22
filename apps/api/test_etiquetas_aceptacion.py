@@ -8,6 +8,9 @@ from apps.api.main import (NewOrder, MovementInput, create_order, get_order, lis
     calculate_window_cost, add_movement, void_movement, database_path)
 
 
+from apps.api.testing import order_with_client
+create_order = order_with_client(create_order)
+
 class LabelAcceptanceTests(PaymentTests):
     def price(self, order_id):
         for window in get_order(order_id)['ventanas']:

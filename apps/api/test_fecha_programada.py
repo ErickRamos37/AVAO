@@ -11,6 +11,9 @@ from apps.api.main import (NewOrder, MovementInput, InstallationDateUpdate, crea
                            calculate_window_cost, add_movement, update_installation_date)
 
 
+from apps.api.testing import order_with_client
+create_order = order_with_client(create_order)
+
 class InstallationDateTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory(); self.addCleanup(folder.cleanup)

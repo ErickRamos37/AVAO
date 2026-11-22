@@ -58,7 +58,7 @@ window.fetch = async (url, options = {}) => {
   return originalFetch(url, options);
 };
 window.addEventListener('beforeunload', event => {
-  if (dirtyBlocks().length) { event.preventDefault(); event.returnValue = ''; }
+  if (dirtyBlocks().length || captureHasChanges()) { event.preventDefault(); event.returnValue = ''; }
 });
 
 function showClient(order) {
@@ -125,12 +125,13 @@ function addRow() {
     row.remove();
     if (!rows.children.length) addRow();
     else numberRows();
+    schedulePreview();
   });
   rows.append(row);
   numberRows();
 }
 
-document.querySelector('#add-row').addEventListener('click', addRow);
+document.querySelector('#add-row').addEventListener('click', () => { addRow(); schedulePreview(); });
 addRow();
 
 function showError(text) {
@@ -913,7 +914,7 @@ async function openOrder(id) {
     paymentStatus.replaceChildren();
     const statusLines = [order.aceptado ? 'Pedido aceptado' : 'Presupuesto'];
     if (order.anticipo_requerido === null) {
-      statusLines.push('Calcula todos los precios para consultar el anticipo y registrar movimientos.');
+      statusLines.push(order.merma_pendiente ? 'Calcula la merma pendiente y completa los precios antes de registrar movimientos.' : 'Calcula todos los precios para consultar el anticipo y registrar movimientos.');
     } else {
       statusLines.push(`Anticipo requerido (${order.anticipo_minimo}%): $${order.anticipo_requerido}`,
         `Saldo: $${order.saldo}`, `Excedente: $${order.excedente}`);
@@ -948,8 +949,9 @@ async function openOrder(id) {
     if (order.total_pedido === null) {
       grandTotal.textContent = '';
     } else {
-      grandTotal.textContent = `${order.total_ventanas.sin_precio ? 'Total parcial del pedido' : 'Total del pedido'}: $${order.total_pedido}`;
+      grandTotal.textContent = `${order.total_ventanas.sin_precio || order.merma_pendiente ? 'Total parcial del pedido' : 'Total del pedido'}: $${order.total_pedido}`;
     }
+    if (order.merma_pendiente) grandTotal.textContent += ' Falta calcular la merma incluida.';
     if (order.total_ventanas.desactualizado) {
       const warning = document.createElement('p');
       warning.textContent = 'Hay precios desactualizados por cambios de medidas o planes. Recalcula las ventanas indicadas.';
@@ -1259,47 +1261,120 @@ clientForm.addEventListener('submit', async (event) => {
   }
 });
 
-document.querySelector('#order-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  message.hidden = true;
-  const button = event.currentTarget.querySelector('button[type="submit"]');
-  button.disabled = true;
+const captureForm = document.querySelector('#order-form');
+function captureHasChanges() {
+  if (capture.hidden) return false;
+  return [...rows.children].some(row => row.querySelector('.width').value.trim() || row.querySelector('.height').value.trim())
+    || clientFields.some(field => captureForm.elements[field].value.trim())
+    || Boolean(document.querySelector('#capture-delivery').value) || Boolean(document.querySelector('#capture-payment').value) || !document.querySelector('#capture-waste').checked;
+}
+let previewVersion = null;
+let previewSequence = 0;
+let previewTimer;
+function captureInput() {
+  return {
+    ventanas: [...rows.children].map(row => ({ancho: row.querySelector('.width').value.trim(), alto: row.querySelector('.height').value.trim()})),
+    traslado: document.querySelector('#capture-delivery').value || null,
+    incluir_merma: document.querySelector('#capture-waste').checked,
+  };
+}
+function schedulePreview() {
+  previewVersion = null;
+  const sequence = ++previewSequence;
+  clearTimeout(previewTimer);
+  document.querySelector('#capture-preview').textContent = 'Actualizando estimación…';
+  previewTimer = setTimeout(() => updatePreview(sequence), 250);
+}
+async function updatePreview(sequence) {
   try {
-    const windows = [...rows.children].map((row) => ({
-      ancho: row.querySelector('.width').value.trim(),
-      alto: row.querySelector('.height').value.trim(),
-    }));
-    const partialIndex = windows.findIndex((window) => Boolean(window.ancho) !== Boolean(window.alto));
-    if (partialIndex !== -1) {
-      showError(`Ventana ${partialIndex + 1}: completa ancho y alto o descarta la fila.`);
-      return;
+    const response = await originalFetch('/api/presupuestos/vista-previa', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(captureInput())});
+    const result = await response.json();
+    if (sequence !== previewSequence) return;
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo calcular la estimación.');
+    previewVersion = result.version;
+    const preview = document.querySelector('#capture-preview'); preview.replaceChildren();
+    const add = text => { const p = document.createElement('p'); p.textContent = text; preview.append(p); };
+    for (const error of result.errores) add(error);
+    let subtotal = 0, priced = 0;
+    for (const item of result.ventanas) {
+      if (item.costo.completo) { subtotal += Number(item.costo.precio) * 100; priced++; add(`Ventana ${item.fila}: $${item.costo.precio}`); }
+      else add(`Ventana ${item.fila}: precio pendiente. Faltan costos de ${item.costo.faltantes.join(', ')}.`);
     }
-    if (!windows.some((window) => window.ancho && window.alto)) {
-      showError('Agrega al menos una ventana con ancho y alto completos.');
-      return;
+    if (!result.ventanas.length && !result.errores.length) add('Introduce medidas completas para consultar la estimación.');
+    const waste = result.merma;
+    const wasteDetails = document.querySelector('#capture-waste-details'); wasteDetails.replaceChildren();
+    if (waste) {
+      for (const [label, amount, details] of [['Aluminio', waste.aluminio, waste.detalle_aluminio], ['Vidrio', waste.vidrio, waste.detalle_vidrio]]) {
+        const line = document.createElement('p'); line.textContent = `${label}: $${(amount / 100).toFixed(2)}`; wasteDetails.append(line);
+        for (const item of details) { const itemLine = document.createElement('p'); itemLine.textContent = `${item.perfil ?? item.vidrio}: sobrante ${item.sobrante}, importe aproximado $${item.importe}`; wasteDetails.append(itemLine); }
+      }
+    } else wasteDetails.textContent = 'Desglose pendiente.';
+    document.querySelector('#capture-waste-status').textContent = waste ? `Merma de aluminio y vidrio: $${((waste.aluminio + waste.vidrio) / 100).toFixed(2)}${result.incluir_merma ? '' : ' (no incluida)'}` : result.merma_error ? `Merma pendiente: ${result.merma_error}` : 'Merma pendiente de medidas completas.';
+    if (priced) {
+      const complete = !result.errores.length && priced === result.ventanas.length && (!result.incluir_merma || waste);
+      const cents = subtotal + (result.traslado_centavos || 0) + (result.incluir_merma && waste ? waste.aluminio + waste.vidrio : 0);
+      const totalText = `${complete ? 'Total provisional' : 'Total parcial provisional'}: $${(cents / 100).toFixed(2)}`;
+      add(totalText); document.querySelector('#capture-cargos-total').textContent = totalText;
+    } else {
+      const text = result.ventanas.length ? 'Total no disponible: faltan precios.' : 'Total pendiente de medidas completas.';
+      if (result.ventanas.length) add(text);
+      document.querySelector('#capture-cargos-total').textContent = text;
     }
-    const response = await fetch('/api/pedidos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ventanas: windows }),
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar el pedido.');
-    }
-    const order = await response.json();
-    history.pushState({}, '', `/pedidos/${order.id}`);
-    loadOrders();
-    await openOrder(order.id);
   } catch (error) {
-    showError(error.message);
-  } finally {
-    button.disabled = false;
+    if (sequence !== previewSequence) return;
+    previewVersion = null; document.querySelector('#capture-preview').textContent = error.message;
   }
+}
+captureForm.addEventListener('input', event => {
+  if (event.target.closest('#window-rows') || event.target.id === 'capture-delivery') schedulePreview();
+});
+document.querySelector('#capture-waste').addEventListener('change', schedulePreview);
+for (const button of document.querySelectorAll('#capture-nav button')) {
+  button.addEventListener('click', () => {
+    for (const item of document.querySelectorAll('#capture-nav button')) item.setAttribute('aria-pressed', String(item === button));
+    for (const panel of document.querySelectorAll('[data-capture-panel]')) panel.hidden = panel.id !== `capture-${button.dataset.capture}`;
+  });
+}
+captureForm.addEventListener('submit', async event => {
+  event.preventDefault(); message.hidden = true;
+  if (!previewVersion) { showError('Espera a que termine la estimación antes de guardar.'); return; }
+  const withPayment = event.submitter?.dataset.payment === 'true';
+  const payment = document.querySelector('#capture-payment');
+  const tokenKey = 'avao-captura-anticipo';
+  if (!withPayment && sessionStorage.getItem(tokenKey)) { showError('Hay un intento de anticipo pendiente de confirmar. Reinténtalo o consulta los pedidos antes de guardar otro.'); return; }
+  if (withPayment && (!payment.value || !payment.validity.valid || Number(payment.value) <= 0)) { showError('Ingresa un anticipo válido mayor a cero.'); payment.focus(); return; }
+  const client = Object.fromEntries(clientFields.map(field => [field, captureForm.elements[field].value.trim()]));
+  if (!client.nombre || !client.apellido_1 || !/^[0-9]{10}$/.test(client.celular)) {
+    showError('Completa nombre, primer apellido y celular de diez dígitos.');
+    document.querySelector('[data-capture="cliente"]').click(); return;
+  }
+  const controls = [...captureForm.querySelectorAll('input, textarea, button')];
+  const disabled = controls.map(control => control.disabled);
+  controls.forEach(control => { control.disabled = true; });
+  try {
+    let token = sessionStorage.getItem(tokenKey);
+    if (withPayment && !token) { token = crypto.randomUUID(); sessionStorage.setItem(tokenKey, token); }
+    const body = {...captureInput(), cliente: client, version: previewVersion};
+    if (withPayment) { body.importe = payment.value; body.token = token; }
+    const response = await originalFetch(withPayment ? '/api/presupuestos/con-anticipo' : '/api/pedidos', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (withPayment && (response.status === 422 || (response.status === 409 && result.detail !== 'Este intento ya corresponde a otros datos. Consulta los pedidos antes de volver a cobrar.'))) sessionStorage.removeItem(tokenKey);
+      if (response.status === 409 && result.detail === 'Cambió la estimación. Revísala de nuevo antes de guardar.') schedulePreview();
+      throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo guardar el presupuesto.');
+    }
+    if (withPayment) sessionStorage.removeItem(tokenKey);
+    captureForm.reset(); rows.replaceChildren(); addRow(); previewVersion = null;
+    document.querySelector('#capture-preview').textContent = 'Introduce las medidas para consultar la estimación.';
+    history.pushState({}, '', `/pedidos/${result.id}`); loadOrders(); await openOrder(result.id);
+    if (withPayment && currentOrderData?.aceptado && !currentOrderData.fecha_programada) {
+      showArea('instalacion'); const field = document.querySelector('#installation-date'); field.scrollIntoView({block: 'center'}); field.focus();
+    }
+  } catch (error) { showError(error.message); } finally { controls.forEach((control, index) => { control.disabled = disabled[index]; }); }
 });
 
 window.addEventListener('popstate', () => {
-  if (!confirmPending('', true)) {
+  if ((captureHasChanges() && !window.confirm('Hay datos provisionales sin guardar. Si continúas se perderán. ¿Continuar?')) || !confirmPending('', true)) {
     history.pushState({}, '', currentOrderId ? `/pedidos/${currentOrderId}` : '/');
     return;
   }
