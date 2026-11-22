@@ -19,6 +19,7 @@
 | E3. Completar un pedido desde presupuesto hasta liquidación | Comunicar total, registrar aceptación y pagos, instalar y cerrar. | HU-11 a HU-17 |
 | E4. Actualizar el cálculo comercial desde insumos | Cambiar precios individuales y aplicar ganancia definida. | HU-18, HU-19 |
 | E5. Conocer el desempeño del taller para tomar decisiones | Consultar eventos y resultados del taller a lo largo del tiempo para apoyar decisiones. | HU-28 a HU-33 |
+| E6. Facilitar el trabajo cotidiano del taller | Mejorar navegación, edición y comprensión de presupuestos y cambios. | HU-35 a HU-38 |
 
 HU-20, HU-21 y HU-24 quedan independientes hasta que su alcance justifique agruparlas. El progreso de una épica no reemplaza la aceptación de cada HU.
 
@@ -526,13 +527,68 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 ## Ciclo 6: propuesta de usabilidad por acordar
 
-**Objetivo propuesto:** facilitar el recorrido de trabajo y la comprensión de información y acciones, sin rediseño visual. No hay historias definitivas, prioridad ni esfuerzo acordados; cada entrega se refinará con el usuario antes de construirla.
+**Objetivo propuesto:** facilitar el recorrido de trabajo y la comprensión de información y acciones, sin rediseño visual. El usuario aprobó E6, los esfuerzos y las prioridades de HU-35 a HU-38; cada entrega conserva sus reglas pendientes y se refinará antes de construirla.
 
 **Posibles resultados:** mejorar la navegación según el flujo real; ordenar la información y mostrar controles en el momento adecuado; permitir editar por bloques con guardar, cancelar y aviso de cambios sin guardar; y estudiar una previsualización de precios que reduzca la fricción de calcular cada ventana. Cualquier modificación al tratamiento de precios guardados necesita una regla acordada antes de implementarse.
 
 **Hipótesis derivadas de revisión del código, por validar con el usuario:** los datos del cliente pueden quedar editables sin cancelar y una reapertura podría perder cambios; una etiqueta «Precio ventana» podría referirse al costo base; algunos controles de instalación aparecen antes de necesitarlos y se acumulan bajo Medidas; calcular cada ventana por separado podría dificultar el flujo. Estas observaciones no sustituyen una prueba del uso real.
 
-**Pregunta clave:** en un presupuesto, ¿se desea un cálculo provisional automático y separado del precio acordado y guardado, que permanezca congelado hasta que se decida actualizarlo? Precisar qué se muestra, cuándo cambia y qué ocurre al aceptar antes de definir una entrega.
+**Flujo de edición aprobado para refinar:** al editar se prepara una vista previa sin perder los valores originales. Una primera confirmación valida que se desean aplicar los cambios. Antes de guardar se muestran solo las ventanas afectadas, con su etiqueta, medidas anteriores y nuevas, precio anterior y precio sugerido tras los cambios, más un resumen de la diferencia del total del pedido; no se muestran perfiles ni filas de ventanas no afectadas. Se ofrece **Conservar precio acordado**, **Actualizar precio** o **Cancelar toda la acción**. Solo tras la segunda confirmación se guardan los cambios conjuntamente; cancelar no modifica los datos originales. Conservar el precio aceptado no impide actualizar internamente los costos. En un presupuesto, mostrar el impacto antes de guardar sin modificar los datos anticipadamente.
+
+**Distinción de importes:** el costo base actualizado de materiales se distingue del precio sugerido con ganancia y del precio acordado elegido. El usuario quiere conocer la ganancia o pérdida al absorber un cambio. La fórmula confirmada de ganancia estimada es precio cobrado elegido menos costo actualizado de materiales; no se resta el precio sugerido que ya incluye ganancia. Esta cifra no es utilidad neta porque no incluye mano de obra ni gastos. Un cambio no se atribuye automáticamente a culpa del taller.
+
+**Reglas confirmadas para la vista previa:** al editar una ventana se usan los costos vigentes del inventario solo para las ventanas editadas; las demás conservan sus importes guardados. Se recalcula la merma del pedido conservando su selección incluida o desmarcada y la vista previa resume la diferencia del cargo. Un cambio de inventario por sí solo no modifica pedidos en segundo plano; el cálculo ocurre al editar o realizar una nueva captura. Se conserva el porcentaje de ganancia guardado.
+
+**Elección de precio confirmada:** conservar o actualizar se elige conjuntamente para todas las ventanas afectadas. Conservar los precios mantiene también el cargo de merma anterior; actualizar aplica los precios y el cargo recalculados en la vista previa, respetando la selección de merma. En ambos casos, las ventanas editadas guardan el costo actualizado y las demás mantienen sus importes. **Reglas pendientes antes de implementar:** precisar la presentación de la pérdida y la comparación en presupuesto y pedido aceptado. Si se conserva el precio acordado con un costo diferente, mostrar la ganancia estimada confirmada, o pérdida cuando sea negativa; precisar su presentación. Precisar el comportamiento para presupuestos y pedidos aceptados antes de definir la entrega.
+
+**Épica aprobada:** E6 — Facilitar el trabajo cotidiano del taller. Los esfuerzos y prioridades indicados están aceptados; las subtareas son propuestas para revisión y no implican incidencias creadas.
+
+| ID | Historia | Épica | Esfuerzo aceptado | Prioridad aceptada | Estado |
+| --- | --- | --- | --- | --- | --- |
+| HU-35 | Navegar según el flujo del pedido | E6 | 5 | Alta | Propuesta por refinar |
+| HU-36 | Editar y cancelar por bloque | E6 | 5 | Alta | Propuesta por refinar |
+| HU-37 | Consultar presupuesto durante la captura | E6 | 5 | Alta | Propuesta por refinar |
+| HU-38 | Revisar impacto de cambios antes de guardar | E6 | 8 | Alta | Propuesta por refinar |
+
+### HU-35 — Navegar según el flujo del pedido
+
+- **Historia:** **Como** empleado, **necesito** encontrar la información y acciones relevantes en cada momento del pedido, **para** avanzar sin buscar controles que aún no necesito.
+- **Criterios propuestos:**
+  - [ ] La navegación permite seguir el flujo del presupuesto, fabricación e instalación y encontrar las acciones correspondientes a cada etapa.
+  - [ ] La información y controles se presentan cuando corresponden al estado del pedido; las acciones siguen siendo accesibles cuando se necesitan.
+- **Subtarea vertical propuesta — Navegar por el flujo del pedido:** organizar acceso a información y acciones según el estado, comprobar presupuesto, fabricación e instalación y conservar controles necesarios.
+- **Límites y preguntas:** conservar funcionalidades existentes y estilo actual; acordar con el usuario el recorrido concreto antes de implementarlo. Sin rediseño visual.
+
+### HU-36 — Editar y cancelar por bloque
+
+- **Historia:** **Como** empleado, **necesito** editar cada bloque de información de manera explícita, **para** guardar o cancelar mis cambios sin perderlos accidentalmente.
+- **Criterios propuestos:**
+  - [ ] Un bloque se consulta y entra en edición explícitamente; guardar persiste sus cambios y cancelar conserva los valores anteriores.
+  - [ ] Si hay cambios sin guardar, se advierte antes de abandonar o cambiar de contexto. Editar datos del cliente o fechas no cambia precios acordados.
+- **Subtarea vertical propuesta — Editar información por bloque:** activar edición explícita con guardar y cancelar, advertir cambios pendientes al salir y comprobar persistencia, cancelación y navegación.
+- **Límites y preguntas:** acordar bloques y comportamiento al navegar; cambios de medidas con impacto de precio dependen de HU-38. Sin rediseño visual.
+
+### HU-37 — Consultar presupuesto durante la captura
+
+- **Historia:** **Como** empleado, **necesito** consultar un cálculo provisional mientras capturo un presupuesto, **para** conocer el impacto de las medidas sin calcular cada ventana por separado.
+- **Criterios propuestos:**
+  - [ ] Al capturar o cambiar medidas válidas se actualiza la vista provisional de las ventanas y total; si faltan datos se informa sin presentar importes inexistentes como cero.
+  - [ ] La vista provisional se distingue del precio guardado y no modifica un precio aceptado por cambios de inventario en segundo plano.
+- **Subtarea vertical propuesta — Consultar cálculo provisional al capturar:** actualizar la vista al introducir medidas válidas, mostrar pendientes y comprobar que no guarda borradores ni altera precios aceptados sin decisión.
+- **Límites y preguntas:** el cálculo de captura nueva usa costos vigentes y conserva la selección de merma; la captura incompleta no implica un precio definitivo. Precisar cómo mostrar el efecto de la merma. Sin rediseño visual.
+
+### HU-38 — Revisar impacto de cambios antes de guardar
+
+- **Historia:** **Como** empleado, **necesito** revisar el impacto de una edición y elegir el precio antes de guardarla, **para** conservar el acuerdo con el cliente o actualizarlo conscientemente.
+- **Criterios propuestos:**
+  - [ ] La primera confirmación revisa la intención de aplicar la edición; antes de guardar, la segunda muestra solo ventanas afectadas, su etiqueta, medidas anteriores y nuevas, precio anterior y sugerido, y diferencia total del pedido, sin filas de materiales ni ventanas no afectadas.
+  - [ ] La vista previa usa costos vigentes de inventario solo en ventanas editadas, conserva los importes guardados de las demás y el porcentaje de ganancia guardado, y recalcula la merma del pedido manteniendo su selección incluida o desmarcada. El resumen muestra la diferencia del cargo de merma. Cambiar inventario por sí solo no modifica pedidos en segundo plano.
+  - [ ] Se puede conservar el precio acordado, actualizarlo o cancelar toda la acción; la elección se aplica conjuntamente a todas las ventanas afectadas. Conservar los precios mantiene también el cargo de merma anterior; actualizar aplica el cargo recalculado respetando su selección. Guardar ocurre conjuntamente después de la decisión final; cancelar conserva todos los datos originales. El precio conservado no impide actualizar el costo de materiales.
+  - [ ] Se distingue costo base de materiales, precio sugerido y precio cobrado elegido. La ganancia estimada es precio cobrado elegido menos costo actualizado de materiales; un resultado negativo es pérdida. No se presenta como utilidad neta ni se presume culpa del taller.
+  - [ ] Cambiar solo cliente o fecha y cambios de costos de inventario en segundo plano no alteran los precios aceptados.
+- **Subtarea vertical propuesta — Revisar y confirmar cambios de medidas:** preparar comparación, solicitar ambas confirmaciones y aplicar conjuntamente la elección común a todas las ventanas afectadas, costos, merma y medidas; comprobar que conservar precios mantiene el cargo de merma anterior y actualizar aplica el recalculado, además de cancelar, ventanas intactas y validaciones existentes de precios, anticipo, saldo y anulaciones.
+- **Dependencias y límites:** depende de reglas de cálculo y edición acordadas para HU-36/HU-37; no guarda parcialmente ni modifica datos al cancelar. La etiqueta de un presupuesto sin código debe seguir su identificación por ID.
+- **Preguntas abiertas:** ¿cómo presentar la pérdida y la comparación en presupuesto y pedido aceptado?
 
 **Apoyos posibles, sin instalar ni adoptar por anticipado:** Impeccable (audit, clarify y distill) para revisar usabilidad; ProMax si más adelante se solicita trabajo visual; y los flujos de simplicidad y entrega vertical existentes para mantener el alcance pequeño.
 
