@@ -539,9 +539,9 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 **Reglas confirmadas para la vista previa:** al editar una ventana se usan los costos vigentes del inventario solo para las ventanas editadas; las demás conservan sus importes guardados. Se recalcula la merma del pedido conservando su selección incluida o desmarcada y la vista previa resume la diferencia del cargo. Un cambio de inventario por sí solo no modifica pedidos en segundo plano; el cálculo ocurre al editar o realizar una nueva captura. Se conserva el porcentaje de ganancia guardado.
 
-**Elección de precio confirmada:** conservar o actualizar se elige conjuntamente para todas las ventanas afectadas. Conservar los precios mantiene también el cargo de merma anterior; actualizar aplica los precios y el cargo recalculados en la vista previa, respetando la selección de merma. En ambos casos, las ventanas editadas guardan el costo actualizado y las demás mantienen sus importes. **Reglas pendientes antes de implementar:** precisar la presentación de la pérdida y la comparación en presupuesto y pedido aceptado. Si se conserva el precio acordado con un costo diferente, mostrar la ganancia estimada confirmada, o pérdida cuando sea negativa; precisar su presentación. Precisar el comportamiento para presupuestos y pedidos aceptados antes de definir la entrega.
+**Elección de precio confirmada:** conservar o actualizar se elige conjuntamente para todas las ventanas afectadas. Conservar los precios mantiene también el cargo de merma anterior; actualizar aplica los precios y el cargo recalculados en la vista previa, respetando la selección de merma. En ambos casos, las ventanas editadas guardan el costo actualizado y las demás mantienen sus importes. Si se conserva el precio acordado con un costo diferente, mostrar la ganancia estimada confirmada, o pérdida cuando sea negativa.
 
-**Épica aprobada:** E6 — Facilitar el trabajo cotidiano del taller. Los esfuerzos y prioridades indicados están aceptados; las subtareas son propuestas para revisión y no implican incidencias creadas.
+**Épica aprobada:** E6 — Facilitar el trabajo cotidiano del taller. Los esfuerzos y prioridades indicados están aceptados; consultar GitHub Projects para el estado vigente de las incidencias y subtareas.
 
 | ID | Historia | Épica | Esfuerzo aceptado | Prioridad aceptada | Estado |
 | --- | --- | --- | --- | --- | --- |
@@ -567,10 +567,10 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 - **Historia:** **Como** empleado, **necesito** editar cada bloque de información de manera explícita, **para** guardar o cancelar mis cambios sin perderlos accidentalmente.
 - **Criterios propuestos:**
-  - [ ] Un bloque se consulta y entra en edición explícitamente; guardar persiste sus cambios y cancelar conserva los valores anteriores.
+  - [ ] Los datos del cliente se consultan en Información de Resumen. Un bloque se consulta y entra en edición explícitamente; guardar persiste sus cambios y cancelar conserva los valores anteriores.
   - [ ] Si hay cambios sin guardar, se advierte antes de abandonar o cambiar de contexto. Editar datos del cliente o fechas no cambia precios acordados.
 - **Subtarea vertical propuesta — Editar información por bloque:** activar edición explícita con guardar y cancelar, advertir cambios pendientes al salir y comprobar persistencia, cancelación y navegación libre entre secciones durante la captura.
-- **Límites y preguntas:** acordar bloques y comportamiento al navegar; cambios de medidas con impacto de precio dependen de HU-38. Sin rediseño visual.
+- **Límites:** durante la captura se puede volver libremente entre secciones; cambios de medidas con impacto de precio en pedidos aceptados dependen de HU-38. Sin rediseño visual.
 
 ### HU-37 — Consultar presupuesto durante la captura
 
@@ -595,7 +595,6 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
   - [ ] Cambiar solo cliente o fecha y cambios de costos de inventario en segundo plano no alteran los precios aceptados.
 - **Subtarea vertical propuesta — Revisar y confirmar cambios de medidas:** preparar comparación, solicitar ambas confirmaciones y aplicar conjuntamente la elección común a todas las ventanas afectadas, costos, merma y medidas; comprobar que conservar precios mantiene el cargo de merma anterior y actualizar aplica el recalculado, además de cancelar, ventanas intactas y validaciones existentes de precios, anticipo, saldo y anulaciones.
 - **Dependencias y límites:** depende de reglas de cálculo y edición acordadas para HU-36/HU-37; no guarda parcialmente ni modifica datos al cancelar. La etiqueta de un presupuesto sin código debe seguir su identificación por ID.
-- **Preguntas abiertas:** ¿cómo presentar la pérdida y la comparación en presupuesto y pedido aceptado?
 
 **Apoyos posibles, sin instalar ni adoptar por anticipado:** Impeccable (audit, clarify y distill) para revisar usabilidad; ProMax si más adelante se solicita trabajo visual; y los flujos de simplicidad y entrega vertical existentes para mantener el alcance pequeño.
 
