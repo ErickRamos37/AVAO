@@ -22,7 +22,6 @@ let currentOrderData = null;
 let nextRowId = 1;
 
 function showArea(area) {
-  if (area !== 'medidas') exitMeasureEdit();
   for (const button of areaButtons) {
     button.setAttribute('aria-pressed', String(button.dataset.area === area));
   }
@@ -33,6 +32,19 @@ function showArea(area) {
 
 for (const button of areaButtons) {
   button.addEventListener('click', () => showArea(button.dataset.area));
+}
+
+function showWorkshopArea(area) {
+  for (const button of document.querySelectorAll('#workshop-nav button')) {
+    button.setAttribute('aria-pressed', String(button.dataset.workshop === area));
+  }
+  for (const panel of document.querySelectorAll('[data-workshop-panel]')) {
+    panel.hidden = panel.id !== `workshop-${area}`;
+  }
+}
+
+for (const button of document.querySelectorAll('#workshop-nav button')) {
+  button.addEventListener('click', () => showWorkshopArea(button.dataset.workshop));
 }
 
 function numberRows() {
@@ -699,8 +711,11 @@ async function openOrder(id) {
         item.append(cost); windows.append(item);
       }
       view.append(windows);
-      for (const [name, waste] of [['Merma de aluminio', order.merma], ['Merma de vidrio', order.merma_vidrio]]) {
-        if (waste) add(name, `$${waste.cargo} · ${waste.incluida ? 'incluida' : 'no incluida'}`);
+      const wastes = [order.merma, order.merma_vidrio].filter(Boolean);
+      if (wastes.length) {
+        const included = wastes.reduce((sum, waste) => sum + (waste.incluida ? Math.round(Number(waste.cargo) * 100) : 0), 0);
+        const total = wastes.reduce((sum, waste) => sum + Math.round(Number(waste.cargo) * 100), 0);
+        add('Merma', `$${(total / 100).toFixed(2)} · aplicada: $${(included / 100).toFixed(2)}`);
       }
       add('Traslado', order.traslado === null ? null : `$${order.traslado}`);
       add('Total del pedido', order.total_pedido === null ? null : `$${order.total_pedido}`);
@@ -718,7 +733,8 @@ async function openOrder(id) {
     }
     if (currentOrderId !== order.id) {
       currentOrderId = order.id;
-      showArea('medidas');
+      showArea('resumen');
+      showWorkshopArea('aluminio');
       document.querySelector('#client-details').open = false;
     }
     currentOrderData = order;
@@ -735,6 +751,7 @@ async function openOrder(id) {
       clientForm.elements[field].value = order.cliente?.[field] ?? '';
     }
     clientForm.elements.notas.value = order.notas;
+    document.querySelector('#workshop-notes').textContent = order.notas || 'Sin notas para el taller.';
     document.querySelector('#client-status').textContent = order.cliente
       ? 'Datos del cliente guardados. Puedes corregirlos aquí.'
       : 'Faltan los datos del cliente.';
@@ -763,7 +780,11 @@ async function openOrder(id) {
     deliveryAmount.disabled = true;
     deliveryActions.hidden = true;
     deliveryEdit.hidden = false;
-    document.querySelector('#waste-value').textContent = order.merma === null ? 'La merma aún no se ha calculado.' : `Cargo por merma: $${order.merma.cargo}${order.merma.incluida ? '' : ' (no aplicado)'}`;
+    const combinedWaste = order.merma && order.merma_vidrio;
+    const sameSelection = combinedWaste && order.merma.incluida === order.merma_vidrio.incluida;
+    const combinedCents = combinedWaste ? Math.round(Number(order.merma.cargo) * 100) + Math.round(Number(order.merma_vidrio.cargo) * 100) : 0;
+    document.querySelector('#waste-value').textContent = !combinedWaste ? 'Calcula la merma de aluminio y vidrio.' : !sameSelection ? 'Las selecciones de merma son distintas; revisa el pedido.' : `Cargo por merma: $${(combinedCents / 100).toFixed(2)}${order.merma.incluida ? '' : ' (no aplicado)'}`;
+    document.querySelector('#aluminum-waste-value').textContent = order.merma ? `Aluminio: $${order.merma.cargo}` : 'Sin cálculo de aluminio.';
     const wasteDetails = document.querySelector('#waste-details');
     wasteDetails.replaceChildren();
     if (order.merma?.detalle === null) {
@@ -795,13 +816,10 @@ async function openOrder(id) {
       details.append(summary, table, note); wasteDetails.append(details);
     }
     const wasteCheck = document.querySelector('#waste-included');
-    wasteCheck.disabled = order.merma === null;
+    wasteCheck.disabled = !sameSelection;
     wasteCheck.checked = order.merma?.incluida ?? false;
     const glassWaste = order.merma_vidrio;
     document.querySelector('#glass-waste-value').textContent = glassWaste === null ? 'La merma de vidrio aún no se ha calculado.' : `Cargo por merma de vidrio: $${glassWaste.cargo}${glassWaste.incluida ? '' : ' (no aplicado)'}`;
-    const glassWasteCheck = document.querySelector('#glass-waste-included');
-    glassWasteCheck.disabled = glassWaste === null;
-    glassWasteCheck.checked = glassWaste?.incluida ?? false;
     const glassDetails = document.querySelector('#glass-waste-details');
     glassDetails.replaceChildren();
     if (glassWaste?.detalle?.length === 0) {
@@ -846,6 +864,7 @@ async function openOrder(id) {
       if (order.liquidado) statusLines.push('Liquidado');
     }
     if (order.aceptado && !order.fecha_programada) statusLines.push('Fecha de instalación pendiente de registrar.');
+    document.querySelector('#pending-installation').hidden = !(order.aceptado && !order.fecha_programada);
     for (const line of statusLines) {
       const paragraph = document.createElement('p'); paragraph.textContent = line; paymentStatus.append(paragraph);
     }
@@ -1006,7 +1025,7 @@ document.querySelector('#waste-recalculate').addEventListener('click', async eve
   const button = event.currentTarget;
   button.disabled = true;
   try {
-    const response = await fetch(`/api/pedidos/${currentOrderId}/merma`, {method: 'POST'});
+    const response = await fetch(`/api/pedidos/${currentOrderId}/merma-conjunta`, {method: 'POST'});
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail ?? 'No se pudo calcular la merma.');
     message.hidden = true;
@@ -1018,32 +1037,13 @@ document.querySelector('#waste-included').addEventListener('change', async event
   const checkbox = event.currentTarget;
   checkbox.disabled = true;
   try {
-    const response = await fetch(`/api/pedidos/${currentOrderId}/merma`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({incluida: checkbox.checked})});
+    const response = await fetch(`/api/pedidos/${currentOrderId}/merma-conjunta`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({incluida: checkbox.checked})});
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail ?? 'No se pudo guardar la selección.');
     message.hidden = true;
     await openOrder(currentOrderId);
   } catch (error) { checkbox.checked = !checkbox.checked; showError(error.message); }
   finally { checkbox.disabled = false; }
-});
-
-document.querySelector('#glass-waste-recalculate').addEventListener('click', async event => {
-  const button = event.currentTarget; button.disabled = true;
-  try {
-    const response = await fetch(`/api/pedidos/${currentOrderId}/merma-vidrio`, {method: 'POST'});
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.detail ?? 'No se pudo calcular la merma de vidrio.');
-    message.hidden = true; await openOrder(currentOrderId);
-  } catch (error) { showError(error.message); } finally { button.disabled = false; }
-});
-document.querySelector('#glass-waste-included').addEventListener('change', async event => {
-  const checkbox = event.currentTarget; checkbox.disabled = true;
-  try {
-    const response = await fetch(`/api/pedidos/${currentOrderId}/merma-vidrio`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({incluida: checkbox.checked})});
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.detail ?? 'No se pudo guardar la selección.');
-    message.hidden = true; await openOrder(currentOrderId);
-  } catch (error) { checkbox.checked = !checkbox.checked; showError(error.message); } finally { checkbox.disabled = false; }
 });
 
 document.querySelector('#installation-toggle').addEventListener('click', async event => {
@@ -1073,10 +1073,16 @@ document.querySelector('#payment-form').addEventListener('submit', async event =
     if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo registrar el movimiento.');
     form.reset(); message.hidden = true; await openOrder(currentOrderId);
     if (result.aceptado && !result.fecha_programada) {
+      showArea('instalacion');
       const dateField = document.querySelector('#installation-date');
       dateField.scrollIntoView({block: 'center'}); dateField.focus();
     }
   } catch (error) { showError(error.message); } finally { button.disabled = false; }
+});
+
+document.querySelector('#pending-installation').addEventListener('click', () => {
+  showArea('instalacion');
+  document.querySelector('#installation-date').focus();
 });
 
 const installationDateForm = document.querySelector('#installation-date-form');
