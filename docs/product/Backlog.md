@@ -553,11 +553,15 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 ### HU-35 — Navegar según el flujo del pedido
 
 - **Historia:** **Como** empleado, **necesito** encontrar la información y acciones relevantes en cada momento del pedido, **para** avanzar sin buscar controles que aún no necesito.
-- **Criterios propuestos:**
-  - [ ] La navegación permite seguir el flujo del presupuesto, fabricación e instalación y encontrar las acciones correspondientes a cada etapa.
-  - [ ] La información y controles se presentan cuando corresponden al estado del pedido; las acciones siguen siendo accesibles cuando se necesitan.
-- **Subtarea vertical propuesta — Navegar por el flujo del pedido:** organizar acceso a información y acciones según el estado, comprobar presupuesto, fabricación e instalación y conservar controles necesarios.
-- **Límites y preguntas:** conservar funcionalidades existentes y estilo actual; acordar con el usuario el recorrido concreto antes de implementarlo. Sin rediseño visual.
+- **Recorrido confirmado:** ofrecer tres accesos: **Resumen** reúne ventanas, cliente, importes y pagos; **Taller**, aluminio, vidrio y ensamble; **Instalación**, fecha y estado. En la entrada normal al pedido se abre siempre **Resumen**.
+- **Captura confirmada para E6:** navegación libre entre medidas y precio por ventana, cargos (merma y traslado), cliente y anticipo; se puede volver a editar o agregar ventanas durante la negociación. El precio provisional se actualiza durante la captura, incluso sin cliente. Antes de guardar, la captura es provisional y no persiste ni constituye un estado nuevo. Para guardar presupuesto o pedido y registrar anticipo se requieren al menos una ventana con medidas completas y nombre, primer apellido y celular; los demás datos son opcionales. Guardar presupuesto admite costos de insumos faltantes y precios incompletos o no disponibles, para estimar la inversión; conserva los valores disponibles y su estado incompleto, sin vencimiento definido. Las filas de ventanas parcialmente capturadas siguen siendo error y las vacías se omiten. La estimación parcial o no disponible se identifica claramente, sin tratar faltantes como cero ni presentarla como total completo. El anticipo sigue exigiendo todos los precios completos según HU-14. El cliente deja sus datos antes de la visita de mediciones precisas o del anticipo. Los precios de pedidos aceptados siguen sujetos a HU-38.
+- **Criterios de aceptación:**
+  - [ ] Los tres accesos permiten encontrar la información y acciones de Resumen, Taller e Instalación según el recorrido confirmado; al entrar normalmente a un pedido se abre Resumen.
+  - [ ] Después de registrar el anticipo mínimo se solicita inmediatamente la fecha programada de instalación, sin impedir ni perder el anticipo si falta la fecha, conforme a la regla ya confirmada de HU-15.
+  - [ ] La captura permite navegar libremente entre secciones, volver a ellas y editar o agregar ventanas durante la negociación; los datos del cliente se consultan en Información de Resumen y las notas del pedido permanecen disponibles para el taller.
+  - [ ] Se conservan las funcionalidades existentes y los controles necesarios durante presupuesto, fabricación e instalación.
+- **Subtarea [#118](https://github.com/ErickRamos37/AVAO/issues/118) — Navegar por el flujo del pedido:** organizar los tres accesos y comprobar el recorrido y la solicitud de fecha posterior al anticipo.
+- **Límites:** conservar funcionalidades existentes y estilo actual. Sin rediseño visual.
 
 ### HU-36 — Editar y cancelar por bloque
 
@@ -565,7 +569,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 - **Criterios propuestos:**
   - [ ] Un bloque se consulta y entra en edición explícitamente; guardar persiste sus cambios y cancelar conserva los valores anteriores.
   - [ ] Si hay cambios sin guardar, se advierte antes de abandonar o cambiar de contexto. Editar datos del cliente o fechas no cambia precios acordados.
-- **Subtarea vertical propuesta — Editar información por bloque:** activar edición explícita con guardar y cancelar, advertir cambios pendientes al salir y comprobar persistencia, cancelación y navegación.
+- **Subtarea vertical propuesta — Editar información por bloque:** activar edición explícita con guardar y cancelar, advertir cambios pendientes al salir y comprobar persistencia, cancelación y navegación libre entre secciones durante la captura.
 - **Límites y preguntas:** acordar bloques y comportamiento al navegar; cambios de medidas con impacto de precio dependen de HU-38. Sin rediseño visual.
 
 ### HU-37 — Consultar presupuesto durante la captura
@@ -573,8 +577,11 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 - **Historia:** **Como** empleado, **necesito** consultar un cálculo provisional mientras capturo un presupuesto, **para** conocer el impacto de las medidas sin calcular cada ventana por separado.
 - **Criterios propuestos:**
   - [ ] Al capturar o cambiar medidas válidas se actualiza la vista provisional de las ventanas y total; si faltan datos se informa sin presentar importes inexistentes como cero.
+  - [ ] Se puede consultar el precio provisional sin cliente y regresar a secciones para editar o agregar ventanas durante la negociación; los precios se actualizan durante la captura.
+  - [ ] Antes de guardar no persiste la captura. Guardar presupuesto exige al menos una ventana con medidas completas y nombre, primer apellido y celular; las filas parcialmente capturadas son error y las vacías se omiten. Guardar pedido y registrar anticipo también exigen esos datos del cliente.
+  - [ ] Se puede guardar presupuesto con costos de insumos faltantes y precios incompletos o no disponibles; se conservan los valores disponibles y el estado incompleto. La estimación parcial o no disponible se identifica claramente, sin sustituir faltantes por cero ni mostrarla como total completo. El anticipo sigue requiriendo todos los precios completos conforme a HU-14.
   - [ ] La vista provisional se distingue del precio guardado y no modifica un precio aceptado por cambios de inventario en segundo plano.
-- **Subtarea vertical propuesta — Consultar cálculo provisional al capturar:** actualizar la vista al introducir medidas válidas, mostrar pendientes y comprobar que no guarda borradores ni altera precios aceptados sin decisión.
+- **Subtarea vertical propuesta — Consultar cálculo provisional al capturar:** actualizar la vista al introducir medidas válidas aun sin cliente; permitir volver a editar o agregar ventanas; guardar el presupuesto con los datos mínimos confirmados incluso si faltan costos o precios, conservando los valores disponibles y su estado incompleto; comprobar que la captura provisional no persiste y no altera precios aceptados sin decisión.
 - **Límites y preguntas:** el cálculo de captura nueva usa costos vigentes y conserva la selección de merma; la captura incompleta no implica un precio definitivo. Precisar cómo mostrar el efecto de la merma. Sin rediseño visual.
 
 ### HU-38 — Revisar impacto de cambios antes de guardar
@@ -608,6 +615,7 @@ Secuencia funcional prevista: **empleado captura medidas → completa datos de c
 
 ### HU-13 — Datos del cliente y notas del pedido, cubierta
 
+- **Evolución confirmada en E6:** la captura provisional puede mostrar precios sin cliente, pero para guardar presupuesto o pedido y registrar anticipo se requieren nombre, primer apellido y celular, además de al menos una ventana con medidas completas. Esto cambia para el nuevo flujo la secuencia anterior que permitía guardar medidas sin cliente; los criterios históricos de esta HU aceptada se conservan abajo.
 - **Issue:** [AVAO #33](https://github.com/ErickRamos37/AVAO/issues/33); **subtarea:** [#34](https://github.com/ErickRamos37/AVAO/issues/34).
 - **Secuencia y campos confirmados:** primero se guardan las medidas del pedido; después se completan los datos del cliente y, más adelante, se mostrará el precio. Nombre, primer apellido y celular son obligatorios; segundo apellido y dirección son opcionales. Según la definición previa, el celular tiene diez dígitos. Las notas son especificaciones **del pedido** para los trabajadores, como horarios o teléfono alternativo, y son opcionales. En esta entrega solo se crea un cliente nuevo; elegir uno ya registrado queda fuera.
 - **Criterios de aceptación propuestos:**
