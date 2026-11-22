@@ -21,6 +21,60 @@ let currentOrderId = null;
 let currentOrderData = null;
 let nextRowId = 1;
 
+const clientFields = ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion', 'notas'];
+const clientView = document.querySelector('#client-view');
+const clientEdit = document.querySelector('#client-edit');
+
+function clientOriginal(field) {
+  return field === 'notas' ? currentOrderData?.notas ?? '' : currentOrderData?.cliente?.[field] ?? '';
+}
+function dirtyBlocks(except = '') {
+  if (!currentOrderData) return [];
+  const dirty = [];
+  if (except !== 'cliente' && !clientForm.hidden && clientFields.some(field => clientForm.elements[field].value !== clientOriginal(field))) dirty.push('cliente y notas');
+  const originalDelivery = currentOrderData.traslado ?? '';
+  const deliveryChanged = deliveryAmount.value === '' || originalDelivery === ''
+    ? deliveryAmount.value !== originalDelivery : Number(deliveryAmount.value) !== Number(originalDelivery);
+  if (except !== 'traslado' && !deliveryAmount.disabled && deliveryChanged) dirty.push('traslado');
+  const date = document.querySelector('#installation-date');
+  if (except !== 'fecha' && !date.disabled && (date.value !== (currentOrderData.fecha_programada ?? '') || (!document.querySelector('#reschedule-reason').hidden && (document.querySelector('#reschedule-reason-select').value || document.querySelector('#reschedule-other').value)))) dirty.push('fecha de instalación');
+  return dirty;
+}
+function confirmPending(except = '', discard = false) {
+  const dirty = dirtyBlocks(except);
+  if (!dirty.length) return true;
+  const warning = discard ? ' Si continúas, esos cambios se descartarán. Cancela para guardarlos primero.' : '';
+  return window.confirm(`Hay cambios sin guardar en ${dirty.join(', ')}.${warning} ¿Continuar?`);
+}
+const originalFetch = window.fetch.bind(window);
+window.fetch = async (url, options = {}) => {
+  if (options.method && !['GET', 'HEAD'].includes(options.method.toUpperCase())) {
+    const path = String(url);
+    const own = path.endsWith('/cliente') ? 'cliente' : path.endsWith('/traslado') ? 'traslado' : path.endsWith('/fecha-programada') ? 'fecha' : '';
+    if (!confirmPending(own, true)) {
+      const error = new Error('Acción cancelada.'); error.pendingCancelled = true; throw error;
+    }
+  }
+  return originalFetch(url, options);
+};
+window.addEventListener('beforeunload', event => {
+  if (dirtyBlocks().length) { event.preventDefault(); event.returnValue = ''; }
+});
+
+function showClient(order) {
+  clientView.replaceChildren();
+  for (const [label, value] of [['Nombre', [order.cliente?.nombre, order.cliente?.apellido_1, order.cliente?.apellido_2].filter(Boolean).join(' ')], ['Celular', order.cliente?.celular], ['Dirección', order.cliente?.direccion], ['Notas del pedido', order.notas]]) {
+    const line = document.createElement('p'); line.textContent = `${label}: ${value || 'Sin datos'}`; clientView.append(line);
+  }
+  for (const field of clientFields) clientForm.elements[field].value = clientOriginal(field);
+  clientForm.hidden = true; clientEdit.hidden = false; clientView.hidden = false;
+}
+clientEdit.addEventListener('click', () => {
+  clientView.hidden = true; clientEdit.hidden = true; clientForm.hidden = false;
+  clientForm.elements.nombre.focus();
+});
+document.querySelector('#client-cancel').addEventListener('click', () => showClient(currentOrderData));
+
 function showArea(area) {
   for (const button of areaButtons) {
     button.setAttribute('aria-pressed', String(button.dataset.area === area));
@@ -31,7 +85,9 @@ function showArea(area) {
 }
 
 for (const button of areaButtons) {
-  button.addEventListener('click', () => showArea(button.dataset.area));
+  button.addEventListener('click', () => {
+    if (button.getAttribute('aria-pressed') === 'true' || confirmPending()) showArea(button.dataset.area);
+  });
 }
 
 function showWorkshopArea(area) {
@@ -44,7 +100,9 @@ function showWorkshopArea(area) {
 }
 
 for (const button of document.querySelectorAll('#workshop-nav button')) {
-  button.addEventListener('click', () => showWorkshopArea(button.dataset.workshop));
+  button.addEventListener('click', () => {
+    if (button.getAttribute('aria-pressed') === 'true' || confirmPending()) showWorkshopArea(button.dataset.workshop);
+  });
 }
 
 function numberRows() {
@@ -76,6 +134,7 @@ document.querySelector('#add-row').addEventListener('click', addRow);
 addRow();
 
 function showError(text) {
+  if (text === 'Acción cancelada.') return;
   message.textContent = text;
   message.hidden = false;
 }
@@ -747,10 +806,7 @@ async function openOrder(id) {
       : order.etiqueta === null ? `Pedido ${order.id} · sin etiqueta`
       : `Pedido ${order.etiqueta}`;
     clientForm.dataset.orderId = order.id;
-    for (const field of ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion']) {
-      clientForm.elements[field].value = order.cliente?.[field] ?? '';
-    }
-    clientForm.elements.notas.value = order.notas;
+    showClient(order);
     document.querySelector('#workshop-notes').textContent = order.notas || 'Sin notas para el taller.';
     document.querySelector('#client-status').textContent = order.cliente
       ? 'Datos del cliente guardados. Puedes corregirlos aquí.'
@@ -1081,6 +1137,7 @@ document.querySelector('#payment-form').addEventListener('submit', async event =
 });
 
 document.querySelector('#pending-installation').addEventListener('click', () => {
+  if (!confirmPending()) return;
   showArea('instalacion');
   document.querySelector('#installation-date').focus();
 });
@@ -1242,6 +1299,10 @@ document.querySelector('#order-form').addEventListener('submit', async (event) =
 });
 
 window.addEventListener('popstate', () => {
+  if (!confirmPending('', true)) {
+    history.pushState({}, '', currentOrderId ? `/pedidos/${currentOrderId}` : '/');
+    return;
+  }
   const match = location.pathname.match(/^\/pedidos\/(\d+)$/);
   if (match) openOrder(match[1]);
   else {

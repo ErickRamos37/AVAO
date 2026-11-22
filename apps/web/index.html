@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
     <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu35-merma" defer></script>
+    <script src="/static/app.js?v=hu36" defer></script>
   </head>
   <body>
     <main>
@@ -48,9 +48,11 @@
           <section id="area-resumen" data-area-panel>
             <h2>Resumen del pedido</h2>
             <details id="client-details">
-              <summary>Cliente y notas del pedido</summary>
+              <summary>Información del cliente y notas</summary>
               <p id="client-status"></p>
-              <form id="client-form">
+              <div id="client-view"></div>
+              <button id="client-edit" type="button">Editar información</button>
+              <form id="client-form" hidden>
                 <p><label>Nombre <input name="nombre" required autocomplete="off"></label></p>
                 <p><label>Primer apellido <input name="apellido_1" required autocomplete="off"></label></p>
                 <p><label>Segundo apellido (opcional) <input name="apellido_2" autocomplete="off"></label></p>
@@ -58,6 +60,7 @@
                 <p><label>Dirección (opcional) <input name="direccion" autocomplete="off"></label></p>
                 <p><label>Notas del pedido para el taller (opcional) <textarea name="notas"></textarea></label></p>
                 <button type="submit">Guardar datos del cliente</button>
+                <button id="client-cancel" type="button">Cancelar</button>
               </form>
             </details>
 
