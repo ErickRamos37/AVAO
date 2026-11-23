@@ -20,6 +20,7 @@ function dirty() {
 }
 function renderCosts(data) {
   const table = document.createElement('table');
+  table.className = 'cost-table';
   const head = document.createElement('thead');
   const header = document.createElement('tr');
   for (const label of ['Insumo', 'Presentación de compra', 'Costo registrado', 'Costo equivalente']) {
@@ -28,10 +29,11 @@ function renderCosts(data) {
   head.append(header);
   const body = document.createElement('tbody');
   for (const item of data.insumos) {
-    const row = document.createElement('tr');
+    const row = document.createElement('tr'); row.className = 'cost-row';
     const name = document.createElement('th'); name.scope = 'row'; name.textContent = item.nombre;
-    const purchase = document.createElement('td'); purchase.textContent = item.presentacion_compra;
+    const purchase = document.createElement('td'); purchase.dataset.label = 'Presentación'; purchase.textContent = item.presentacion_compra;
     const costCell = document.createElement('td');
+    costCell.dataset.label = 'Costo registrado';
     const input = document.createElement('input');
     input.type = 'number'; input.min = '0'; input.step = '0.01'; input.inputMode = 'decimal';
     input.name = item.codigo; input.value = item.costo_compra ?? '';
@@ -39,6 +41,7 @@ function renderCosts(data) {
     const unit = document.createElement('span'); unit.textContent = ` ${item.unidad_costo}`;
     costCell.append(input, unit);
     const equivalent = document.createElement('td');
+    equivalent.dataset.label = 'Costo equivalente';
     equivalent.textContent = item.costo_derivado === null ? (item.costo_compra === null ? 'Pendiente' : 'Tarifa directa') : `$${item.costo_derivado} ${item.unidad_derivada}`;
     row.append(name, purchase, costCell, equivalent); body.append(row);
   }
