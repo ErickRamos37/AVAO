@@ -1,9 +1,11 @@
 import os, subprocess, sys, tempfile, unittest
 from pathlib import Path
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from unittest.mock import patch
 from fastapi import HTTPException
 from apps.api.main import (NewOrder, InventoryUpdate, WasteSelection, CostUpdate, create_order, get_order, calculate_window_cost, calculate_combined_waste, select_combined_waste, update_inventory, update_cost)
+
+def rounded_pesos(value): return value.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
 
 class CombinedWasteTests(unittest.TestCase):
  def setUp(self):
@@ -12,10 +14,10 @@ class CombinedWasteTests(unittest.TestCase):
  def tearDown(self): self.env.stop(); self.folder.cleanup()
  def test_total_selection_persistence_and_zero(self):
   update_inventory(InventoryUpdate(umbral_merma=1,umbral_merma_vidrio=1)); base=Decimal(calculate_window_cost(self.window)['precio']); order=calculate_combined_waste(self.order)
-  charge=Decimal(order['merma']['cargo'])+Decimal(order['merma_vidrio']['cargo']); self.assertGreater(charge,0); self.assertEqual(Decimal(order['total_pedido']),base+charge)
+  charge=Decimal(order['merma']['cargo'])+Decimal(order['merma_vidrio']['cargo']); self.assertGreater(charge,0); self.assertEqual(Decimal(order['total_pedido']),rounded_pesos(base+charge))
   order=select_combined_waste(self.order,WasteSelection(incluida=False)); self.assertEqual(Decimal(order['total_pedido']),base); self.assertFalse(order['merma']['incluida']); self.assertFalse(order['merma_vidrio']['incluida'])
   order=calculate_combined_waste(self.order); self.assertFalse(order['merma']['incluida']); self.assertFalse(order['merma_vidrio']['incluida']); self.assertEqual(get_order(self.order)['merma'],order['merma'])
-  order=select_combined_waste(self.order,WasteSelection(incluida=True)); self.assertEqual(Decimal(order['total_pedido']),base+charge)
+  order=select_combined_waste(self.order,WasteSelection(incluida=True)); self.assertEqual(Decimal(order['total_pedido']),rounded_pesos(base+charge))
   update_inventory(InventoryUpdate(umbral_merma=0,umbral_merma_vidrio=0)); order=calculate_combined_waste(self.order); self.assertEqual(order['merma']['cargo'],'0.00'); self.assertEqual(order['merma_vidrio']['cargo'],'0.00'); self.assertEqual(Decimal(order['total_pedido']),base)
  def test_rollback_calculation_and_selection(self):
   update_inventory(InventoryUpdate(umbral_merma=1,umbral_merma_vidrio=1)); before=calculate_combined_waste(self.order)

@@ -7,13 +7,17 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from unittest.mock import patch
 
 from fastapi import HTTPException
 
 from apps.api.main import (CostUpdate, InventoryUpdate, update_inventory, NewOrder, app, costs_page, create_order,
                            calculate_window_cost, get_order, list_costs, update_cost)
+
+
+def rounded_pesos(value):
+    return value.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
 class CostCatalogTests(unittest.TestCase):
@@ -231,15 +235,15 @@ class CostCatalogTests(unittest.TestCase):
         price1 = int(calculate_window_cost(first["id"])["precio"])
         order = get_order(order_id)
         self.assertTrue(order["total_ventanas"]["sin_precio"])
-        self.assertEqual(Decimal(order["total_pedido"]), Decimal(price1) + Decimal("120.35"))
+        self.assertEqual(Decimal(order["total_pedido"]), rounded_pesos(Decimal(price1) + Decimal("120.35")))
         price2 = int(calculate_window_cost(second["id"])["precio"])
         self.migrate()
         order = get_order(order_id)
         self.assertEqual(order["traslado"], "120.35")
         self.assertFalse(order["total_ventanas"]["sin_precio"])
-        self.assertEqual(Decimal(order["total_pedido"]), Decimal(price1 + price2) + Decimal("120.35"))
+        self.assertEqual(Decimal(order["total_pedido"]), rounded_pesos(Decimal(price1 + price2) + Decimal("120.35")))
         update_delivery(order_id, DeliveryUpdate(importe="5.01"))
-        self.assertEqual(Decimal(get_order(order_id)["total_pedido"]), Decimal(price1 + price2) + Decimal("5.01"))
+        self.assertEqual(Decimal(get_order(order_id)["total_pedido"]), rounded_pesos(Decimal(price1 + price2) + Decimal("5.01")))
         update_delivery(order_id, DeliveryUpdate(importe=None))
         self.assertIsNone(get_order(order_id)["traslado"])
         self.assertEqual(Decimal(get_order(order_id)["total_pedido"]), Decimal(price1 + price2))
@@ -255,6 +259,16 @@ class CostCatalogTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as missing:
             update_delivery(999999, DeliveryUpdate(importe="1"))
         self.assertEqual(missing.exception.status_code, 404)
+
+    def test_final_total_rounds_half_peso_up_and_below_half_down(self):
+        from apps.api.main import DeliveryUpdate, update_delivery
+        order_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
+        window = get_order(order_id)["ventanas"][0]
+        base = int(calculate_window_cost(window["id"])["precio"])
+        update_delivery(order_id, DeliveryUpdate(importe="0.49"))
+        self.assertEqual(get_order(order_id)["total_pedido"], str(base))
+        update_delivery(order_id, DeliveryUpdate(importe="0.50"))
+        self.assertEqual(get_order(order_id)["total_pedido"], str(base + 1))
 
     def test_cost_page_and_api_routes_are_registered(self):
         page = costs_page()

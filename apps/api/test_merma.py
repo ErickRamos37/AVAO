@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from decimal import Decimal, ROUND_HALF_UP
 from unittest.mock import patch
 from fastapi import HTTPException
 from apps.api.costos_insumos import INSUMOS
@@ -12,6 +13,10 @@ from apps.api.costos_ventana import PERFILES
 from apps.api.merma import calcular_merma
 from apps.api.main import (NewOrder, InventoryUpdate, WasteSelection, WindowDiscard,
     calculate_order_waste, create_order, get_order, update_inventory, select_order_waste, set_window_discard)
+
+
+def rounded_pesos(value):
+    return value.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
 def plan(length, profile="Jamba"):
@@ -81,11 +86,11 @@ class WasteTests(unittest.TestCase):
             result = calculate_order_waste(order_id)
             charge = Decimal(result["merma"]["cargo"])
             self.assertGreater(charge, 0)
-            self.assertEqual(Decimal(result["total_pedido"]), window_price + charge)
+            self.assertEqual(Decimal(result["total_pedido"]), rounded_pesos(window_price + charge))
             result = select_order_waste(order_id, WasteSelection(incluida=False))
             self.assertEqual(Decimal(result["total_pedido"]), window_price)
             result = select_order_waste(order_id, WasteSelection(incluida=True))
-            self.assertEqual(Decimal(result["total_pedido"]), window_price + charge)
+            self.assertEqual(Decimal(result["total_pedido"]), rounded_pesos(window_price + charge))
 
     def test_recalculation_uses_only_active_windows_and_current_costs(self):
         from apps.api.main import CostUpdate, update_cost
@@ -98,14 +103,15 @@ class WasteTests(unittest.TestCase):
             update_cost("jamba", CostUpdate(costo="999.00"))
             self.assertEqual(get_order(order_id)["merma"], original)
             set_window_discard(second["id"], WindowDiscard(descartada=True, confirmar_descarte=True))
-            self.assertEqual(get_order(order_id)["merma"], original)
-            recalculated = calculate_order_waste(order_id)["merma"]
+            recalculated = get_order(order_id)["merma"]
             self.assertNotEqual(recalculated["cargo"], original["cargo"])
+            self.assertEqual(calculate_order_waste(order_id)["merma"], recalculated)
             one_order = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
             self.assertEqual(calculate_order_waste(one_order)["merma"], recalculated)
             set_window_discard(second["id"], WindowDiscard(descartada=False))
-            self.assertEqual(get_order(order_id)["merma"], recalculated)
-            self.assertNotEqual(calculate_order_waste(order_id)["merma"]["cargo"], recalculated["cargo"])
+            restored = get_order(order_id)["merma"]
+            self.assertNotEqual(restored["cargo"], recalculated["cargo"])
+            self.assertEqual(calculate_order_waste(order_id)["merma"], restored)
 
     def test_snapshot_and_selection_persist_through_changes_and_recalculation(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, AVAO_DB_PATH=str(Path(folder) / "data.sqlite3")):
@@ -118,8 +124,8 @@ class WasteTests(unittest.TestCase):
             update_inventory(InventoryUpdate(umbral_merma=0))
             set_window_discard(windows[0]["id"], WindowDiscard(descartada=True, confirmar_descarte=True))
             stored = get_order(order_id)["merma"]
-            self.assertEqual(stored["cargo"], first["cargo"])
-            self.assertEqual(stored["detalle"], first["detalle"])
+            self.assertEqual(stored["cargo"], "0.00")
+            self.assertEqual(stored["detalle"], [])
             self.assertFalse(stored["incluida"])
             second = calculate_order_waste(order_id)["merma"]
             self.assertEqual(second, {"cargo": "0.00", "incluida": False, "detalle": []})

@@ -95,6 +95,22 @@ class OrderWindowCorrection(BaseModel):
     confirmar_correccion: bool = False
 
 
+class MeasureReview(BaseModel):
+    ventanas: list[WindowMeasureUpdate]
+    actualizar_precios: bool = False
+    cliente: OrderClient | None = None
+    traslado: StrictStr | None = None
+    fecha_programada: StrictStr | None = None
+    motivo: StrictStr | None = None
+    motivo_otro: StrictStr | None = None
+    incluir_merma: bool | None = None
+
+
+class MeasureReviewDecision(MeasureReview):
+    version: StrictStr
+    decision: Literal["conservar", "actualizar"]
+
+
 class CostUpdate(BaseModel):
     costo: StrictStr
 
@@ -402,9 +418,19 @@ def create_order(order: NewOrder):
     return {"id": order_id}
 
 
+def round_cents_to_peso(cents: int) -> int:
+    return ((cents + 50) // 100) * 100
+
+
+def required_advance_cents(total_cents: int, percentage: int) -> int:
+    total_pesos = total_cents // 100
+    return ((total_pesos * percentage + 99) // 100) * 100
+
+
 def budget_calculation(connection, data: BudgetPreview):
     costs = dict(connection.execute("SELECT codigo, costo_centavos FROM costos_insumos"))
     percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
+    minimum_advance = connection.execute("SELECT porcentaje FROM configuracion_anticipo WHERE id = 1").fetchone()[0]
     aluminum_threshold = connection.execute("SELECT umbral FROM configuracion_merma WHERE id = 1").fetchone()[0]
     glass_threshold = connection.execute("SELECT umbral FROM configuracion_merma_vidrio WHERE id = 1").fetchone()[0]
     transport = None if data.traslado is None or not data.traslado.strip() else cents_from_input(data.traslado)
@@ -439,8 +465,19 @@ def budget_calculation(connection, data: BudgetPreview):
             waste = {"aluminio": ac, "vidrio": gc, "detalle_aluminio": ad, "detalle_vidrio": gd}
         except HTTPException as error:
             waste_error = error.detail
+    priced_count = sum(1 for window in windows if window["costo"]["completo"])
+    subtotal_cents = sum(int(Decimal(window["costo"]["precio"]) * 100)
+                         for window in windows if window["costo"]["completo"])
+    included_waste_cents = waste["aluminio"] + waste["vidrio"] if data.incluir_merma and waste else 0
+    estimated_total_cents = round_cents_to_peso(subtotal_cents + (transport or 0) + included_waste_cents)
+    total_complete = bool(windows) and not errors and priced_count == len(windows) and (not data.incluir_merma or waste is not None)
+    minimum_cents = required_advance_cents(estimated_total_cents, minimum_advance) if total_complete else None
     result = {"ventanas": windows, "errores": errors, "merma": waste, "merma_error": waste_error,
-              "traslado_centavos": transport, "incluir_merma": data.incluir_merma, "porcentaje_ganancia": percentage}
+              "traslado_centavos": transport, "incluir_merma": data.incluir_merma,
+              "porcentaje_ganancia": percentage, "anticipo_minimo": minimum_advance,
+              "total_estimado_pesos": estimated_total_cents // 100 if priced_count else None,
+              "total_completo": total_complete,
+              "anticipo_requerido_pesos": None if minimum_cents is None else minimum_cents // 100}
     version_data = {"resultado": result, "costos": costs, "umbral_aluminio": aluminum_threshold, "umbral_vidrio": glass_threshold}
     result["version"] = hashlib.sha256(json.dumps(version_data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     return result
@@ -513,14 +550,15 @@ def save_budget_with_payment(data: BudgetWithPayment):
 def list_orders():
     with closing(connect_db()) as connection:
         rows = connection.execute(
-            "SELECT p.id, p.etiqueta, v.numero_en_pedido, EXISTS(SELECT 1 FROM aceptaciones a WHERE a.pedido_id = p.id) "
+            "SELECT p.id, p.etiqueta, v.numero_en_pedido, EXISTS(SELECT 1 FROM aceptaciones a WHERE a.pedido_id = p.id), "
+            "(SELECT MIN(e.fecha_hora) FROM eventos_pedido e WHERE e.pedido_id = p.id AND e.tipo = 'presupuesto_creado') "
             "FROM pedidos AS p LEFT JOIN ventanas AS v ON v.pedido_id = p.id AND v.descartada = 0 "
             "WHERE p.fecha_cierre IS NULL ORDER BY p.id ASC, v.numero_en_pedido ASC"
         ).fetchall()
     orders = {}
-    for order_id, label, number, accepted in rows:
+    for order_id, label, number, accepted, created in rows:
         if order_id not in orders:
-            orders[order_id] = {"id": order_id, "etiqueta": label, "codigos": [], "aceptado": bool(accepted)}
+            orders[order_id] = {"id": order_id, "etiqueta": label, "codigos": [], "aceptado": bool(accepted), "fecha_creacion": created}
         if label is not None and number is not None:
             orders[order_id]["codigos"].append(f"{label}{number}")
     return {"pedidos": list(orders.values())}
@@ -902,7 +940,13 @@ def _get_order(order_id, existing_connection=None):
 
     waste_cents = waste_row[0] if waste_row and waste_row[1] else 0
     waste_cents += glass_waste_row[0] if glass_waste_row and glass_waste_row[1] else 0
-    total_cents = None if total is None or missing_price or order_row[13] else total * 100 + (order_row[8] or 0) + waste_cents
+    total_cents = None if total is None or missing_price or order_row[13] else round_cents_to_peso(
+        total * 100 + (order_row[8] or 0) + waste_cents
+    )
+    partial_total_cents = None if total is None else round_cents_to_peso(
+        total * 100 + (order_row[8] or 0) + waste_cents
+    )
+    required_advance = None if total_cents is None else required_advance_cents(total_cents, minimum)
     net = sum((cents if kind == "pago" else -cents) for _, kind, cents, _, void, _ in movement_rows if not void)
     return {
         "id": order_id,
@@ -929,7 +973,7 @@ def _get_order(order_id, existing_connection=None):
         "fecha_real": order_row[11],
         "fecha_cierre": order_row[12],
         "anticipo_minimo": minimum,
-        "anticipo_requerido": None if total_cents is None else f"{Decimal((total_cents * minimum + 99) // 100) / 100:.2f}",
+        "anticipo_requerido": None if required_advance is None else str(required_advance // 100),
         "movimientos": [{"id": mid, "tipo": kind, "importe": f"{Decimal(cents) / 100:.2f}", "fecha": day, "anulado": bool(void), "fecha_anulacion": void_day} for mid, kind, cents, day, void, void_day in movement_rows],
         "pagado_neto": f"{Decimal(net) / 100:.2f}",
         "saldo": None if total_cents is None else f"{Decimal(max(0, total_cents - net)) / 100:.2f}",
@@ -939,7 +983,7 @@ def _get_order(order_id, existing_connection=None):
         "merma_vidrio": None if glass_waste_row is None else {"cargo": f"{Decimal(glass_waste_row[0]) / 100:.2f}", "incluida": bool(glass_waste_row[1]), "detalle": json.loads(glass_waste_row[2])},
         "merma": None if waste_row is None else {"cargo": f"{Decimal(waste_row[0]) / 100:.2f}", "incluida": bool(waste_row[1]), "detalle": None if waste_row[2] is None else json.loads(waste_row[2])},
         "traslado": None if order_row[8] is None else f"{Decimal(order_row[8]) / 100:.2f}",
-        "total_pedido": None if total is None else f"{Decimal(total) + Decimal((order_row[8] or 0) + waste_cents) / 100:.2f}",
+        "total_pedido": None if partial_total_cents is None else str(partial_total_cents // 100),
         "total_ventanas": {
             "importe": total,
             "sin_precio": missing_price,
@@ -1094,7 +1138,7 @@ def _add_movement(connection, order_id, movement):
     if movement.tipo == "devolucion" and cents > max(0, net - total):
         raise HTTPException(status_code=409, detail="La devolución no puede superar el excedente.")
     connection.execute("INSERT INTO movimientos (pedido_id, tipo, importe_centavos, fecha) VALUES (?, ?, ?, ?)", (order_id, movement.tipo, cents, datetime.now(ZoneInfo("America/Tijuana")).date().isoformat()))
-    if movement.tipo == "pago" and (net + cents) * 100 >= total * order["anticipo_minimo"]:
+    if movement.tipo == "pago" and net + cents >= required_advance_cents(total, order["anticipo_minimo"]):
         cursor = connection.execute("INSERT OR IGNORE INTO aceptaciones (pedido_id) VALUES (?)", (order_id,))
         if cursor.rowcount:
             assign_order_label(connection, order_id)
@@ -1126,7 +1170,7 @@ def void_movement(order_id: int, movement_id: int):
             if not cursor.rowcount:
                 raise HTTPException(status_code=404, detail="Movimiento no encontrado o ya anulado.")
             net = connection.execute("SELECT COALESCE(SUM(CASE tipo WHEN 'pago' THEN importe_centavos ELSE -importe_centavos END), 0) FROM movimientos WHERE pedido_id = ? AND anulado = 0", (order_id,)).fetchone()[0]
-            if net * 100 < cents_from_input(order["total_pedido"]) * order["anticipo_minimo"]:
+            if net < required_advance_cents(cents_from_input(order["total_pedido"]), order["anticipo_minimo"]):
                 cursor = connection.execute("DELETE FROM aceptaciones WHERE pedido_id = ?", (order_id,))
                 if cursor.rowcount:
                     connection.execute("UPDATE pedidos SET etiqueta = NULL WHERE id = ?", (order_id,))
@@ -1246,6 +1290,22 @@ def set_window_discard(window_id: int, change: WindowDiscard):
                 "UPDATE ventanas SET descartada = ? WHERE id = ?",
                 (int(change.descartada), window_id),
             )
+            active_count = connection.execute("SELECT COUNT(*) FROM ventanas WHERE pedido_id = ? AND descartada = 0", (order_id,)).fetchone()[0]
+            if not active_count:
+                for table in ("merma_pedido", "merma_vidrio_pedido"):
+                    connection.execute(f"UPDATE {table} SET cargo_centavos = 0, detalle_json = '[]' WHERE pedido_id = ?", (order_id,))
+                connection.execute("UPDATE pedidos SET merma_pendiente = 0 WHERE id = ?", (order_id,))
+            else:
+                try:
+                    if connection.execute("SELECT 1 FROM merma_pedido WHERE pedido_id = ?", (order_id,)).fetchone():
+                        _calculate_aluminum_waste(connection, order_id)
+                    if connection.execute("SELECT 1 FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone():
+                        _calculate_glass_waste(connection, order_id)
+                    connection.execute("UPDATE pedidos SET merma_pendiente = 0 WHERE id = ?", (order_id,))
+                except HTTPException:
+                    for table in ("merma_pedido", "merma_vidrio_pedido"):
+                        connection.execute(f"UPDATE {table} SET cargo_centavos = 0, detalle_json = '[]' WHERE pedido_id = ?", (order_id,))
+                    connection.execute("UPDATE pedidos SET merma_pendiente = 1 WHERE id = ?", (order_id,))
             record_settlement_change(connection, order_id, before)
     return {
         "pedido_id": order_id,
@@ -1290,6 +1350,171 @@ def correct_order_window_measures(order_id: int, correction: OrderWindowCorrecti
                 results.append(_apply_window_measure_correction(
                     connection, item.id, item.ancho, item.alto, True, order_id=order_id,
                 ))
+    return {"pedido_id": order_id, "resultados": results}
+
+
+def _apply_review_fields(connection, order_id: int, review: MeasureReview):
+    if "cliente" in review.model_fields_set:
+        if review.cliente is None:
+            raise HTTPException(status_code=422, detail="Completa los datos del cliente.")
+        name, surname, second, phone, address, notes = validate_client(review.cliente)
+        client_id = connection.execute("SELECT cliente_id FROM pedidos WHERE id = ?", (order_id,)).fetchone()[0]
+        if client_id is None:
+            cursor = connection.execute("INSERT INTO clientes (nombre, apellido_1, apellido_2, celular, direccion) VALUES (?, ?, ?, ?, ?)",
+                                        (name, surname, second, phone, address))
+            connection.execute("UPDATE pedidos SET cliente_id = ? WHERE id = ?", (cursor.lastrowid, order_id))
+        else:
+            connection.execute("UPDATE clientes SET nombre = ?, apellido_1 = ?, apellido_2 = ?, celular = ?, direccion = ? WHERE id = ?",
+                               (name, surname, second, phone, address, client_id))
+        connection.execute("UPDATE pedidos SET notas = ? WHERE id = ?", (notes, order_id))
+    if "traslado" in review.model_fields_set:
+        cents = None if review.traslado is None else cents_from_input(review.traslado)
+        if cents is not None and cents > 9223372036854775807:
+            raise HTTPException(status_code=422, detail="El importe de traslado es demasiado grande.")
+        connection.execute("UPDATE pedidos SET traslado_centavos = ? WHERE id = ?", (cents, order_id))
+    if "fecha_programada" in review.model_fields_set:
+        try:
+            if review.fecha_programada is None or date.fromisoformat(review.fecha_programada).isoformat() != review.fecha_programada:
+                raise ValueError
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Ingresa una fecha válida.") from None
+        previous = connection.execute("SELECT fecha_programada FROM pedidos WHERE id = ?", (order_id,)).fetchone()[0]
+        if previous != review.fecha_programada:
+            reason, other = None, None
+            if previous is not None:
+                if review.motivo not in {"falta de material", "fabricación pendiente", "disponibilidad del cliente", "disponibilidad del taller/transporte", "Otros"}:
+                    raise HTTPException(status_code=422, detail="Selecciona un motivo válido de reprogramación.")
+                reason = review.motivo
+                if reason == "Otros":
+                    other = (review.motivo_otro or "").strip()
+                    if not other:
+                        raise HTTPException(status_code=422, detail="Describe el motivo de reprogramación.")
+            connection.execute("UPDATE pedidos SET fecha_programada = ? WHERE id = ?", (review.fecha_programada, order_id))
+            connection.execute("INSERT INTO programaciones_instalacion (pedido_id, fecha_anterior, fecha_nueva, fecha_hora, motivo, motivo_otro) VALUES (?, ?, ?, ?, ?, ?)",
+                               (order_id, previous, review.fecha_programada, datetime.now(ZoneInfo("America/Tijuana")).isoformat(timespec="seconds"), reason, other))
+    if "incluir_merma" in review.model_fields_set:
+        if review.incluir_merma is None:
+            raise HTTPException(status_code=422, detail="Indica si deseas incluir la merma.")
+        for table in ("merma_pedido", "merma_vidrio_pedido"):
+            connection.execute(f"UPDATE {table} SET incluida = ? WHERE pedido_id = ?", (int(review.incluir_merma), order_id))
+
+
+def _review_measure_change(connection, order_id: int, review: MeasureReview):
+    changes = review.ventanas
+    if (not changes and not review.actualizar_precios and not (review.model_fields_set & {"cliente", "traslado", "fecha_programada", "incluir_merma"})) or len({item.id for item in changes}) != len(changes):
+        raise HTTPException(status_code=422, detail="Selecciona ventanas distintas para corregir.")
+    before = _get_order(order_id, connection)
+    if before["fecha_cierre"] or before["instalado"]:
+        raise HTTPException(status_code=409, detail="El pedido instalado o finalizado no se puede editar.")
+    by_id = {item["id"]: item for item in before["ventanas"] if not item["descartada"]}
+    if any(item.id not in by_id for item in changes):
+        raise HTTPException(status_code=404, detail="Una ventana no pertenece a las activas del pedido.")
+    costs = dict(connection.execute("SELECT codigo, costo_centavos FROM costos_insumos"))
+    connection.execute("SAVEPOINT revision_medidas")
+    try:
+        results = [_apply_window_measure_correction(connection, item.id, item.ancho, item.alto, True, order_id)
+                   for item in changes]
+        proposals = []
+        pricing_items = list(changes)
+        if review.actualizar_precios:
+            pricing_items.extend(WindowMeasureUpdate(id=window["id"], ancho=window["ancho"], alto=window["alto"])
+                                 for window in by_id.values()
+                                 if window["id"] not in {item.id for item in changes}
+                                 and (window["costo_materiales"] is None or window["costo_materiales"].get("precio") is None))
+        for item in pricing_items:
+            old = by_id[item.id]
+            saved = old["costo_materiales"]
+            if (not saved or saved.get("precio") is None) and not review.actualizar_precios:
+                raise HTTPException(status_code=409, detail="Actualiza los precios pendientes para revisar el cambio.")
+            width, height = connection.execute("SELECT ancho_16, alto_16 FROM ventanas WHERE id = ?", (item.id,)).fetchone()
+            aluminum = [{"perfil": profile, "longitud_16": length, "cantidad": quantity}
+                        for profile, length, quantity in connection.execute(
+                            "SELECT perfil, longitud_16, cantidad FROM plan_aluminio WHERE ventana_id = ? ORDER BY orden", (item.id,))]
+            glass_row = connection.execute("SELECT ancho_16, alto_16, cantidad FROM plan_vidrio WHERE ventana_id = ?", (item.id,)).fetchone()
+            glass = None if glass_row is None else dict(zip(("ancho_16", "alto_16", "cantidad"), glass_row))
+            calculated = calculate_window_material_cost(aluminum, glass, costs, width_16=width, height_16=height)
+            if not calculated["completo"]:
+                raise HTTPException(status_code=409, detail="Faltan costos para calcular el cambio: " + ", ".join(calculated["faltantes"]))
+            base = Decimal(calculated["costo_base"])
+            percentage = saved.get("porcentaje_ganancia") if saved else None
+            if percentage is None:
+                percentage = connection.execute("SELECT porcentaje FROM configuracion_ganancia WHERE id = 1").fetchone()[0]
+            suggested = int((base * (1 + Decimal(percentage) / 100)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            proposals.append({"id": item.id, "codigo": old["codigo"] or f"Ventana {old['numero']}",
+                              "anterior": {"ancho": old["ancho"], "alto": old["alto"], "precio": None if not saved or saved.get("precio") is None else int(saved["precio"])},
+                              "nueva": {"ancho": format_measure(width), "alto": format_measure(height), "precio": suggested},
+                              "costo_base": calculated["costo_base"], "porcentaje_ganancia": percentage,
+                              "plan_fingerprint": window_plan_fingerprint(aluminum, glass), "cost_details": calculated})
+        aluminum_waste = before["merma"]
+        glass_waste = before["merma_vidrio"]
+        if (aluminum_waste is not None and changes) or review.actualizar_precios:
+            _calculate_aluminum_waste(connection, order_id)
+        if (glass_waste is not None and changes) or review.actualizar_precios:
+            _calculate_glass_waste(connection, order_id)
+        if review.actualizar_precios:
+            connection.execute("UPDATE pedidos SET merma_pendiente = 0 WHERE id = ?", (order_id,))
+        _apply_review_fields(connection, order_id, review)
+        after_waste = _get_order(order_id, connection)
+        old_waste = sum(int(Decimal(value["cargo"]) * 100) for value in (aluminum_waste, glass_waste) if value and value["incluida"])
+        new_waste = sum(int(Decimal(value["cargo"]) * 100) for value in (after_waste["merma"], after_waste["merma_vidrio"]) if value and value["incluida"])
+        old_total = before["total_pedido"]
+        delivery_before = cents_from_input(before["traslado"]) if before["traslado"] is not None else 0
+        delivery_after = cents_from_input(after_waste["traslado"]) if after_waste["traslado"] is not None else 0
+        proposed_prices = {row["id"]: row["nueva"]["precio"] for row in proposals}
+        active_prices = [proposed_prices.get(window["id"], (window["costo_materiales"] or {}).get("precio"))
+                         for window in by_id.values()]
+        new_total = (None if any(price is None for price in active_prices) else
+                     round_cents_to_peso(sum(int(price) * 100 for price in active_prices) + new_waste + delivery_after) // 100)
+        summary = {"ventanas": [{key: row[key] for key in ("id", "codigo", "anterior", "nueva")} for row in proposals],
+                   "total_anterior": old_total, "total_nuevo": new_total,
+                   "merma_anterior": f"{Decimal(old_waste) / 100:.2f}", "merma_nueva": f"{Decimal(new_waste) / 100:.2f}",
+                   "traslado_anterior": before["traslado"], "traslado_nuevo": after_waste["traslado"]}
+        change_data = review.model_dump(exclude={"version", "decision"}, exclude_unset=True)
+        version = hashlib.sha256(json.dumps({"resumen": summary, "costos": costs, "cambios": change_data,
+                                             "pedido": before}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        return summary | {"version": version}, proposals, results, after_waste
+    finally:
+        connection.execute("ROLLBACK TO SAVEPOINT revision_medidas")
+        connection.execute("RELEASE SAVEPOINT revision_medidas")
+
+
+@app.post("/api/pedidos/{order_id}/revision-medidas/previa")
+def preview_measure_review(order_id: int, review: MeasureReview):
+    with closing(connect_db()) as connection:
+        return _review_measure_change(connection, order_id, review)[0]
+
+
+@app.put("/api/pedidos/{order_id}/revision-medidas")
+def confirm_measure_review(order_id: int, review: MeasureReviewDecision):
+    with closing(connect_db()) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        with connection:
+            preview, proposals, _, _ = _review_measure_change(connection, order_id, review)
+            if preview["version"] != review.version:
+                raise HTTPException(status_code=409, detail="El pedido o los costos cambiaron. Revisa de nuevo antes de guardar.")
+            if review.decision == "conservar" and any(row["anterior"]["precio"] is None for row in proposals):
+                raise HTTPException(status_code=409, detail="Elige actualizar para asignar el primer precio, o cancela la edición.")
+            before_settled = _get_order(order_id, connection)["liquidado"]
+            results = [_apply_window_measure_correction(connection, item.id, item.ancho, item.alto, True, order_id)
+                       for item in review.ventanas]
+            _apply_review_fields(connection, order_id, review)
+            for proposal in proposals:
+                details = proposal["cost_details"]
+                base = Decimal(proposal["costo_base"])
+                price = proposal["anterior"]["precio"] if review.decision == "conservar" else proposal["nueva"]["precio"]
+                details.update(porcentaje_ganancia=proposal["porcentaje_ganancia"], precio=str(price),
+                               ganancia=str((Decimal(price) - base).quantize(Decimal("0.01"))))
+                connection.execute("INSERT INTO costos_ventana (ventana_id, plan_fingerprint, resultado_json) VALUES (?, ?, ?) "
+                                   "ON CONFLICT(ventana_id) DO UPDATE SET plan_fingerprint = excluded.plan_fingerprint, resultado_json = excluded.resultado_json",
+                                   (proposal["id"], proposal["plan_fingerprint"], json.dumps(details, ensure_ascii=False)))
+            if review.decision == "actualizar" or review.actualizar_precios:
+                if connection.execute("SELECT 1 FROM merma_pedido WHERE pedido_id = ?", (order_id,)).fetchone():
+                    _calculate_aluminum_waste(connection, order_id)
+                if connection.execute("SELECT 1 FROM merma_vidrio_pedido WHERE pedido_id = ?", (order_id,)).fetchone():
+                    _calculate_glass_waste(connection, order_id)
+                if review.actualizar_precios:
+                    connection.execute("UPDATE pedidos SET merma_pendiente = 0 WHERE id = ?", (order_id,))
+            record_settlement_change(connection, order_id, before_settled)
     return {"pedido_id": order_id, "resultados": results}
 
 
@@ -1605,5 +1830,7 @@ def costs_page():
 
 
 @app.get("/", include_in_schema=False)
-def home_page():
-    return FileResponse(WEB / "index.html")
+def home_page(vista: str | None = None):
+    if vista in {"nuevo", "presupuestos", "pedidos", "historico"}:
+        return FileResponse(WEB / "index.html")
+    return FileResponse(WEB / "dashboard.html")

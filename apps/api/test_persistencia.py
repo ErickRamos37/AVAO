@@ -50,10 +50,13 @@ class PersistenceTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(json.loads(result.stdout), {"pedidos": [
-            {"id": first, "etiqueta": None, "codigos": [], "aceptado": False},
-            {"id": second, "etiqueta": None, "codigos": [], "aceptado": False},
-        ]})
+        listed = json.loads(result.stdout)["pedidos"]
+        self.assertEqual([(order["id"], order["etiqueta"], order["codigos"], order["aceptado"])
+                          for order in listed], [
+            (first, None, [], False),
+            (second, None, [], False),
+        ])
+        self.assertTrue(all(order["fecha_creacion"] for order in listed))
         self.assertEqual(get_order(first)["ventanas"][0]["ancho"], "24")
         self.assertEqual(
             [(window["numero"], window["ancho"]) for window in get_order(second)["ventanas"]],

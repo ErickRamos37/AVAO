@@ -5,12 +5,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
 from fastapi import HTTPException
 from apps.api.main import (BudgetPreview, BudgetSave, OrderClient, NewOrder, MovementInput,
     preview_budget, save_budget, create_order, get_order, add_movement, update_inventory,
-    InventoryUpdate, calculate_window_cost, calculate_combined_waste, BudgetWithPayment, save_budget_with_payment)
+    InventoryUpdate, calculate_window_cost, calculate_combined_waste, BudgetWithPayment, save_budget_with_payment, list_orders, home_page)
 
 
 class BudgetPreviewTests(unittest.TestCase):
@@ -36,6 +37,17 @@ class BudgetPreviewTests(unittest.TestCase):
         self.assertEqual(order['merma']['cargo'], f"{preview['merma']['aluminio'] / 100:.2f}")
         self.assertEqual(order['merma_vidrio']['cargo'], f"{preview['merma']['vidrio'] / 100:.2f}")
         self.assertFalse(order['aceptado']); self.assertEqual(order['movimientos'], [])
+
+    def test_preview_rounds_final_total_and_minimum_advance_to_whole_pesos(self):
+        from decimal import ROUND_CEILING
+        first = preview_budget(BudgetPreview(ventanas=self.data['ventanas'], traslado='0.49', incluir_merma=False))
+        second = preview_budget(BudgetPreview(ventanas=self.data['ventanas'], traslado='0.50', incluir_merma=False))
+        window_price = int(first['ventanas'][0]['costo']['precio'])
+        self.assertEqual(first['total_estimado_pesos'], window_price)
+        self.assertEqual(second['total_estimado_pesos'], window_price + 1)
+        total = Decimal(second['total_estimado_pesos'])
+        expected_minimum = (total * Decimal(second['anticipo_minimo']) / 100).quantize(Decimal('1'), rounding=ROUND_CEILING)
+        self.assertEqual(Decimal(second['anticipo_requerido_pesos']), expected_minimum)
 
     def test_stale_invalid_client_and_partial_window_do_not_persist(self):
         preview = preview_budget(BudgetPreview(**self.data))
@@ -84,6 +96,22 @@ class BudgetPreviewTests(unittest.TestCase):
         calculate_window_cost(get_order(order_id)['ventanas'][0]['id'])
         with self.assertRaises(HTTPException): add_movement(order_id, MovementInput(tipo='pago', importe='1'))
         self.assertEqual(get_order(order_id)['movimientos'], [])
+
+    def test_home_opens_dashboard_and_query_views_use_order_screen(self):
+        self.assertEqual(Path(home_page().path).name, 'dashboard.html')
+        self.assertEqual(Path(home_page('desconocida').path).name, 'dashboard.html')
+        for view in ('nuevo', 'pedidos', 'presupuestos', 'historico'):
+            with self.subTest(view=view):
+                self.assertEqual(Path(home_page(view).path).name, 'index.html')
+
+    def test_budget_list_uses_creation_event_without_inventing_legacy_date(self):
+        first = create_order(NewOrder(ventanas=self.data['ventanas']))['id']
+        second = create_order(NewOrder(ventanas=self.data['ventanas']))['id']
+        with sqlite3.connect(os.environ['AVAO_DB_PATH']) as db:
+            db.execute("DELETE FROM eventos_pedido WHERE pedido_id = ? AND tipo = 'presupuesto_creado'", (second,))
+        orders = {item['id']: item for item in list_orders()['pedidos']}
+        self.assertIsNotNone(orders[first]['fecha_creacion'])
+        self.assertIsNone(orders[second]['fecha_creacion'])
 
     def test_payment_is_atomic_and_retry_is_idempotent(self):
         preview = preview_budget(BudgetPreview(**self.data))

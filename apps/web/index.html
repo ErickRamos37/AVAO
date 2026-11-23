@@ -4,16 +4,25 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Medidas</title>
-    <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/app.js?v=hu37-anticipo" defer></script>
+    <link rel="stylesheet" href="/static/styles.css?v=hu38-edicion">
+    <script src="/static/app.js?v=hu35-volver" defer></script>
+    <script src="/static/navigation.js?v=hu37-inicio" defer></script>
   </head>
   <body>
     <main>
       <header>
         <a href="/" class="brand">AVAO</a>
-        <p>Registro de medidas</p>
-        <a class="button-link" href="/costos">Inventario de insumos</a>
-        <a href="/dashboard">Dashboard</a>
+        <div class="global-menu">
+          <button id="menu-toggle" type="button" aria-expanded="false" aria-controls="global-navigation">☰ Menú</button>
+          <nav id="global-navigation" aria-label="Navegación principal" hidden>
+            <a href="/">Dashboard</a>
+            <a href="/?vista=nuevo">Nuevo presupuesto</a>
+            <a href="/?vista=pedidos">Pedidos</a>
+            <a href="/?vista=presupuestos">Presupuestos</a>
+            <a href="/costos">Inventario</a>
+            <a href="/?vista=historico">Histórico</a>
+          </nav>
+        </div>
       </header>
 
       <section id="capture">
@@ -26,13 +35,14 @@
           <button type="button" data-capture="anticipo" aria-pressed="false">Anticipo</button>
         </nav>
         <form id="order-form" novalidate>
-          <button type="submit">Guardar presupuesto</button>
           <section id="capture-medidas" data-capture-panel>
             <h2>Medidas y precios</h2>
             <p>Ventanas California por mitad. Ingresa ancho y alto de fabricación en pulgadas.</p>
             <div id="window-rows"></div>
             <button id="add-row" type="button">Añadir ventana</button>
             <p class="hint">Puedes escribir un entero o sumar fracciones de 1/2, 1/4, 1/8 y 1/16.</p>
+            <p id="capture-estimated-total" role="status" aria-live="polite"></p>
+            <p id="capture-preview" role="status" aria-live="polite"></p>
           </section>
           <section id="capture-cargos" data-capture-panel hidden>
             <h2>Cargos</h2>
@@ -40,7 +50,6 @@
             <p><label><input id="capture-waste" type="checkbox" checked> Incluir cargo por merma de aluminio y vidrio</label></p>
             <p id="capture-waste-status"></p>
             <details><summary>Ver desglose de merma</summary><div id="capture-waste-details"></div></details>
-            <p id="capture-cargos-total" aria-live="polite"></p>
           </section>
           <section id="capture-cliente" data-capture-panel hidden>
             <h2>Cliente</h2>
@@ -53,14 +62,12 @@
           </section>
           <section id="capture-anticipo" data-capture-panel hidden>
             <h2>Anticipo</h2>
+            <div id="capture-payment-summary" aria-live="polite">Ingresa medidas para consultar el resumen de la cuenta y el anticipo mínimo.</div>
             <p>El anticipo requiere precios completos. Puedes registrar un importe menor al mínimo.</p>
             <p><label>Importe del anticipo <input id="capture-payment" type="number" min="0.01" step="0.01" inputmode="decimal"></label></p>
             <button type="submit" data-payment="true">Guardar y registrar anticipo</button>
           </section>
-          <section aria-labelledby="preview-title" aria-live="polite">
-            <h2 id="preview-title">Estimación provisional</h2>
-            <div id="capture-preview">Introduce las medidas para consultar la estimación.</div>
-          </section>
+          <button type="submit">Guardar presupuesto</button>
         </form>
       </section>
 
@@ -69,26 +76,29 @@
           <legend>Ventana</legend>
           <p><label>Ancho <input class="width" type="text" inputmode="text" placeholder="Ej. 24 1/4 1/16" autocomplete="off"></label></p>
           <p><label>Alto <input class="height" type="text" inputmode="text" placeholder="Ej. 26 1/2" autocomplete="off"></label></p>
+          <p class="window-estimate" aria-live="polite">Precio estimado pendiente de medidas completas.</p>
           <button class="discard-row" type="button">Descartar ventana</button>
         </fieldset>
       </template>
 
       <section id="detail" hidden>
+        <a id="order-back" href="/">Volver al Dashboard</a>
         <h1 id="order-title"></h1>
-        <div id="order-events"></div>
         <nav id="area-nav" aria-label="Secciones del pedido">
-          <button type="button" data-area="resumen" aria-pressed="true">Resumen del pedido</button>
-          <button type="button" data-area="taller" aria-pressed="false">Taller</button>
+          <button type="button" data-area="resumen" aria-pressed="true">Resumen</button>
+          <button type="button" data-area="aluminio" aria-pressed="false">Aluminio</button>
+          <button type="button" data-area="vidrio" aria-pressed="false">Vidrio</button>
+          <button type="button" data-area="ensamble" aria-pressed="false">Ensamble</button>
           <button type="button" data-area="instalacion" aria-pressed="false">Instalación</button>
         </nav>
         <div id="order-content">
           <section id="area-resumen" data-area-panel>
-            <h2>Resumen del pedido</h2>
-            <details id="client-details">
+            <div class="measure-heading"><h2>Resumen del pedido</h2><button id="edit-order" type="button">Editar pedido</button></div>
+            <details id="client-details" open>
               <summary>Información del cliente y notas</summary>
               <p id="client-status"></p>
               <div id="client-view"></div>
-              <button id="client-edit" type="button">Editar información</button>
+              <button id="client-edit" type="button" hidden>Editar información</button>
               <form id="client-form" hidden>
                 <p><label>Nombre <input name="nombre" required autocomplete="off"></label></p>
                 <p><label>Primer apellido <input name="apellido_1" required autocomplete="off"></label></p>
@@ -96,8 +106,8 @@
                 <p><label>Celular <input name="celular" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required autocomplete="off"></label></p>
                 <p><label>Dirección (opcional) <input name="direccion" autocomplete="off"></label></p>
                 <p><label>Notas del pedido para el taller (opcional) <textarea name="notas"></textarea></label></p>
-                <button type="submit">Guardar datos del cliente</button>
-                <button id="client-cancel" type="button">Cancelar</button>
+                <button type="submit" hidden>Guardar datos del cliente</button>
+                <button id="client-cancel" type="button" hidden>Cancelar</button>
               </form>
             </details>
 
@@ -111,22 +121,22 @@
             <section aria-labelledby="delivery-title">
               <h3 id="delivery-title">Traslado</h3>
               <p id="delivery-value"></p>
-              <button id="delivery-edit" type="button">Editar traslado</button>
+              <button id="delivery-edit" type="button" hidden>Editar traslado</button>
               <form id="delivery-form">
                 <p><label for="delivery-amount">Importe de traslado en pesos</label>
                 <input id="delivery-amount" type="number" min="0" step="0.01" inputmode="decimal" disabled></p>
                 <div id="delivery-actions" hidden>
                   <p>Deja el campo vacío para quitar el traslado.</p>
-                  <button type="submit">Guardar</button>
-                  <button id="delivery-cancel" type="button">Cancelar</button>
+                  <button type="submit" hidden>Guardar</button>
+                  <button id="delivery-cancel" type="button" hidden>Cancelar</button>
                 </div>
               </form>
               <section aria-labelledby="waste-title">
                 <h3 id="waste-title">Cargo por merma</h3>
                 <p id="waste-value"></p>
-                <p>El cargo guardado solo cambia al recalcular la merma.</p>
+                <p>El cargo se revisa al guardar cambios del pedido.</p>
                 <p><label><input id="waste-included" type="checkbox"> Incluir cargo por merma</label></p>
-                <button id="waste-recalculate" type="button">Calcular merma</button>
+                <button id="waste-recalculate" type="button" hidden>Calcular merma</button>
                 <details><summary>Ver desglose de merma</summary>
                   <h4>Aluminio</h4><p id="aluminum-waste-value"></p><div id="waste-details"></div>
                   <h4>Vidrio</h4><p id="glass-waste-value"></p><div id="glass-waste-details"></div>
@@ -151,21 +161,34 @@
             </section>
             <form id="measure-edit-form" hidden>
               <div id="measure-edit-rows"></div>
-              <div class="measure-actions">
-                <button id="cancel-measure-edit" type="button">Cancelar</button>
-                <button type="submit">Guardar cambios</button>
-              </div>
+              <button id="cancel-measure-edit" type="button" hidden>Cancelar</button>
+              <button type="submit" hidden>Guardar cambios</button>
             </form>
+            <section id="order-edit-date" hidden>
+              <p><label>Fecha programada de instalación <input id="order-edit-date-value" type="date"></label></p>
+              <p id="order-edit-date-reason" hidden><label>Motivo de reprogramación <select id="order-edit-date-reason-value">
+                <option value="">Selecciona un motivo</option>
+                <option value="falta de material">Falta de material</option><option value="fabricación pendiente">Fabricación pendiente</option>
+                <option value="disponibilidad del cliente">Disponibilidad del cliente</option><option value="disponibilidad del taller/transporte">Disponibilidad del taller/transporte</option>
+                <option value="Otros">Otros</option>
+              </select></label></p>
+              <p id="order-edit-date-other" hidden><label>Describe el motivo <input id="order-edit-date-other-value" type="text"></label></p>
+            </section>
+            <div id="order-edit-actions" class="measure-actions" hidden>
+              <button id="cancel-order-edit" type="button">Cancelar</button><button id="save-order-edit" type="button">Guardar cambios</button>
+            </div>
+            <dialog id="measure-price-review" aria-labelledby="measure-price-review-title">
+              <h3 id="measure-price-review-title">Revisar cambio de precio</h3>
+              <div id="measure-price-review-details"></div>
+              <div class="form-actions">
+                <button type="button" value="cancelar">Cancelar</button>
+                <button type="button" value="conservar">Conservar precio y guardar</button>
+                <button type="button" value="actualizar">Actualizar precios y guardar</button>
+              </div>
+            </dialog>
           </section>
           <section id="area-taller" data-area-panel hidden>
             <h2>Taller</h2>
-            <h3>Notas del pedido</h3>
-            <p id="workshop-notes"></p>
-            <nav id="workshop-nav" aria-label="Áreas de taller">
-              <button type="button" data-workshop="aluminio" aria-pressed="true">Aluminio</button>
-              <button type="button" data-workshop="vidrio" aria-pressed="false">Vidrio</button>
-              <button type="button" data-workshop="ensamble" aria-pressed="false">Ensamble</button>
-            </nav>
             <section id="workshop-aluminio" data-workshop-panel><h3>Aluminio</h3><div id="order-aluminum"></div></section>
             <section id="workshop-vidrio" data-workshop-panel hidden><h3>Vidrio</h3><div id="order-glass"></div></section>
             <section id="workshop-ensamble" data-workshop-panel hidden><h3>Ensamble</h3><div id="order-assembly"></div></section>
@@ -173,13 +196,15 @@
           <section id="area-instalacion" data-area-panel hidden>
             <section aria-labelledby="installation-status-title">
               <h2 id="installation-status-title">Instalación</h2>
+              <h3>Notas del pedido</h3>
+              <p id="installation-notes"></p>
               <p id="installation-state" aria-live="polite"></p>
               <button id="installation-toggle" type="button">Marcar instalado</button>
             </section>
               <section aria-labelledby="installation-date-title">
                 <h3 id="installation-date-title">Fecha programada de instalación</h3>
                 <p id="installation-date-status" aria-live="polite"></p>
-                <button id="installation-date-edit" type="button">Editar fecha</button>
+                <button id="installation-date-edit" type="button" hidden>Editar fecha</button>
                 <form id="installation-date-form" novalidate>
                   <p><label>Fecha programada <input id="installation-date" type="date" required disabled></label></p>
                   <div id="reschedule-reason" hidden>
@@ -202,16 +227,15 @@
               </section>
           </section>
         </div>
-        <a href="/">Crear otro pedido</a>
       </section>
 
-      <section id="budgets"><h2>Presupuestos</h2><div id="budget-list"></div></section>
-      <section id="orders">
+      <section id="budgets" hidden><h2>Presupuestos</h2><div id="budget-list"></div></section>
+      <section id="orders" hidden>
         <h2>Pedidos del taller</h2>
         <div id="order-list"></div>
       </section>
 
-      <section id="history"><h2>Histórico de pedidos</h2><div id="history-list"></div></section>
+      <section id="history" hidden>Histórico de pedidos</h2><div id="history-list"></div></section>
       <p id="message" role="alert" hidden></p>
       <p id="error-return" hidden><a href="/">Volver al inicio</a></p>
     </main>
