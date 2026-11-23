@@ -525,7 +525,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 **Temas futuros sin reglas ni historias aprobadas:** definir cómo registrar material surtido o faltante, bloqueos y sus causas, estimaciones de fabricación y satisfacción del cliente. La investigación no fija todavía su alcance ni los incorpora automáticamente a estas entregas.
 
-## Ciclo 6: propuesta de usabilidad por acordar
+## Ciclo 6 cerrado: usabilidad del flujo
 
 **Objetivo propuesto:** facilitar el recorrido de trabajo y la comprensión de información y acciones, sin rediseño visual. El usuario aprobó E6, los esfuerzos y las prioridades de HU-35 a HU-38; cada entrega conserva sus reglas pendientes y se refinará antes de construirla.
 
@@ -547,10 +547,10 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 | ID | Historia | Épica | Esfuerzo aceptado | Prioridad aceptada | Estado |
 | --- | --- | --- | --- | --- | --- |
-| HU-35 | Navegar según el flujo del pedido | E6 | 5 | Alta | En curso; regreso a vista de origen pendiente de aprobación |
-| HU-36 | Editar y cancelar por bloque | E6 | 5 | Alta | Implementada y aceptada |
-| HU-37 | Consultar presupuesto durante la captura | E6 | 5 | Alta | Implementada y aceptada |
-| HU-38 | Revisar impacto de cambios antes de guardar | E6 | 8 | Alta | Implementada y aceptada |
+| HU-35 | Navegar según el flujo del pedido | E6 | 5 | — | Implementada y aceptada |
+| HU-36 | Editar y cancelar por bloque | E6 | 5 | — | Implementada y aceptada |
+| HU-37 | Consultar presupuesto durante la captura | E6 | 5 | — | Implementada y aceptada |
+| HU-38 | Revisar impacto de cambios antes de guardar | E6 | 8 | — | Implementada y aceptada |
 
 ### HU-35 — Navegar según el flujo del pedido
 
@@ -568,7 +568,7 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
   - [ ] Resumen no muestra Hitos, Fabricación registrada, Cambios de medidas afectadas ni Historial de programación; sus datos se conservan para consulta futura, incluido Dashboard.
   - [ ] Se conservan las funcionalidades existentes y los controles necesarios durante presupuesto, fabricación e instalación.
 - **Subtarea [#118](https://github.com/ErickRamos37/AVAO/issues/118), implementada y aceptada por el usuario — Navegar por el flujo del pedido:** organizar los tres accesos y las vistas separadas de Aluminio, Vidrio y Ensamble dentro de Taller; comprobar el recorrido, sus controles y notas, y la solicitud de fecha posterior al anticipo. La navegación global y la barra contextual de cinco accesos son una evolución posterior confirmada para E6.
-- **Estado de la HU:** la navegación de #118 fue aceptada; la HU sigue pendiente de comprobar la captura libre durante la negociación, dependiente de HU-37.
+- **Estado de la HU:** navegación, captura libre y regreso a la vista de origen implementados y aceptados por el usuario.
 - **Límites:** conservar funcionalidades existentes y estilo actual. Sin rediseño visual. Un posible modo de trabajo sencillo para pantalla grande queda fuera de esta entrega.
 
 ### HU-36 — Editar y cancelar por bloque
