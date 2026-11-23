@@ -4,16 +4,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Dashboard</title>
-    <link rel="stylesheet" href="/static/styles.css?v=hu37-barra5">
-    <script src="/static/dashboard.js?v=hu35-volver" defer></script>
-    <script src="/static/navigation.js?v=hu37-inicio" defer></script>
+    <link rel="stylesheet" href="/static/styles.css?v=ciclo7-menu3">
+    <script src="/static/dashboard.js?v=ciclo7-redirecciones2" defer></script>
+    <script src="/static/navigation.js?v=ciclo7-redirecciones2" defer></script>
   </head>
-  <body>
+  <body class="dashboard-pilot">
     <main>
       <header>
         <a href="/" class="brand">AVAO</a>
         <div class="global-menu">
-          <button id="menu-toggle" type="button" aria-expanded="false" aria-controls="global-navigation">☰ Menú</button>
+          <button id="menu-toggle" type="button" aria-expanded="false" aria-controls="global-navigation"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menú</span></button>
           <nav id="global-navigation" aria-label="Navegación principal" hidden>
             <a href="/">Dashboard</a>
             <a href="/?vista=nuevo">Nuevo presupuesto</a>
@@ -24,44 +24,62 @@
           </nav>
         </div>
       </header>
+      <h1>Dashboard</h1>
+      <details id="dashboard-period-controls" class="dashboard-period-controls">
+        <summary id="dashboard-period-summary">Periodo: Mes</summary>
+        <div class="dashboard-period-fields">
+          <p><label for="dashboard-period">Periodo</label><select id="dashboard-period">
+            <option value="semana">Semana</option><option value="mes" selected>Mes</option><option value="ano">Año</option>
+          </select></p>
+          <p><label for="dashboard-date">Fecha de referencia</label><input id="dashboard-date" type="date" required></p>
+        </div>
+        <p id="dashboard-refresh-status" role="status" aria-live="polite">Los reportes se actualizan automáticamente al cambiar el periodo o la fecha.</p>
+      </details>
+
       <section aria-labelledby="orders-dashboard-title">
-        <h1 id="orders-dashboard-title">Pedidos e instalaciones</h1>
+        <h2 id="orders-dashboard-title">Pedidos e instalaciones</h2>
+        <p class="dashboard-hint">Selecciona una categoría para consultar sus pedidos.</p>
         <div id="orders-dashboard" aria-live="polite">Cargando pedidos…</div>
-        <h2>Instalaciones y pedidos finalizados</h2>
-        <p>Se cuenta una instalación vigente por pedido y cada cierre por su fecha. Los datos anteriores pueden estar incompletos; se incluyen fechas conocidas sin inventar horas.</p>
-        <form id="departures-form">
-          <p><label>Fecha de referencia <input id="departures-date" type="date" required></label></p>
-          <p><label>Periodo <select id="departures-period">
-            <option value="semana">Semana</option><option value="mes">Mes</option><option value="ano">Año</option>
-          </select></label></p>
-          <button type="submit">Consultar salidas</button>
-        </form>
-        <div id="departures-results" aria-live="polite"></div>
       </section>
 
       <section id="production-report" aria-labelledby="production-report-title">
-        <h2 id="production-report-title">Producción registrada</h2>
-        <p>Solo eventos registrados; los datos anteriores pueden estar incompletos. Las tandas se cuentan en la fecha de registro.</p>
-        <form id="production-report-form">
+        <h2 id="production-report-title">Producción</h2>
+        <div id="production-summary" class="dashboard-kpis" aria-live="polite">Cargando resumen…</div>
+        <details class="dashboard-details">
+          <summary>Ver gráficas y datos diarios</summary>
+          <div id="production-report-results" aria-live="polite"></div>
+        </details>
+        <form id="production-report-form" hidden>
           <p><label>Fecha de referencia <input id="production-report-date" type="date" required></label></p>
-          <p><label>Periodo <select id="production-report-period">
-            <option value="dia">Día</option><option value="semana">Semana</option>
-            <option value="mes">Mes</option><option value="ano">Año</option>
-          </select></label></p>
-          <button type="submit">Consultar</button>
+          <p><label>Periodo <select id="production-report-period"><option value="dia">Día</option><option value="semana">Semana</option><option value="mes">Mes</option><option value="ano">Año</option></select></label></p>
         </form>
-        <div id="production-report-results" aria-live="polite"></div>
       </section>
 
-      <section aria-labelledby="finance-title">
+      <section id="departures-report" aria-labelledby="departures-title">
+        <h2 id="departures-title">Instalaciones y pedidos finalizados</h2>
+        <div id="departures-summary" class="dashboard-kpis" aria-live="polite">Cargando resumen…</div>
+        <details class="dashboard-details">
+          <summary>Ver gráficas y datos diarios</summary>
+          <div id="departures-results" aria-live="polite"></div>
+        </details>
+        <form id="departures-form" hidden>
+          <p><label>Fecha de referencia <input id="departures-date" type="date" required></label></p>
+          <p><label>Periodo <select id="departures-period"><option value="semana">Semana</option><option value="mes">Mes</option><option value="ano">Año</option></select></label></p>
+        </form>
+      </section>
+
+      <section id="finance-report" aria-labelledby="finance-title">
         <h2 id="finance-title">Ingresos y ganancia estimada</h2>
-        <p>Los movimientos se agrupan por fecha de registro y excluyen anulaciones. La ganancia guardada no es utilidad neta: faltan mano de obra y gastos.</p>
-        <form id="finance-form">
+        <p class="dashboard-hint">La ganancia estimada no es utilidad neta: no descuenta mano de obra ni gastos.</p>
+        <div id="finance-summary" class="dashboard-kpis" aria-live="polite">Cargando resumen…</div>
+        <details class="dashboard-details">
+          <summary>Ver gráficas y desglose financiero</summary>
+          <div id="finance-results" aria-live="polite"></div>
+        </details>
+        <form id="finance-form" hidden>
           <p><label>Fecha de referencia <input id="finance-date" type="date" required></label></p>
           <p><label>Periodo <select id="finance-period"><option value="dia">Día</option><option value="semana">Semana</option><option value="mes">Mes</option><option value="ano">Año</option></select></label></p>
-          <button type="submit">Consultar finanzas</button>
         </form>
-        <div id="finance-results" aria-live="polite"></div>
       </section>
     </main>
   </body>

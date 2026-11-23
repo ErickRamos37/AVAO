@@ -527,6 +527,8 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
 
 ## Ciclo 6 cerrado: usabilidad del flujo
 
+**Cierre:** HU-35 a HU-38 implementadas y aceptadas por el usuario, con sus incidencias cerradas e integración en `develop` por la PR #128. Se conservan todas las historias, subtareas y esfuerzos históricos; la prioridad operativa ya no aplica. La evolución aceptada reúne la edición en un único **Editar pedido**, con Guardar y Cancelar, y sustituye recálculos manuales por la revisión automática al actualizar. Una sola confirmación permite cancelar, conservar precio y guardar, o actualizar precios y guardar.
+
 **Objetivo propuesto:** facilitar el recorrido de trabajo y la comprensión de información y acciones, sin rediseño visual. El usuario aprobó E6, los esfuerzos y las prioridades de HU-35 a HU-38; cada entrega conserva sus reglas pendientes y se refinará antes de construirla.
 
 **Posibles resultados:** mejorar la navegación según el flujo real; ordenar la información y mostrar controles en el momento adecuado; permitir editar por bloques con guardar, cancelar y aviso de cambios sin guardar; y estudiar una previsualización de precios que reduzca la fricción de calcular cada ventana. Cualquier modificación al tratamiento de precios guardados necesita una regla acordada antes de implementarse.
@@ -607,9 +609,117 @@ El usuario decidió posponer la consulta de presupuestos inactivos o perdidos. S
   - [ ] Se distingue costo base de materiales, precio sugerido y precio cobrado elegido. La ganancia estimada es precio cobrado elegido menos costo actualizado de materiales; un resultado negativo es pérdida. No se presenta como utilidad neta ni se presume culpa del taller.
   - [ ] Cambiar solo cliente o fecha y cambios de costos de inventario en segundo plano no alteran los precios aceptados.
 - **Subtarea [#124](https://github.com/ErickRamos37/AVAO/issues/124), implementada y aceptada — Revisar y confirmar cambios de medidas:** comparar los cambios y aplicar conjuntamente la elección de precio, costos, merma y medidas; conservar el estado original al cancelar.
-- **Dependencias y límites:** depende de reglas de cálculo y edición acordadas para HU-36/HU-37; no guarda parcialmente ni modifica datos al cancelar. La etiqueta de un presupuesto sin código debe seguir su identificación por ID. Objetivo posterior: un único **Editar** para Resumen, incluido cliente, y eliminar **Recalcular**; no adelantarlo ni retirar protecciones existentes.
+- **Dependencias y límites:** depende de reglas de cálculo y edición acordadas para HU-36/HU-37; no guarda parcialmente ni modifica datos al cancelar. La etiqueta de un presupuesto sin código sigue su identificación por ID. La edición unificada y la sustitución de recálculos manuales forman parte del resultado aceptado del ciclo.
 
-**Apoyos posibles, sin instalar ni adoptar por anticipado:** Impeccable (audit, clarify y distill) para revisar usabilidad; ProMax si más adelante se solicita trabajo visual; y los flujos de simplicidad y entrega vertical existentes para mantener el alcance pequeño.
+**Apoyos del Ciclo 7:** Impeccable y UI UX Pro Max, instaladas por solicitud del usuario, junto con las habilidades de refinamiento y entrega vertical del proyecto.
+
+## Ciclo 7: diseño móvil de AVAO
+
+**Objetivo:** facilitar la lectura y las acciones cotidianas mediante un diseño responsive consistente, con textos claros para trabajadores jóvenes y mayores. Se propone continuar bajo **E6 — Facilitar el trabajo cotidiano del taller**. Las HU describen resultados de uso; colores, tipografía y controles son especificaciones transversales, no historias técnicas aisladas.
+
+**Contexto confirmado:** manos normales, sin guantes ni humedad habituales; uso principalmente en el taller, con ruido frecuente. El sol es ocasional y se busca sombra. Las confirmaciones deben ser visibles y no depender de sonido. El verde actual no representa la identidad deseada. Para aluminio, el teléfono se apoya cerca y se marcan los cortes conforme se realizan; se conserva la lista de perfiles. En vidrio también se apoya cerca, pero se consulta desde mayor distancia: etiquetas y medidas requieren más presencia visual, con un tamaño cómodo y equilibrado.
+
+**Dirección visual aprobada:** Flat Design con patrones Material y superficies opacas. Azul profundo para acciones, gris claro y blanco como base; verde, ámbar y rojo para estados, siempre acompañados por texto o símbolos. La interfaz usa la familia del sistema, texto base cercano a 17 px y medidas de taller de 24–28 px; controles de al menos 48 px y separación de 8 px. Contraste mínimo 4.5:1 para texto normal y 3:1 para texto grande y componentes. Movimiento discreto de 120–200 ms, respetando reducción de movimiento.
+
+**Reglas visuales validadas en HU-39 y HU-40:** el encabezado conserva AVAO, Taller y Menú; el regreso es un botón discreto con flecha y texto; el pedido queda como contexto secundario y «Ventana A1/A2» como título de trabajo prominente. El avance de piezas se muestra como `0/2` y agrega una palomita al completar, sin depender solo del color. Los iconos lineales apoyan la identificación y acompañan las etiquetas; no sustituyen el texto de las acciones, y se marcan como decorativos para lectores de pantalla cuando el texto ya las describe. En anchos de hasta 360 px, las acciones se apilan para que el texto ampliado no las comprima. Las vistas deben seguir utilizables a 320–430 px y con texto al 200 %, sin desplazamiento horizontal.
+
+**Comprobación y límites:** revisar pantallas renderizadas entre 320 y 430 px, texto al 200 %, teclado abierto, contenido largo y estados vacío, carga, error y guardado. Conservar cálculos, datos, estados y reglas aceptadas. El diagnóstico inicial proviene del código y aún requiere validación visual. No se necesita incorporar un framework ni librería de animación por anticipación. El modo específico para pantalla grande sigue fuera del alcance.
+
+**Secuencia, esfuerzos y prioridades propuestos:** comenzar con aluminio como piloto y extender lo aprobado en entregas pequeñas. Los puntos son relativos y quedan pendientes de aceptación; no representan días. Las subtareas se redactarán al acercarse cada HU al desarrollo. Este plan no modifica el tablero.
+
+| ID | Épica | Esfuerzo | Prioridad | Estado |
+| --- | --- | ---: | --- | --- |
+| HU-39 | E6 | 5 | Alta | Completada |
+| HU-40 | E6 | 3 | Alta | Completada |
+| HU-41 | E6 | 5 | Alta | Por revisar |
+| HU-42 | E6 | 5 | Alta | Por revisar |
+| HU-43 | E6 | 3 | Media | Por revisar |
+| HU-44 | E6 | 5 | Media | Por revisar |
+| HU-45 | E6 | 5 | Media | Por revisar |
+
+### HU-39 — Leer y registrar cortes de aluminio cómodamente en móvil
+
+- **Historia:** **Como** trabajador que corta aluminio, **necesito** distinguir ventana, perfil, medida y cortes pendientes con controles cómodos, **para** registrar el trabajo sin confundir piezas ni perder mi posición.
+- **Uso confirmado:** teléfono apoyado cerca, lista de perfiles y registro conforme se corta. Una ventana completada permanece visible; no se contrae ni cambia de posición automáticamente. Si existe contracción manual, solo actúa al solicitarla el usuario; esta HU no exige añadirla.
+- **Criterios de aceptación:**
+  - [x] Etiqueta y medida dominan la lectura; cantidades realizadas y pendientes se distinguen sin depender solo del color.
+  - [x] Marcar y deshacer tienen nombres y jerarquías claras; actualizar conserva contexto, foco y punto de trabajo.
+  - [x] Navegación y controles cumplen la especificación móvil común, sin ocultar contenido con la barra fija.
+  - [x] El usuario aprobó paleta, tipografía y componentes del piloto antes de extenderlos.
+- **Subtareas:**
+  - **Proponer y validar el diseño móvil de la lista de cortes de aluminio:** preparar una propuesta renderizada con contenido representativo del pedido, etiquetas, perfiles, medidas, cantidades y acciones existentes; mostrar cómo se distinguen pendiente, parcial y completo. Comparar lectura y alcance táctil en anchos de 320–430 px y con texto ampliado, y presentar al usuario paleta, tipografía y controles para aprobar la dirección del piloto. Conservar las reglas funcionales y no extender el diseño al resto de las vistas antes de esa revisión.
+  - **Aplicar el piloto aprobado al registro de cortes de aluminio:** integrar la lista y los controles aprobados en la vista real del pedido, con marcar y deshacer diferenciados y respuesta visual al guardar. Mantener posición de desplazamiento, foco e identificación de la pieza al actualizar; conservar las ventanas completas visibles y en su orden. Comprobar desde móvil el avance parcial y completo, deshacer, persistencia al reabrir y estados de carga o error, además de que la barra fija y el texto ampliado no oculten medidas ni acciones.
+- **Límites:** conserva cantidades, fórmulas y reglas existentes.
+
+- **Criterios de aceptación:**
+  - [x] Vidrio y ensamble conservan vistas separadas y solo muestran información pertinente a cada tarea.
+  - [x] Medidas, cantidades y marcas reutilizan la jerarquía aprobada en aluminio, conservando validaciones y deshacer.
+  - [x] Registrar trabajo mantiene el contexto y comunica carga, éxito o error visualmente.
+- **Avance:** implementación visual aprobada por el usuario; conservó las reglas de corte y ensamble existentes.
+
+### HU-40 — Registrar vidrio y ensamble con claridad consistente
+
+- **Historia:** **Como** trabajador de vidrio o ensamble, **necesito** leer medidas y pendientes en mi propia vista con controles consistentes, **para** avanzar sin mezclar información de otras áreas.
+- **Uso confirmado para vidrio:** el teléfono se consulta apoyado cerca y desde mayor distancia que en aluminio. Los dos vidrios por ventana permiten destacar etiqueta y medidas sin tamaños exagerados; el tamaño definitivo se valida en la pantalla renderizada. Esta preferencia no cambia cantidades ni reglas de corte.
+- **Criterios de aceptación:**
+  - [x] Vidrio y ensamble conservan vistas separadas y solo muestran información pertinente a cada tarea.
+  - [x] Medidas, cantidades y marcas reutilizan la jerarquía aprobada en aluminio, conservando validaciones y deshacer.
+  - [x] Registrar trabajo mantiene el contexto y comunica carga, éxito o error visualmente.
+- **Dependencia:** HU-39; no añade modos nuevos de fabricación.
+
+### HU-41 — Capturar un presupuesto con medidas y precios comprensibles
+
+- **Historia:** **Como** empleado, **necesito** reconocer cada ventana, su precio y el total mientras avanzo por la captura, **para** negociar y completar datos sin perder el hilo.
+- **Criterios de aceptación:**
+  - [ ] Cada ventana integra medidas y precio; total estimado, cargos y anticipo tienen una jerarquía inequívoca.
+  - [ ] Los pasos permiten volver sin perder datos y muestran la posición actual; etiquetas y errores indican qué completar.
+  - [ ] Guardar presupuesto y registrar anticipo se distinguen con texto claro y mantienen requisitos y cálculos vigentes.
+  - [ ] Teclado y ampliación de texto no bloquean campos ni acciones.
+- **Dependencia:** sistema visual de HU-39; no cambia el flujo comercial.
+- **Avance:** la captura aplica la jerarquía visual validada a medidas, precio por ventana, total, cargos, datos del cliente y anticipo. Comprobé navegación entre pasos y vista previa sin guardar pedidos; queda pendiente revisión visual.
+
+### HU-42 — Comprender y editar el resumen del pedido desde móvil
+
+- **Historia:** **Como** encargado, **necesito** identificar situación, cuenta y consecuencias de editar un pedido, **para** decidir sin recorrer información secundaria.
+- **Criterios de aceptación:**
+  - [ ] Identidad, estado, total, anticipo y saldo se distinguen; cliente y notas siguen disponibles en su contexto aprobado.
+  - [ ] Un único Editar activa Guardar y Cancelar; la revisión conserva las tres decisiones de precio aceptadas.
+  - [ ] Fecha, instalación y pagos usan controles y mensajes coherentes; sus detalles se consultan sin saturar la vista.
+  - [ ] Se comprueban textos largos, costos pendientes y estados instalado y finalizado sin perder acciones válidas.
+- **Límites:** conserva reglas, estados y permisos actuales.
+- **Avance:** se aplicó la jerarquía visual aprobada a identidad, medidas, total y controles de cuenta. En la pantalla móvil, el título y el único botón Editar caben en una línea; pendiente revisión del usuario.
+
+### HU-43 — Reconocer y abrir el presupuesto o pedido correcto
+
+- **Historia:** **Como** empleado, **necesito** distinguir elementos y estados de las listas, **para** abrir el trabajo correcto rápidamente.
+- **Criterios de aceptación:**
+  - [ ] Las tarjetas muestran identificación, estado y fechas legibles con una entrada táctil amplia.
+  - [ ] Menú, navegación contextual y Volver usan un lenguaje visual consistente y protegen cambios sin guardar.
+  - [ ] Se conservan orden, separación entre presupuestos y pedidos, e identificación acordados.
+- **Límites:** no añade clasificaciones ni cambia el orden de trabajo.
+- **Avance:** pedidos, presupuestos e histórico usan tarjetas con identidad, fecha y estado legibles; los pedidos conservan avance, fecha de instalación y estados. Se conserva orden y destino; lectura verificada en móvil sin alterar registros ni desbordamiento horizontal.
+
+### HU-44 — Mantener costos cómodamente desde móvil
+
+- **Historia:** **Como** encargado, **necesito** consultar y editar costos agrupados de forma legible, **para** mantener precios sin recorrer una tabla ancha desde el teléfono.
+- **Criterios de aceptación:**
+  - [ ] Los materiales se presentan por categorías y la edición frecuente no exige desplazamiento horizontal de la página.
+  - [ ] Porcentajes y reglas de cobro se distinguen de los materiales y sus unidades.
+  - [ ] Se conservan guardado único, validaciones y advertencias de cambios pendientes.
+- **Límites:** no incorpora compras, existencias ni conversiones nuevas.
+- **Avance:** el inventario conserva sus datos y guardado; en móvil cada insumo se presenta como tarjeta vertical con su unidad y costo equivalente. Lectura móvil verificada sin guardar cambios; pendiente revisión del usuario.
+- **Pendiente de requisito:** la fuente actual no proporciona categorías para agrupar insumos; mantener la lista plana hasta confirmar una agrupación con el usuario.
+
+### HU-45 — Interpretar la situación del negocio y consultar trabajos finalizados
+
+- **Historia:** **Como** encargado, **necesito** distinguir indicadores operativos y financieros y consultar el detalle histórico, **para** comprender qué requiere atención y revisar trabajos terminados.
+- **Criterios de aceptación:**
+  - [ ] Dashboard prioriza situación operativa y financiera con títulos, unidades y periodos claros.
+  - [ ] Gráficos y resúmenes conservan alternativas textuales y las limitaciones necesarias para interpretar los datos.
+  - [ ] Histórico presenta pedidos finalizados de lectura con identidad, ventanas, cuenta y pagos ordenados, sin detalles innecesarios de materiales.
+  - [ ] Ambas vistas cumplen la especificación móvil y distinguen falta de datos de valores cero.
+- **Límites:** adapta las métricas y datos existentes; no añade predicciones ni fórmulas financieras.
+- **Avance:** el Dashboard carga automáticamente los resúmenes de pedidos, producción, salidas e ingresos; reúne fecha y periodo en un único filtro y deja listas, gráficas y tablas bajo controles desplegables. Conserva las métricas y cálculos existentes; comprobé el cambio automático entre semana y mes en móvil. La revisión y aceptación visual del usuario siguen pendientes.
 
 ## Secuencia comercial prevista: datos, precios, aceptación y liquidación
 

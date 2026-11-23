@@ -2,9 +2,27 @@ const productionForm = document.querySelector('#production-report-form');
 const productionDate = document.querySelector('#production-report-date');
 const productionPeriod = document.querySelector('#production-report-period');
 const productionResults = document.querySelector('#production-report-results');
+const productionSummary = document.querySelector('#production-summary');
 const dateParts = new Intl.DateTimeFormat('en-US', {timeZone: 'America/Tijuana', year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts(new Date());
 const localPart = type => dateParts.find(part => part.type === type).value;
 productionDate.value = productionDate.max = `${localPart('year')}-${localPart('month')}-${localPart('day')}`;
+const dashboardDate = document.querySelector('#dashboard-date');
+const dashboardPeriod = document.querySelector('#dashboard-period');
+const dashboardPeriodSummary = document.querySelector('#dashboard-period-summary');
+const dashboardRefreshStatus = document.querySelector('#dashboard-refresh-status');
+dashboardDate.value = dashboardDate.max = productionDate.value;
+
+function renderDashboardMetrics(container, metrics) {
+  container.replaceChildren();
+  for (const [label, value, note = ''] of metrics) {
+    const item = document.createElement('article'); item.className = 'dashboard-metric';
+    const name = document.createElement('p'); name.textContent = label;
+    const amount = document.createElement('strong'); amount.textContent = value;
+    item.append(name, amount);
+    if (note) { const detail = document.createElement('small'); detail.textContent = note; item.append(detail); }
+    container.append(item);
+  }
+}
 function productionChart(days, key, label) {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
@@ -51,8 +69,9 @@ productionForm.addEventListener('submit', async event => {
     const response = await fetch(`/api/produccion?${query}`);
     const result = await response.json();
     if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo consultar la producción.');
+    renderDashboardMetrics(productionSummary, [['Aluminio', result.totales.aluminio, `Promedio diario: ${result.promedios_diarios.aluminio.toFixed(2)}`], ['Vidrio', result.totales.vidrio, `Promedio diario: ${result.promedios_diarios.vidrio.toFixed(2)}`], ['Ensamble', result.totales.ensamble, `Promedio diario: ${result.promedios_diarios.ensamble.toFixed(2)}`]]);
     const heading = document.createElement('p');
-    heading.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} día(s), incluidos días sin registros`;
+    heading.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} días calendario, incluidos los días sin registros`;
     productionResults.append(heading);
     const areas = [['aluminio', 'Piezas de aluminio'], ['vidrio', 'Piezas de vidrio'], ['ensamble', 'Ventanas ensambladas']];
     for (const [key, label] of areas) {
@@ -78,6 +97,7 @@ productionForm.addEventListener('submit', async event => {
     }
     table.append(body); productionResults.append(table);
   } catch (error) {
+    productionSummary.textContent = error.message;
     productionResults.textContent = error.message;
   }
 });
@@ -91,10 +111,11 @@ async function loadDashboardOrders() {
     const groups = await response.json();
     ordersDashboard.replaceChildren();
     for (const [key, title] of [['pendientes', 'Pendientes de fabricación'], ['listos', 'Listos para instalar'],
-      ['instalados_por_liquidar', 'Instalados por liquidar'], ['atrasados', 'Instalaciones atrasadas'], ['proximos', 'Instalaciones próximas: hoy y cinco días']]) {
-      const section = document.createElement('section');
-      const heading = document.createElement('h3'); heading.textContent = `${title}: ${groups[key].length}`; section.append(heading);
-      if (!groups[key].length) { const line = document.createElement('p'); line.textContent = 'Ninguno.'; section.append(line); }
+      ['instalados_por_liquidar', 'Instalados por liquidar'], ['atrasados', 'Instalaciones atrasadas'], ['proximos', 'Instalaciones próximas · 5 días']]) {
+      const section = document.createElement('details'); section.className = `dashboard-order-group is-${key}`;
+      const heading = document.createElement('summary'); heading.textContent = title;
+      const count = document.createElement('strong'); count.className = 'dashboard-count'; count.textContent = String(groups[key].length); heading.append(count); section.append(heading);
+      if (!groups[key].length) { const line = document.createElement('p'); line.className = 'dashboard-empty'; line.textContent = 'No hay pedidos en esta categoría.'; section.append(line); }
       const list = document.createElement('ul');
       for (const order of groups[key]) {
         const row = document.createElement('li'); const link = document.createElement('a');
@@ -114,7 +135,7 @@ async function loadDashboardOrders() {
         if (info.length) row.append(document.createTextNode(` · ${info.join(' · ')}`));
         list.append(row);
       }
-      section.append(list); ordersDashboard.append(section);
+      if (groups[key].length) section.append(list); ordersDashboard.append(section);
     }
   } catch (error) { ordersDashboard.textContent = error.message; }
 }
@@ -124,6 +145,7 @@ const departuresForm = document.querySelector('#departures-form');
 const departuresDate = document.querySelector('#departures-date');
 const departuresPeriod = document.querySelector('#departures-period');
 const departuresResults = document.querySelector('#departures-results');
+const departuresSummary = document.querySelector('#departures-summary');
 departuresDate.value = departuresDate.max = productionDate.max;
 departuresForm.addEventListener('submit', async event => {
   event.preventDefault(); departuresResults.replaceChildren();
@@ -132,7 +154,8 @@ departuresForm.addEventListener('submit', async event => {
     const response = await fetch(`/api/tablero/salidas?${query}`);
     const result = await response.json();
     if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudieron consultar las salidas.');
-    const heading = document.createElement('p'); heading.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} día(s), incluidos días sin registros`; departuresResults.append(heading);
+    renderDashboardMetrics(departuresSummary, [['Instalados', result.totales.instalados, `Promedio diario: ${result.promedios_diarios.instalados.toFixed(2)}`], ['Finalizados', result.totales.finalizados, `Promedio diario: ${result.promedios_diarios.finalizados.toFixed(2)}`]]);
+    const heading = document.createElement('p'); heading.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} días calendario, incluidos los días sin registros`; departuresResults.append(heading);
     for (const [key, label] of [['instalados', 'Pedidos instalados'], ['finalizados', 'Pedidos finalizados']]) {
       const section = document.createElement('section'); const title = document.createElement('h3');
       title.textContent = `${label}: total ${result.totales[key]} · promedio diario ${result.promedios_diarios[key].toFixed(2)}`;
@@ -149,7 +172,7 @@ departuresForm.addEventListener('submit', async event => {
       body.append(row);
     }
     table.append(body); departuresResults.append(table);
-  } catch (error) { departuresResults.textContent = error.message; }
+  } catch (error) { departuresSummary.textContent = error.message; departuresResults.textContent = error.message; }
 });
 
 function financeChart(days, key, label) {
@@ -188,6 +211,7 @@ const financeForm = document.querySelector('#finance-form');
 const financeDate = document.querySelector('#finance-date');
 const financePeriod = document.querySelector('#finance-period');
 const financeResults = document.querySelector('#finance-results');
+const financeSummary = document.querySelector('#finance-summary');
 financeDate.value = financeDate.max = productionDate.max;
 financeForm.addEventListener('submit', async event => {
   event.preventDefault(); financeResults.replaceChildren();
@@ -195,7 +219,8 @@ financeForm.addEventListener('submit', async event => {
     const response = await fetch(`/api/tablero/finanzas?${new URLSearchParams({fecha:financeDate.value, periodo:financePeriod.value})}`);
     const result = await response.json();
     if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudieron consultar las finanzas.');
-    const range = document.createElement('p'); range.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} día(s), incluidos días sin movimientos`; financeResults.append(range);
+    renderDashboardMetrics(financeSummary, [['Pagos recibidos', `$${result.totales.pagos}`, `Promedio diario: $${result.promedios_diarios.pagos}`], ['Devoluciones', `$${result.totales.devoluciones}`, `Promedio diario: $${result.promedios_diarios.devoluciones}`], ['Ingresos netos', `$${result.totales.neto}`, `Promedio diario: $${result.promedios_diarios.neto}`], ['Ganancia estimada · activos', availableAmount(result.actual.ganancia, result.actual.con_ganancia, result.actual.faltantes), `${result.actual.faltantes} ventanas sin dato`], ['Ganancia estimada · finalizados', availableAmount(result.finalizados.ganancia, result.finalizados.con_ganancia, result.finalizados.faltantes), `${result.finalizados.faltantes} ventanas sin dato`], ['Saldo pendiente', availableAmount(result.actual.saldo, result.actual.con_saldo, result.actual.sin_saldo), `${result.actual.sin_saldo} pedidos sin saldo calculable`]]);
+    const range = document.createElement('p'); range.textContent = `Del ${result.inicio} al ${result.fin} · ${result.dias.length} días calendario, incluidos los días sin movimientos`; financeResults.append(range);
     for (const [key, label] of [['pagos','Pagos recibidos'], ['devoluciones','Devoluciones'], ['neto','Ingresos netos']]) {
       const section = document.createElement('section'), heading = document.createElement('h3');
       heading.textContent = `${label}: total $${result.totales[key]} · promedio diario $${result.promedios_diarios[key]}`;
@@ -214,5 +239,23 @@ financeForm.addEventListener('submit', async event => {
     const currentLine = document.createElement('p'); currentLine.textContent = `Saldos pendientes: ${availableAmount(current.saldo, current.con_saldo, current.sin_saldo)} · Excedentes: ${availableAmount(current.excedente, current.con_saldo, current.sin_saldo)} · Pedidos sin saldo calculable: ${current.sin_saldo}`; financeResults.append(currentLine);
     const gain = document.createElement('p'); gain.textContent = `Ganancia estimada guardada: ${availableAmount(current.ganancia, current.con_ganancia, current.faltantes)} · Ventanas sin ganancia: ${current.faltantes} · Ventanas con ganancia desactualizada: ${current.desactualizadas}`; financeResults.append(gain);
     const closed = document.createElement('p'); closed.textContent = `Ganancia estimada guardada de pedidos finalizados en el periodo: ${availableAmount(result.finalizados.ganancia, result.finalizados.con_ganancia, result.finalizados.faltantes)} · Ventanas sin ganancia: ${result.finalizados.faltantes}`; financeResults.append(closed);
-  } catch (error) { financeResults.textContent = error.message; }
+  } catch (error) { financeSummary.textContent = error.message; financeResults.textContent = error.message; }
 });
+
+function refreshDashboardReports() {
+  const periods = {semana: 'Semana', mes: 'Mes', ano: 'Año'};
+  const date = dashboardDate.value;
+  productionDate.value = departuresDate.value = financeDate.value = date;
+  productionPeriod.value = dashboardPeriod.value;
+  departuresPeriod.value = dashboardPeriod.value;
+  financePeriod.value = dashboardPeriod.value;
+  dashboardPeriodSummary.textContent = `Periodo: ${periods[dashboardPeriod.value]} · corte ${date}`;
+  productionSummary.textContent = departuresSummary.textContent = financeSummary.textContent = 'Actualizando…';
+  productionForm.requestSubmit();
+  departuresForm.requestSubmit();
+  financeForm.requestSubmit();
+}
+
+dashboardDate.addEventListener('change', refreshDashboardReports);
+dashboardPeriod.addEventListener('change', refreshDashboardReports);
+refreshDashboardReports();

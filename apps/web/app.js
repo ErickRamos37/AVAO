@@ -96,6 +96,11 @@ clientEdit.addEventListener('click', () => {
 document.querySelector('#client-cancel').addEventListener('click', () => showClient(currentOrderData));
 
 function showArea(area) {
+  document.body.classList.remove('capture-pilot');
+  document.body.classList.remove('list-pilot');
+  document.body.classList.toggle('workshop-pilot', ['aluminio', 'vidrio', 'ensamble'].includes(area));
+  document.body.classList.toggle('summary-pilot', area === 'resumen');
+  document.body.classList.toggle('installation-pilot', area === 'instalacion');
   const workshop = ['aluminio', 'vidrio', 'ensamble'].includes(area);
   document.body.classList.add('order-active');
   for (const button of areaButtons) {
@@ -107,6 +112,34 @@ function showArea(area) {
   for (const panel of document.querySelectorAll('[data-workshop-panel]')) {
     panel.hidden = panel.id !== `workshop-${area}`;
   }
+}
+
+function workshopIcon(name) {
+  const paths = {
+    window: '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 11h16"/>',
+    mark: '<path d="m5 12 4 4L19 6"/>',
+    undo: '<path d="M9 14 4 9l5-5M4 9h10a6 6 0 1 1-6 6"/>',
+    back: '<path d="m15 18-6-6 6-6M9 12h11"/>',
+  };
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.setAttribute('focusable', 'false');
+  icon.innerHTML = paths[name];
+  return icon;
+}
+
+function actionButton(button, label, icon) {
+  const text = document.createElement('span');
+  text.textContent = label;
+  button.replaceChildren(workshopIcon(icon), text);
+}
+
+function workshopWindowHeading(window) {
+  const heading = document.createElement('h3');
+  heading.className = 'workshop-window-heading';
+  heading.append(workshopIcon('window'), document.createTextNode(`Ventana ${window.codigo ?? window.numero}`));
+  return heading;
 }
 
 for (const button of areaButtons) {
@@ -211,6 +244,8 @@ orderEdit.addEventListener('click', () => {
   clientView.hidden = true;
   clientForm.hidden = false;
   deliveryAmount.disabled = false;
+  deliveryAmount.closest('p').hidden = false;
+  document.querySelector('#delivery-editor').hidden = false;
   document.querySelector('#waste-included').disabled = !(currentOrderData.merma && currentOrderData.merma_vidrio);
   orderEditDate.hidden = !currentOrderData.aceptado;
   orderEditDateValue.value = currentOrderData.fecha_programada ?? '';
@@ -409,19 +444,39 @@ measureEditForm.addEventListener('submit', async (event) => {
 function aluminumCutRow(window, cut, progress, label, onProgressChange) {
   const row = document.createElement('div');
   row.className = 'cut-row';
+  row.dataset.cutKey = `${window.id}-${progress.orden}`;
+  const profile = document.createElement('h4');
+  profile.className = 'cut-profile';
+  profile.textContent = label;
+  const measurement = document.createElement('p');
+  measurement.className = 'cut-measurement';
+  measurement.textContent = `${cut.longitud}″`;
   const status = document.createElement('div');
+  status.className = 'cut-status';
+  status.setAttribute('aria-live', 'polite');
   const actions = document.createElement('div');
   actions.className = 'cut-actions';
   const mark = document.createElement('button');
   const undo = document.createElement('button');
   mark.type = undo.type = 'button';
-  mark.textContent = 'Marcar corte';
-  undo.textContent = 'Deshacer marca';
+  actionButton(mark, 'Marcar corte', 'mark');
+  actionButton(undo, 'Deshacer marca', 'undo');
+  mark.className = 'cut-mark';
+  undo.className = 'cut-undo';
   mark.setAttribute('aria-label', `Marcar corte de ${label} para ${window.codigo ?? window.numero}`);
   undo.setAttribute('aria-label', `Deshacer marca de ${label} para ${window.codigo ?? window.numero}`);
 
   function refresh() {
-    status.textContent = `${label}: ${cut.longitud}″ · requerido ${cut.cantidad}, cortado ${progress.cortadas}, pendiente ${progress.pendientes}`;
+    status.replaceChildren(document.createTextNode(`${progress.cortadas}/${cut.cantidad}`));
+    status.setAttribute('aria-label', `${progress.cortadas} de ${cut.cantidad} cortes completados`);
+    if (progress.pendientes === 0) {
+      const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      check.setAttribute('viewBox', '0 0 24 24');
+      check.setAttribute('aria-hidden', 'true');
+      check.innerHTML = '<path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+      status.append(check);
+    }
+    row.dataset.state = progress.pendientes === 0 ? 'complete' : progress.cortadas ? 'partial' : 'pending';
     mark.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas >= cut.cantidad;
     undo.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
   }
@@ -429,6 +484,10 @@ function aluminumCutRow(window, cut, progress, label, onProgressChange) {
   async function change(action) {
     message.hidden = true;
     mark.disabled = undo.disabled = true;
+    row.setAttribute('aria-busy', 'true');
+    status.textContent = 'Guardando corte…';
+    const rowTop = row.getBoundingClientRect().top;
+    const focusAction = action === 'marcar' ? '.cut-mark' : '.cut-undo';
     try {
       const response = await fetch(`/api/ventanas/${window.id}/aluminio/${progress.orden}/marcas`, {
         method: 'POST',
@@ -444,9 +503,17 @@ function aluminumCutRow(window, cut, progress, label, onProgressChange) {
       progress.pendientes = updated.pendientes;
       onProgressChange();
       await openOrder(currentOrderId);
+      const replacement = document.querySelector(`[data-cut-key="${window.id}-${progress.orden}"]`);
+      if (replacement) {
+        globalThis.scrollBy({top: replacement.getBoundingClientRect().top - rowTop, behavior: 'instant'});
+        const target = replacement.querySelector(focusAction);
+        const available = target.disabled ? replacement.querySelector('button:not(:disabled)') : target;
+        available?.focus({preventScroll: true});
+      }
     } catch (error) {
       showError(error.message);
     } finally {
+      row.removeAttribute('aria-busy');
       refresh();
     }
   }
@@ -455,28 +522,43 @@ function aluminumCutRow(window, cut, progress, label, onProgressChange) {
   undo.addEventListener('click', () => change('deshacer'));
   refresh();
   actions.append(mark, undo);
-  row.append(status, actions);
+  row.append(profile, measurement, status, actions);
   return row;
 }
 
 function glassCutRow(window, onProgressChange) {
   const row = document.createElement('div');
   row.className = 'cut-row';
+  row.dataset.cutKey = `${window.id}-glass`;
+  const label = document.createElement('h4');
+  label.className = 'cut-profile';
+  label.textContent = 'Vidrio';
+  const measurement = document.createElement('p');
+  measurement.className = 'cut-measurement';
+  const instruction = document.createElement('p');
+  instruction.className = 'cut-instruction';
+  instruction.textContent = 'Marca cada vidrio después de cortarlo. Puedes deshacer una marca si te equivocas.';
   const status = document.createElement('div');
+  status.className = 'cut-status';
+  status.setAttribute('aria-live', 'polite');
   const actions = document.createElement('div');
   actions.className = 'cut-actions';
   const mark = document.createElement('button');
   const undo = document.createElement('button');
   mark.type = undo.type = 'button';
-  mark.textContent = 'Marcar corte';
-  undo.textContent = 'Deshacer marca';
+  actionButton(mark, 'Marcar corte', 'mark');
+  actionButton(undo, 'Deshacer marca', 'undo');
   mark.setAttribute('aria-label', `Marcar corte de vidrio para ${window.codigo ?? window.numero}`);
   undo.setAttribute('aria-label', `Deshacer marca de vidrio para ${window.codigo ?? window.numero}`);
   const plan = window.plan_vidrio;
   const progress = window.avance_vidrio;
 
   function refresh() {
-    status.textContent = `Vidrio: ${plan.ancho}″ × ${plan.alto}″ · cortados: ${progress.cortadas} de ${plan.cantidad} · pendientes: ${progress.pendientes}`;
+    measurement.textContent = `${plan.ancho}″ × ${plan.alto}″`;
+    status.replaceChildren(document.createTextNode(`${progress.cortadas}/${plan.cantidad}`));
+    status.setAttribute('aria-label', `${progress.cortadas} de ${plan.cantidad} vidrios cortados`);
+    if (progress.pendientes === 0) status.append(workshopIcon('mark'));
+    row.dataset.state = progress.pendientes === 0 ? 'complete' : progress.cortadas ? 'partial' : 'pending';
     mark.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas >= plan.cantidad;
     undo.disabled = currentOrderData.instalado || !currentOrderData.aceptado || progress.cortadas <= 0 || window.ensamblada;
   }
@@ -484,6 +566,10 @@ function glassCutRow(window, onProgressChange) {
   async function change(action) {
     message.hidden = true;
     mark.disabled = undo.disabled = true;
+    row.setAttribute('aria-busy', 'true');
+    status.textContent = 'Guardando corte…';
+    const rowTop = row.getBoundingClientRect().top;
+    const focusAction = action === 'marcar' ? '.cut-mark' : '.cut-undo';
     try {
       const response = await fetch(`/api/ventanas/${window.id}/vidrio/marcas`, {
         method: 'POST',
@@ -499,9 +585,17 @@ function glassCutRow(window, onProgressChange) {
       progress.pendientes = updated.pendientes;
       onProgressChange();
       await openOrder(currentOrderId);
+      const replacement = document.querySelector(`[data-cut-key="${window.id}-glass"]`);
+      if (replacement) {
+        globalThis.scrollBy({top: replacement.getBoundingClientRect().top - rowTop, behavior: 'instant'});
+        const target = replacement.querySelector(focusAction);
+        const available = target.disabled ? replacement.querySelector('button:not(:disabled)') : target;
+        available?.focus({preventScroll: true});
+      }
     } catch (error) {
       showError(error.message);
     } finally {
+      row.removeAttribute('aria-busy');
       refresh();
     }
   }
@@ -510,7 +604,7 @@ function glassCutRow(window, onProgressChange) {
   undo.addEventListener('click', () => change('deshacer'));
   refresh();
   actions.append(mark, undo);
-  row.append(status, actions);
+  row.append(label, measurement, instruction, status, actions);
   return row;
 }
 
@@ -519,14 +613,15 @@ function assemblyRow(window, orderId) {
   row.className = 'cut-row';
   const status = document.createElement('p');
   const note = document.createElement('p');
-  note.textContent = 'Se habilita al registrar todos los cortes. Al confirmar, verificas físicamente screen, accesorios y extras aplicables.';
+  note.className = 'cut-instruction assembly-note';
+  note.textContent = 'Al confirmar, verifica screen, accesorios y extras aplicables.';
   const actions = document.createElement('div');
   actions.className = 'cut-actions';
   const mark = document.createElement('button');
   const undo = document.createElement('button');
   mark.type = undo.type = 'button';
-  mark.textContent = 'Confirmar ensamble';
-  undo.textContent = 'Deshacer ensamble';
+  actionButton(mark, 'Confirmar ensamble', 'mark');
+  actionButton(undo, 'Deshacer ensamble', 'undo');
   mark.setAttribute('aria-label', `Confirmar ensamble de ${window.codigo ?? window.numero}`);
   undo.setAttribute('aria-label', `Deshacer ensamble de ${window.codigo ?? window.numero}`);
 
@@ -536,7 +631,11 @@ function assemblyRow(window, orderId) {
       && window.avance_aluminio.every((cut) => cut.pendientes === 0)
       && window.plan_vidrio && window.avance_vidrio
       && window.avance_vidrio.pendientes === 0;
-    status.textContent = `Ensamble de ${window.codigo ?? window.numero}: ${window.ensamblada ? 'ensamblada' : 'pendiente'}`;
+    status.replaceChildren(document.createTextNode(window.ensamblada ? 'Ensamble listo' : 'Pendiente'));
+    status.className = 'cut-status assembly-status';
+    status.setAttribute('aria-label', window.ensamblada ? 'Ensamble completo' : 'Ensamble pendiente');
+    if (window.ensamblada) status.append(workshopIcon('mark'));
+    row.dataset.state = window.ensamblada ? 'complete' : 'pending';
     mark.disabled = currentOrderData.instalado || !currentOrderData.aceptado || window.ensamblada || !complete;
     undo.disabled = currentOrderData.instalado || !currentOrderData.aceptado || !window.ensamblada;
   }
@@ -544,6 +643,8 @@ function assemblyRow(window, orderId) {
   async function change(action) {
     message.hidden = true;
     mark.disabled = undo.disabled = true;
+    row.setAttribute('aria-busy', 'true');
+    status.textContent = 'Guardando ensamble…';
     try {
       const response = await fetch(`/api/ventanas/${window.id}/ensamble/marcas`, {
         method: 'POST',
@@ -557,6 +658,8 @@ function assemblyRow(window, orderId) {
       await openOrder(orderId);
     } catch (error) {
       showError(error.message);
+    } finally {
+      row.removeAttribute('aria-busy');
       refresh();
     }
   }
@@ -579,10 +682,14 @@ async function loadOrders() {
     historyList.replaceChildren();
     if (!history.pedidos.length) historyList.textContent = 'No hay pedidos finalizados.';
     for (const order of history.pedidos) {
-      const line = document.createElement('p');
+      const line = document.createElement('article');
+      line.className = 'order-card history-card';
       const link = document.createElement('a'); link.href = `/pedidos/${order.id}?origen=historico`;
-      link.textContent = `Pedido ${order.id} · cerrado el ${order.fecha_cierre}`;
-      line.append(link); historyList.append(line);
+      link.textContent = `Pedido ${order.id}`;
+      const heading = document.createElement('h3'); heading.append(link);
+      const date = document.createElement('p'); date.className = 'card-meta';
+      date.textContent = `Cerrado el ${order.fecha_cierre}`;
+      line.append(heading, date); historyList.append(line);
     }
     const response = await fetch('/api/pedidos/avance');
     if (!response.ok) throw new Error();
@@ -595,9 +702,15 @@ async function loadOrders() {
     const budgets = allOrders.pedidos.filter(order => !order.aceptado).sort((a, b) => (b.fecha_creacion ?? '').localeCompare(a.fecha_creacion ?? '') || b.id - a.id);
     if (!budgets.length) budgetList.textContent = 'No hay presupuestos pendientes.';
     for (const order of budgets) {
-      const line = document.createElement('p');
+      const line = document.createElement('article'); line.className = 'order-card budget-card';
       const link = document.createElement('a'); link.href = `/pedidos/${order.id}?origen=presupuestos`;
-      link.textContent = `Presupuesto ${order.id} · ${order.fecha_creacion ? new Date(order.fecha_creacion).toLocaleDateString('es-MX', {timeZone: 'America/Tijuana'}) : 'Fecha de creación no disponible'}`; line.append(link); budgetList.append(line);
+      link.textContent = `Presupuesto ${order.id}`;
+      const heading = document.createElement('h3'); heading.append(link);
+      const date = document.createElement('p'); date.className = 'card-meta';
+      date.textContent = order.fecha_creacion
+        ? `Creado el ${new Date(order.fecha_creacion).toLocaleDateString('es-MX', {timeZone: 'America/Tijuana'})}`
+        : 'Fecha de creación no disponible';
+      line.append(heading, date); budgetList.append(line);
     }
     if (!data.pedidos.length) {
       list.textContent = 'Aún no hay pedidos.';
@@ -615,10 +728,16 @@ async function loadOrders() {
       heading.append(link);
       item.append(heading);
       const summary = document.createElement('p');
+      summary.className = 'card-summary';
       summary.textContent = order.sin_ventanas ? 'Sin ventanas activas'
         : order.sin_plan ? 'Sin plan de corte completo'
         : `Avance general: ${order.porcentaje} %`;
       item.append(summary);
+      if (order.fecha_programada) {
+        const scheduled = document.createElement('p'); scheduled.className = 'card-meta';
+        scheduled.textContent = `Instalación programada: ${order.fecha_programada}`;
+        item.append(scheduled);
+      }
       if (order.porcentaje !== null) {
         const progress = document.createElement('progress');
         progress.max = 100;
@@ -627,12 +746,12 @@ async function loadOrders() {
         item.append(progress);
       }
       if (order.instalacion_atrasada) {
-        const late = document.createElement('p'); late.textContent = 'Instalación atrasada'; item.append(late);
+        const late = document.createElement('p'); late.className = 'card-status is-late'; late.textContent = 'Instalación atrasada'; item.append(late);
       }
       if (order.instalado) {
-        const installed = document.createElement('p'); installed.textContent = 'Instalado ✓'; item.append(installed);
+        const installed = document.createElement('p'); installed.className = 'card-status is-complete'; installed.textContent = 'Instalado ✓'; item.append(installed);
       } else if (order.listo_instalacion) {
-        const ready = document.createElement('p');
+        const ready = document.createElement('p'); ready.className = 'card-status is-ready';
         ready.textContent = 'Listo para instalación';
         item.append(ready);
       }
@@ -747,7 +866,8 @@ async function openOrder(id) {
   const [originLabel, originUrl] = origins[new URLSearchParams(location.search).get('origen')] ?? origins.dashboard;
   const back = document.querySelector('#order-back');
   back.href = originUrl;
-  back.textContent = `Volver a ${originLabel}`;
+  back.setAttribute('aria-label', `Volver a ${originLabel}`);
+  back.querySelector('span').textContent = `Volver a ${originLabel}`;
   const requestedOrderId = Number(id);
   if (currentOrderId !== requestedOrderId) {
     document.body.classList.remove('order-active');
@@ -875,6 +995,8 @@ async function openOrder(id) {
       return details;
     };
     if (order.fecha_cierre) {
+      document.body.classList.remove('capture-pilot', 'list-pilot', 'workshop-pilot', 'installation-pilot');
+      document.body.classList.add('summary-pilot');
       document.body.classList.remove('order-active');
       document.querySelector('#history').hidden = true;
       document.querySelector('#budgets').hidden = true;
@@ -927,7 +1049,9 @@ async function openOrder(id) {
     orderEditActions.hidden = true;
     orderEditDate.hidden = true;
     orderEdit.hidden = Boolean(order.instalado);
-    document.querySelector('#installation-state').textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
+    const installationState = document.querySelector('#installation-state');
+    installationState.textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
+    installationState.classList.toggle('is-installed', Boolean(order.instalado));
     document.querySelector('#installation-toggle').textContent = order.instalado ? 'Desmarcar instalación' : 'Marcar instalado';
     exitMeasureEdit();
     document.querySelector('#order-title').textContent = !order.aceptado
@@ -949,26 +1073,34 @@ async function openOrder(id) {
     discardedSection.hidden = !order.ventanas_descartadas.length;
     const orderTotal = document.querySelector('#order-total');
     orderTotal.replaceChildren();
-    const totalMessage = document.createElement('p');
+    const receiptLine = (container, label, value, className = '') => {
+      const row = document.createElement('div');
+      row.className = `receipt-line ${className}`.trim();
+      const name = document.createElement('span'); name.textContent = label;
+      const amount = document.createElement('strong'); amount.textContent = value;
+      row.append(name, amount); container.append(row); return row;
+    };
     if (!order.ventanas.length) {
-      totalMessage.textContent = 'No hay total: el pedido no tiene ventanas activas.';
+      receiptLine(orderTotal, 'Ventanas activas', 'Ninguna');
     } else if (order.total_ventanas.importe === null) {
-      totalMessage.textContent = 'No hay precios calculados para las ventanas activas.';
-    } else if (order.total_ventanas.sin_precio) {
-      totalMessage.textContent = `Total parcial de ventanas con precio: $${order.total_ventanas.importe}. Faltan precios de ventanas activas.`;
+      receiptLine(orderTotal, 'Subtotal de ventanas', 'Sin calcular');
     } else {
-      totalMessage.textContent = `Total de ventanas activas: $${order.total_ventanas.importe}`;
+      receiptLine(orderTotal, order.total_ventanas.sin_precio ? 'Subtotal parcial de ventanas' : `Ventanas activas (${order.ventanas.length})`, `$${order.total_ventanas.importe}`);
+      if (order.total_ventanas.sin_precio) {
+        const note = document.createElement('p'); note.className = 'receipt-note'; note.textContent = 'Faltan precios de algunas ventanas activas.'; orderTotal.append(note);
+      }
     }
-    orderTotal.append(totalMessage);
-    document.querySelector('#delivery-value').textContent = order.traslado === null ? 'Sin cargo de traslado.' : `Traslado: $${wholePesosFromAmount(order.traslado)}`;
+    document.querySelector('#delivery-value').textContent = order.traslado === null ? '$0 · sin cargo' : `$${wholePesosFromAmount(order.traslado)}`;
     deliveryAmount.value = order.traslado ?? '';
     deliveryAmount.disabled = true;
+    deliveryAmount.closest('p').hidden = true;
+    document.querySelector('#delivery-editor').hidden = true;
     deliveryActions.hidden = true;
     deliveryEdit.hidden = true;
     const combinedWaste = order.merma && order.merma_vidrio;
     const sameSelection = combinedWaste && order.merma.incluida === order.merma_vidrio.incluida;
     const combinedCents = combinedWaste ? Math.round(Number(order.merma.cargo) * 100) + Math.round(Number(order.merma_vidrio.cargo) * 100) : 0;
-    document.querySelector('#waste-value').textContent = !combinedWaste ? 'Calcula la merma de aluminio y vidrio.' : !sameSelection ? 'Las selecciones de merma son distintas; revisa el pedido.' : `Cargo por merma: $${wholePesosFromCents(combinedCents)}${order.merma.incluida ? '' : ' (no aplicado)'}`;
+    document.querySelector('#waste-value').textContent = !combinedWaste ? 'Pendiente' : !sameSelection ? 'Revisar selección' : `$${wholePesosFromCents(combinedCents)}${order.merma.incluida ? '' : ' · no aplicada'}`;
     document.querySelector('#aluminum-waste-value').textContent = order.merma ? `Aluminio: $${wholePesosFromAmount(order.merma.cargo)}` : 'Sin cálculo de aluminio.';
     const wasteDetails = document.querySelector('#waste-details');
     wasteDetails.replaceChildren();
@@ -1034,26 +1166,39 @@ async function openOrder(id) {
     const needsDate = order.aceptado && !order.fecha_programada;
     document.querySelector('#installation-date').disabled = true;
     document.querySelector('#installation-date-actions').hidden = true;
-    document.querySelector('#installation-date-edit').hidden = true;
-    document.querySelector('#installation-date-status').textContent = order.fecha_programada
+    const installationDateEdit = document.querySelector('#installation-date-edit');
+    installationDateEdit.hidden = !order.aceptado || Boolean(order.instalado);
+    installationDateEdit.textContent = order.fecha_programada ? 'Reprogramar fecha' : 'Programar fecha';
+    const installationDateStatus = document.querySelector('#installation-date-status');
+    installationDateStatus.textContent = order.fecha_programada
       ? `Fecha programada: ${order.fecha_programada}${order.instalacion_atrasada ? ' · Instalación atrasada' : ''}`
       : (order.aceptado ? 'Fecha obligatoria pendiente: registra la fecha programada de instalación.' : 'Sin fecha programada.');
+    installationDateStatus.classList.toggle('is-late', Boolean(order.instalacion_atrasada));
+    installationDateStatus.classList.toggle('is-pending', Boolean(order.aceptado && !order.fecha_programada));
     const paymentStatus = document.querySelector('#payment-status');
     paymentStatus.replaceChildren();
-    const statusLines = [order.aceptado ? 'Pedido aceptado' : 'Presupuesto'];
     if (order.anticipo_requerido === null) {
-      statusLines.push(order.merma_pendiente ? 'Calcula la merma pendiente y completa los precios antes de registrar movimientos.' : 'Calcula todos los precios para consultar el anticipo y registrar movimientos.');
+      const note = document.createElement('p');
+      note.className = 'receipt-note';
+      note.textContent = order.merma_pendiente ? 'Completa precios y merma para consultar el anticipo.' : 'Completa todos los precios para consultar el anticipo.';
+      paymentStatus.append(note);
     } else {
-      statusLines.push(`Anticipo requerido (${order.anticipo_minimo}%): $${order.anticipo_requerido}`,
-        `Saldo: $${order.saldo}`, `Excedente: $${order.excedente}`);
-      if (order.liquidado) statusLines.push('Liquidado');
+      receiptLine(paymentStatus, `Anticipo mínimo (${order.anticipo_minimo}%)`, `$${order.anticipo_requerido}`);
+      receiptLine(paymentStatus, 'Pagos recibidos (−)', `$${order.pagado_neto}`);
+      receiptLine(paymentStatus, 'Saldo pendiente', `$${order.saldo}`, 'receipt-balance');
+      if (Number(order.excedente) > 0) receiptLine(paymentStatus, 'Excedente', `$${order.excedente}`);
+      if (order.liquidado) {
+        const status = document.createElement('p'); status.className = 'receipt-note'; status.textContent = 'Pedido liquidado.'; paymentStatus.append(status);
+      }
     }
-    if (order.aceptado && !order.fecha_programada) statusLines.push('Fecha de instalación pendiente de registrar.');
+    if (order.aceptado && !order.fecha_programada) {
+      const note = document.createElement('p'); note.className = 'receipt-note'; note.textContent = 'Fecha de instalación pendiente de registrar.'; paymentStatus.append(note);
+    }
     document.querySelector('#pending-installation').hidden = !(order.aceptado && !order.fecha_programada);
-    for (const line of statusLines) {
-      const paragraph = document.createElement('p'); paragraph.textContent = line; paymentStatus.append(paragraph);
-    }
+    const paymentHistory = document.querySelector('#payment-history');
+    paymentHistory.querySelector('summary').textContent = `Historial de pagos · ${order.movimientos.length}`;
     const paymentList = document.querySelector('#payment-list'); paymentList.replaceChildren();
+    if (!order.movimientos.length) paymentList.textContent = 'Aún no hay movimientos registrados.';
     for (const movement of order.movimientos) {
       const row = document.createElement('p');
       row.textContent = `${movement.fecha} · ${movement.tipo === 'pago' ? 'Pago' : 'Devolución'}: $${movement.importe}${movement.anulado ? ` · Anulado${movement.fecha_anulacion ? ` el ${movement.fecha_anulacion}` : ''}` : ''}`;
@@ -1074,12 +1219,15 @@ async function openOrder(id) {
       paymentList.append(row);
     }
     const grandTotal = document.querySelector('#order-grand-total');
+    grandTotal.replaceChildren();
     if (order.total_pedido === null) {
-      grandTotal.textContent = '';
+      receiptLine(grandTotal, 'Total del pedido', 'Sin calcular');
     } else {
-      grandTotal.textContent = `${order.total_ventanas.sin_precio || order.merma_pendiente ? 'Total parcial del pedido' : 'Total del pedido'}: $${order.total_pedido}`;
+      receiptLine(grandTotal, order.total_ventanas.sin_precio || order.merma_pendiente ? 'Total parcial del pedido' : 'Total del pedido', `$${order.total_pedido}`);
     }
-    if (order.merma_pendiente) grandTotal.textContent += ' Falta calcular la merma incluida.';
+    if (order.merma_pendiente) {
+      const note = document.createElement('p'); note.className = 'receipt-note'; note.textContent = 'Falta calcular la merma incluida.'; grandTotal.append(note);
+    }
     if (order.total_ventanas.desactualizado) {
       const warning = document.createElement('p');
       warning.textContent = 'Hay precios desactualizados por cambios de medidas o planes. Edita el pedido para revisarlos.';
@@ -1093,9 +1241,10 @@ async function openOrder(id) {
     }
     for (const window of order.ventanas) {
       const measureSection = document.createElement('section');
-      const measureHeading = document.createElement('h3');
-      measureHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      measureSection.className = 'window-summary';
+      const measureHeading = workshopWindowHeading(window);
       const measureValue = document.createElement('p');
+      measureValue.className = 'measure-value';
       measureValue.textContent = `${window.ancho} × ${window.alto}`;
       const discardButton = document.createElement('button');
       discardButton.type = 'button';
@@ -1116,11 +1265,9 @@ async function openOrder(id) {
         assembly.refresh();
         updateMeasureEditButton(order);
       };
-      const assemblyHeading = document.createElement('h3');
-      assemblyHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      const assemblyHeading = workshopWindowHeading(window);
       assemblyList.append(assemblyHeading, assembly.row);
-      const aluminumHeading = document.createElement('h3');
-      aluminumHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      const aluminumHeading = workshopWindowHeading(window);
       aluminum.append(aluminumHeading);
       if (!window.plan_aluminio.length) {
         const notice = document.createElement('p');
@@ -1132,9 +1279,11 @@ async function openOrder(id) {
         aluminum.append(notice);
       } else {
         const note = document.createElement('p');
-        note.textContent = 'Cortado indica que el corte físico se realizó.';
+        note.className = 'cut-instruction';
+        note.textContent = 'Marca cada pieza después de cortarla. Puedes deshacer una marca si te equivocas.';
         aluminum.append(note);
         const plan = document.createElement('ul');
+        plan.className = 'aluminum-cut-list';
         const labels = [
           'Jamba', 'Mulio', 'Vertical fijo', 'Aleta', 'Horizontal fijo',
           'Horizontal corredizo', 'Guía', 'Riel', 'Screen horizontal', 'Screen vertical',
@@ -1146,8 +1295,7 @@ async function openOrder(id) {
         }
         aluminum.append(plan);
       }
-      const glassHeading = document.createElement('h3');
-      glassHeading.textContent = `Ventana ${window.codigo ?? window.numero}`;
+      const glassHeading = workshopWindowHeading(window);
       glass.append(glassHeading);
       if (window.plan_vidrio && window.avance_vidrio) {
         glass.append(glassCutRow(window, refreshWindowProgress));
@@ -1333,11 +1481,13 @@ deliveryEdit.addEventListener('click', () => {
   deliveryEdit.hidden = true;
   deliveryActions.hidden = false;
   deliveryAmount.disabled = false;
+  deliveryAmount.closest('p').hidden = false;
   deliveryAmount.focus();
 });
 document.querySelector('#delivery-cancel').addEventListener('click', () => {
   deliveryAmount.value = currentOrderData.traslado ?? '';
   deliveryAmount.disabled = true;
+  deliveryAmount.closest('p').hidden = true;
   deliveryActions.hidden = true;
   deliveryEdit.hidden = false;
 });
@@ -1546,6 +1696,9 @@ captureForm.addEventListener('submit', async event => {
 });
 
 function showStartView() {
+  document.body.classList.remove('workshop-pilot');
+  document.body.classList.remove('summary-pilot');
+  document.body.classList.remove('installation-pilot');
   exitMeasureEdit();
   currentOrderId = null; currentOrderData = null;
   document.body.classList.remove('order-active');
@@ -1555,6 +1708,9 @@ function showStartView() {
   const sections = {presupuestos: 'budgets', pedidos: 'orders', historico: 'history'};
   const selected = Object.hasOwn(sections, view) ? sections[view] : undefined;
   if (!selected && view !== 'nuevo') { location.assign('/'); return; }
+  document.body.classList.toggle('capture-pilot', !selected);
+  document.body.classList.toggle('list-pilot', Boolean(selected));
+  document.body.dataset.listView = selected ? view : '';
   capture.hidden = Boolean(selected);
   for (const id of Object.values(sections)) document.querySelector(`#${id}`).hidden = id !== selected;
 }
