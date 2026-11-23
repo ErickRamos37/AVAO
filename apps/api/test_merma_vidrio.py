@@ -7,13 +7,17 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from fastapi import HTTPException
 from pydantic import ValidationError
 from apps.api.merma_vidrio import calcular_merma_vidrio
 from apps.api.main import (NewOrder, InventoryUpdate, WasteSelection, WindowDiscard, CostUpdate,
     calculate_order_glass_waste, select_order_glass_waste, calculate_window_cost,
     update_inventory, update_cost, create_order, get_order, list_costs, set_window_discard)
+
+
+def rounded_pesos(value):
+    return value.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
 class GlassWasteTests(unittest.TestCase):
@@ -40,13 +44,15 @@ class GlassWasteTests(unittest.TestCase):
             first_snapshot = calculate_order_glass_waste(order_id)["merma_vidrio"]
             update_cost("vidrio_doble_fuerza", CostUpdate(costo="900"))
             set_window_discard(second["id"], WindowDiscard(descartada=True, confirmar_descarte=True))
-            self.assertEqual(get_order(order_id)["merma_vidrio"], first_snapshot)
-            revised = calculate_order_glass_waste(order_id)["merma_vidrio"]
+            revised = get_order(order_id)["merma_vidrio"]
+            self.assertNotEqual(revised, first_snapshot)
+            self.assertEqual(calculate_order_glass_waste(order_id)["merma_vidrio"], revised)
             other_id = create_order(NewOrder(ventanas=[{"ancho": "48", "alto": "36"}]))["id"]
             self.assertEqual(revised, calculate_order_glass_waste(other_id)["merma_vidrio"])
             set_window_discard(second["id"], WindowDiscard(descartada=False))
-            self.assertEqual(get_order(order_id)["merma_vidrio"], revised)
-            self.assertNotEqual(calculate_order_glass_waste(order_id)["merma_vidrio"]["detalle"], revised["detalle"])
+            restored = get_order(order_id)["merma_vidrio"]
+            self.assertNotEqual(restored["detalle"], revised["detalle"])
+            self.assertEqual(calculate_order_glass_waste(order_id)["merma_vidrio"], restored)
 
     def test_threshold_snapshot_selection_discard_and_totals(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, AVAO_DB_PATH=str(Path(folder) / "db.sqlite3")):
@@ -64,14 +70,15 @@ class GlassWasteTests(unittest.TestCase):
             calculated = calculate_order_glass_waste(order_id)
             charge = Decimal(calculated["merma_vidrio"]["cargo"])
             self.assertGreater(charge, 0)
-            self.assertEqual(Decimal(calculated["total_pedido"]), base + charge)
+            self.assertEqual(Decimal(calculated["total_pedido"]), rounded_pesos(base + charge))
             select_order_glass_waste(order_id, WasteSelection(incluida=False))
             self.assertEqual(Decimal(get_order(order_id)["total_pedido"]), base)
             update_cost("vidrio_doble_fuerza", CostUpdate(costo="900"))
             set_window_discard(second["id"], WindowDiscard(descartada=True, confirmar_descarte=True))
             stored = get_order(order_id)["merma_vidrio"]
-            self.assertEqual(stored["detalle"], calculated["merma_vidrio"]["detalle"])
+            self.assertNotEqual(stored["detalle"], calculated["merma_vidrio"]["detalle"])
             self.assertFalse(stored["incluida"])
+            self.assertEqual(stored, calculate_order_glass_waste(order_id)["merma_vidrio"])
             update_inventory(InventoryUpdate(umbral_merma_vidrio=0))
             result = calculate_order_glass_waste(order_id)["merma_vidrio"]
             self.assertEqual(result, {"cargo":"0.00", "incluida":False, "detalle":[]})

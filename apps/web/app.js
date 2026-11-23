@@ -24,13 +24,31 @@ let nextRowId = 1;
 const clientFields = ['nombre', 'apellido_1', 'apellido_2', 'celular', 'direccion', 'notas'];
 const clientView = document.querySelector('#client-view');
 const clientEdit = document.querySelector('#client-edit');
+const orderEdit = document.querySelector('#edit-order');
+const orderEditActions = document.querySelector('#order-edit-actions');
+const orderEditDate = document.querySelector('#order-edit-date');
+const orderEditDateValue = document.querySelector('#order-edit-date-value');
+const orderEditDateReason = document.querySelector('#order-edit-date-reason');
+const orderEditDateReasonValue = document.querySelector('#order-edit-date-reason-value');
+const orderEditDateOther = document.querySelector('#order-edit-date-other');
+const orderEditDateOtherValue = document.querySelector('#order-edit-date-other-value');
+let orderEditActive = false;
 
 function clientOriginal(field) {
   return field === 'notas' ? currentOrderData?.notas ?? '' : currentOrderData?.cliente?.[field] ?? '';
 }
 function dirtyBlocks(except = '') {
   if (!currentOrderData) return [];
+  if (except === 'pedido') return [];
   const dirty = [];
+  if (orderEditActive && except !== 'pedido') {
+    if ([...measureEditRows.children].some(row => row.querySelector('[name="ancho"]').value.trim() !== row.dataset.originalWidth || row.querySelector('[name="alto"]').value.trim() !== row.dataset.originalHeight)
+      || clientFields.some(field => clientForm.elements[field].value.trim() !== clientOriginal(field))
+      || Number(deliveryAmount.value || 0) !== Number(currentOrderData.traslado || 0)
+      || orderEditDateValue.value !== (currentOrderData.fecha_programada ?? '')
+      || document.querySelector('#waste-included').checked !== Boolean(currentOrderData.merma?.incluida)) dirty.push('el pedido');
+    return dirty;
+  }
   if (except !== 'cliente' && !clientForm.hidden && clientFields.some(field => clientForm.elements[field].value !== clientOriginal(field))) dirty.push('cliente y notas');
   const originalDelivery = currentOrderData.traslado ?? '';
   const deliveryChanged = deliveryAmount.value === '' || originalDelivery === ''
@@ -47,10 +65,12 @@ function confirmPending(except = '', discard = false) {
   return window.confirm(`Hay cambios sin guardar en ${dirty.join(', ')}.${warning} ¿Continuar?`);
 }
 const originalFetch = window.fetch.bind(window);
+function wholePesosFromCents(cents) { return Math.floor((Number(cents) + 50) / 100); }
+function wholePesosFromAmount(amount) { return wholePesosFromCents(Math.round(Number(amount) * 100)); }
 window.fetch = async (url, options = {}) => {
   if (options.method && !['GET', 'HEAD'].includes(options.method.toUpperCase())) {
     const path = String(url);
-    const own = path.endsWith('/cliente') ? 'cliente' : path.endsWith('/traslado') ? 'traslado' : path.endsWith('/fecha-programada') ? 'fecha' : '';
+    const own = path.includes('/revision-medidas') ? 'pedido' : path.endsWith('/cliente') ? 'cliente' : path.endsWith('/traslado') ? 'traslado' : path.endsWith('/fecha-programada') ? 'fecha' : '';
     if (!confirmPending(own, true)) {
       const error = new Error('Acción cancelada.'); error.pendingCancelled = true; throw error;
     }
@@ -58,7 +78,7 @@ window.fetch = async (url, options = {}) => {
   return originalFetch(url, options);
 };
 window.addEventListener('beforeunload', event => {
-  if (dirtyBlocks().length) { event.preventDefault(); event.returnValue = ''; }
+  if (dirtyBlocks().length || captureHasChanges()) { event.preventDefault(); event.returnValue = ''; }
 });
 
 function showClient(order) {
@@ -67,7 +87,7 @@ function showClient(order) {
     const line = document.createElement('p'); line.textContent = `${label}: ${value || 'Sin datos'}`; clientView.append(line);
   }
   for (const field of clientFields) clientForm.elements[field].value = clientOriginal(field);
-  clientForm.hidden = true; clientEdit.hidden = false; clientView.hidden = false;
+  clientForm.hidden = true; clientEdit.hidden = true; clientView.hidden = false;
 }
 clientEdit.addEventListener('click', () => {
   clientView.hidden = true; clientEdit.hidden = true; clientForm.hidden = false;
@@ -76,32 +96,22 @@ clientEdit.addEventListener('click', () => {
 document.querySelector('#client-cancel').addEventListener('click', () => showClient(currentOrderData));
 
 function showArea(area) {
+  const workshop = ['aluminio', 'vidrio', 'ensamble'].includes(area);
+  document.body.classList.add('order-active');
   for (const button of areaButtons) {
     button.setAttribute('aria-pressed', String(button.dataset.area === area));
   }
   for (const panel of areaPanels) {
-    panel.hidden = panel.id !== `area-${area}`;
-  }
-}
-
-for (const button of areaButtons) {
-  button.addEventListener('click', () => {
-    if (button.getAttribute('aria-pressed') === 'true' || confirmPending()) showArea(button.dataset.area);
-  });
-}
-
-function showWorkshopArea(area) {
-  for (const button of document.querySelectorAll('#workshop-nav button')) {
-    button.setAttribute('aria-pressed', String(button.dataset.workshop === area));
+    panel.hidden = panel.id !== `area-${workshop ? 'taller' : area}`;
   }
   for (const panel of document.querySelectorAll('[data-workshop-panel]')) {
     panel.hidden = panel.id !== `workshop-${area}`;
   }
 }
 
-for (const button of document.querySelectorAll('#workshop-nav button')) {
+for (const button of areaButtons) {
   button.addEventListener('click', () => {
-    if (button.getAttribute('aria-pressed') === 'true' || confirmPending()) showWorkshopArea(button.dataset.workshop);
+    if (button.getAttribute('aria-pressed') === 'true' || confirmPending()) showArea(button.dataset.area);
   });
 }
 
@@ -125,12 +135,13 @@ function addRow() {
     row.remove();
     if (!rows.children.length) addRow();
     else numberRows();
+    schedulePreview();
   });
   rows.append(row);
   numberRows();
 }
 
-document.querySelector('#add-row').addEventListener('click', addRow);
+document.querySelector('#add-row').addEventListener('click', () => { addRow(); schedulePreview(); });
 addRow();
 
 function showError(text) {
@@ -140,8 +151,7 @@ function showError(text) {
 }
 
 function updateMeasureEditButton(order = currentOrderData) {
-  const visible = Boolean(order?.ventanas.length) && !order.instalado;
-  measureEditButton.hidden = !visible || !measureEditForm.hidden;
+  measureEditButton.hidden = true;
 }
 
 function exitMeasureEdit() {
@@ -192,8 +202,136 @@ function enterMeasureEdit() {
 measureEditButton.addEventListener('click', enterMeasureEdit);
 document.querySelector('#cancel-measure-edit').addEventListener('click', exitMeasureEdit);
 
+orderEdit.addEventListener('click', () => {
+  if (!currentOrderData || currentOrderData.instalado) return;
+  orderEditActive = true;
+  orderEdit.hidden = true;
+  orderEditActions.hidden = false;
+  enterMeasureEdit();
+  clientView.hidden = true;
+  clientForm.hidden = false;
+  deliveryAmount.disabled = false;
+  document.querySelector('#waste-included').disabled = !(currentOrderData.merma && currentOrderData.merma_vidrio);
+  orderEditDate.hidden = !currentOrderData.aceptado;
+  orderEditDateValue.value = currentOrderData.fecha_programada ?? '';
+  orderEditDateValue.required = currentOrderData.aceptado;
+  orderEditDateReasonValue.value = '';
+  orderEditDateOtherValue.value = '';
+  orderEditDateReason.hidden = true;
+  orderEditDateOther.hidden = true;
+});
+document.querySelector('#cancel-order-edit').addEventListener('click', () => {
+  orderEditActive = false;
+  openOrder(currentOrderId);
+});
+orderEditDateValue.addEventListener('input', () => {
+  orderEditDateReason.hidden = !currentOrderData.fecha_programada || orderEditDateValue.value === currentOrderData.fecha_programada;
+  orderEditDateOther.hidden = orderEditDateReason.hidden || orderEditDateReasonValue.value !== 'Otros';
+});
+orderEditDateReasonValue.addEventListener('change', () => {
+  orderEditDateOther.hidden = orderEditDateReasonValue.value !== 'Otros';
+});
+
+document.querySelector('#save-order-edit').addEventListener('click', async event => {
+  if (!orderEditActive || !currentOrderData) return;
+  if (!clientForm.reportValidity() || !deliveryForm.reportValidity()) return;
+  const changes = [...measureEditRows.children].map(row => ({
+    id: Number(row.dataset.windowId), ancho: row.querySelector('[name="ancho"]').value.trim(),
+    alto: row.querySelector('[name="alto"]').value.trim(),
+    oldWidth: row.dataset.originalWidth, oldHeight: row.dataset.originalHeight,
+  })).filter(row => row.ancho !== row.oldWidth || row.alto !== row.oldHeight);
+  if (changes.some(row => !row.ancho || !row.alto)) { showError('Completa ambas medidas de cada ventana modificada.'); return; }
+  const payload = {ventanas: changes.map(({id, ancho, alto}) => ({id, ancho, alto}))};
+  if (currentOrderData.aceptado && !orderEditDateValue.value) { showError('Ingresa la fecha programada de instalación.'); orderEditDateValue.focus(); return; }
+  const client = Object.fromEntries(clientFields.map(field => [field, clientForm.elements[field].value.trim()]));
+  if (clientFields.some(field => client[field] !== clientOriginal(field))) payload.cliente = client;
+  if (Number(deliveryAmount.value || 0) !== Number(currentOrderData.traslado || 0))
+    payload.traslado = deliveryAmount.value === '' ? null : deliveryAmount.value;
+  const wasteIncluded = document.querySelector('#waste-included').checked;
+  if (wasteIncluded !== Boolean(currentOrderData.merma?.incluida)) payload.incluir_merma = wasteIncluded;
+  if (currentOrderData.aceptado && orderEditDateValue.value !== (currentOrderData.fecha_programada ?? '')) {
+    if (!orderEditDateValue.value || !orderEditDateValue.validity.valid) { showError('Ingresa una fecha programada válida.'); return; }
+    payload.fecha_programada = orderEditDateValue.value;
+    if (currentOrderData.fecha_programada) {
+      if (!orderEditDateReasonValue.value || (orderEditDateReasonValue.value === 'Otros' && !orderEditDateOtherValue.value.trim())) {
+        showError('Selecciona y completa el motivo de reprogramación.'); return;
+      }
+      payload.motivo = orderEditDateReasonValue.value;
+      payload.motivo_otro = orderEditDateOtherValue.value.trim();
+    }
+  }
+  const pendingPrice = currentOrderData.ventanas.some(item => item.costo_materiales?.precio == null);
+  const changedPendingMeasure = changes.some(row => currentOrderData.ventanas.find(item => item.id === row.id)?.costo_materiales?.precio == null);
+  if (pendingPrice && (Object.keys(payload).length === 1 || changedPendingMeasure)) payload.actualizar_precios = true;
+  if (Object.keys(payload).length === 1 && !payload.ventanas.length) { message.textContent = 'No hay cambios que guardar.'; message.hidden = false; return; }
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const orderId = currentOrderData.id;
+    const previewResponse = await fetch(`/api/pedidos/${orderId}/revision-medidas/previa`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload),
+    });
+    const preview = await previewResponse.json().catch(() => ({}));
+    if (!previewResponse.ok) throw new Error(typeof preview.detail === 'string' ? preview.detail : 'No se pudo revisar el pedido.');
+    const priceAffected = payload.ventanas.length || payload.actualizar_precios || 'traslado' in payload || 'incluir_merma' in payload;
+    const decision = await reviewMeasurePrices(preview, priceAffected);
+    if (decision === 'cancelar') return;
+    const response = await fetch(`/api/pedidos/${orderId}/revision-medidas`, {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({...payload, version: preview.version, decision}),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo guardar el pedido.');
+    orderEditActive = false;
+    await openOrder(orderId);
+    message.textContent = 'Cambios del pedido guardados.';
+    message.hidden = false;
+  } catch (error) { showError(error.message); }
+  finally { button.disabled = false; }
+});
+
+function reviewMeasurePrices(preview, priceAffected = true) {
+  const dialog = document.querySelector('#measure-price-review');
+  const details = document.querySelector('#measure-price-review-details');
+  document.querySelector('#measure-price-review-title').textContent = priceAffected ? 'Revisar cambio de precio' : 'Confirmar cambios del pedido';
+  const conserve = dialog.querySelector('[value="conservar"]');
+  conserve.hidden = preview.ventanas.some(item => item.anterior.precio == null);
+  conserve.textContent = priceAffected ? 'Conservar precio y guardar' : 'Guardar cambios';
+  dialog.querySelector('[value="actualizar"]').hidden = !priceAffected;
+  const money = value => value == null ? 'Pendiente' : `$${value}`;
+  details.replaceChildren();
+  for (const item of preview.ventanas) {
+    const line = document.createElement('p');
+    line.textContent = `${item.codigo ?? `Ventana ${item.id}`}: ${item.anterior.ancho} × ${item.anterior.alto} (${money(item.anterior.precio)}) → ${item.nueva.ancho} × ${item.nueva.alto} (${money(item.nueva.precio)})`;
+    details.append(line);
+  }
+  const summary = document.createElement('p');
+  const difference = preview.total_anterior == null || preview.total_nuevo == null ? ''
+    : ` (diferencia: ${preview.total_nuevo - preview.total_anterior >= 0 ? '+' : ''}$${preview.total_nuevo - preview.total_anterior})`;
+  const transfer = preview.traslado_anterior !== preview.traslado_nuevo
+    ? `Traslado: ${preview.traslado_anterior == null ? 'Sin cargo' : money(wholePesosFromAmount(preview.traslado_anterior))} → ${preview.traslado_nuevo == null ? 'Sin cargo' : money(wholePesosFromAmount(preview.traslado_nuevo))}. ` : '';
+  summary.textContent = `${transfer}Merma: ${money(wholePesosFromAmount(preview.merma_anterior))} → ${money(wholePesosFromAmount(preview.merma_nueva))}. Total del pedido: ${money(preview.total_anterior)} → ${money(preview.total_nuevo)}${difference}.`;
+  details.append(summary);
+  return new Promise(resolve => {
+    const select = event => {
+      const button = event.target.closest('button[value]');
+      if (button) { dialog.close(button.value); resolve(button.value); }
+    };
+    const cancel = () => resolve('cancelar');
+    dialog.addEventListener('click', select);
+    dialog.addEventListener('cancel', cancel, {once: true});
+    dialog.addEventListener('close', () => {
+      dialog.removeEventListener('click', select);
+      dialog.removeEventListener('cancel', cancel);
+      resolve('cancelar');
+    }, {once: true});
+    dialog.showModal();
+  });
+}
+
 measureEditForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (orderEditActive) { document.querySelector('#save-order-edit').click(); return; }
   message.hidden = true;
   const submit = measureEditForm.querySelector('button[type="submit"]');
   const cancel = document.querySelector('#cancel-measure-edit');
@@ -222,7 +360,7 @@ measureEditForm.addEventListener('submit', async (event) => {
   const confirmed = globalThis.confirm(
     `Vas a corregir ${changes.length} ventana(s):\n\n${summaries.join('\n')}\n\n`
     + 'AVAO recalculará los planes de aluminio y vidrio. Conservará las marcas de las piezas del mismo tipo/perfil y medida, '
-    + 'y quitará las marcas que ya no correspondan. Los códigos de ventana se conservan. ¿Guardar cambios?',
+    + 'y quitará las marcas que ya no correspondan. Los códigos de ventana se conservan. ¿Revisar el precio antes de guardar?',
   );
   if (!confirmed) return;
 
@@ -230,12 +368,22 @@ measureEditForm.addEventListener('submit', async (event) => {
   cancel.disabled = true;
   try {
     const orderId = currentOrderData.id;
-    const response = await fetch(`/api/pedidos/${orderId}/medidas`, {
+    const windows = changes.map(({ id, ancho, alto }) => ({ id, ancho, alto }));
+    const previewResponse = await fetch(`/api/pedidos/${orderId}/revision-medidas/previa`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ventanas: windows}),
+    });
+    if (!previewResponse.ok) {
+      const error = await previewResponse.json().catch(() => ({}));
+      throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo revisar el cambio de precio.');
+    }
+    const preview = await previewResponse.json();
+    const decision = await reviewMeasurePrices(preview);
+    if (decision === 'cancelar') return;
+    const response = await fetch(`/api/pedidos/${orderId}/revision-medidas`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ventanas: changes.map(({ id, ancho, alto }) => ({ id, ancho, alto })),
-        confirmar_correccion: true,
+        ventanas: windows, version: preview.version, decision,
       }),
     });
     if (!response.ok) {
@@ -432,7 +580,7 @@ async function loadOrders() {
     if (!history.pedidos.length) historyList.textContent = 'No hay pedidos finalizados.';
     for (const order of history.pedidos) {
       const line = document.createElement('p');
-      const link = document.createElement('a'); link.href = `/pedidos/${order.id}`;
+      const link = document.createElement('a'); link.href = `/pedidos/${order.id}?origen=historico`;
       link.textContent = `Pedido ${order.id} · cerrado el ${order.fecha_cierre}`;
       line.append(link); historyList.append(line);
     }
@@ -444,12 +592,12 @@ async function loadOrders() {
     if (!budgetsResponse.ok) throw new Error();
     const allOrders = await budgetsResponse.json();
     const budgetList = document.querySelector('#budget-list'); budgetList.replaceChildren();
-    const budgets = allOrders.pedidos.filter(order => !order.aceptado);
+    const budgets = allOrders.pedidos.filter(order => !order.aceptado).sort((a, b) => (b.fecha_creacion ?? '').localeCompare(a.fecha_creacion ?? '') || b.id - a.id);
     if (!budgets.length) budgetList.textContent = 'No hay presupuestos pendientes.';
     for (const order of budgets) {
       const line = document.createElement('p');
-      const link = document.createElement('a'); link.href = `/pedidos/${order.id}`;
-      link.textContent = `Presupuesto ${order.etiqueta ?? order.id}`; line.append(link); budgetList.append(line);
+      const link = document.createElement('a'); link.href = `/pedidos/${order.id}?origen=presupuestos`;
+      link.textContent = `Presupuesto ${order.id} · ${order.fecha_creacion ? new Date(order.fecha_creacion).toLocaleDateString('es-MX', {timeZone: 'America/Tijuana'}) : 'Fecha de creación no disponible'}`; line.append(link); budgetList.append(line);
     }
     if (!data.pedidos.length) {
       list.textContent = 'Aún no hay pedidos.';
@@ -460,7 +608,7 @@ async function loadOrders() {
       item.className = 'order-card';
       const heading = document.createElement('h3');
       const link = document.createElement('a');
-      link.href = `/pedidos/${order.id}`;
+      link.href = `/pedidos/${order.id}?origen=pedidos`;
       link.textContent = order.etiqueta === null
         ? `${index + 1}. Pedido ${order.id} · sin etiqueta`
         : `${index + 1}. Pedido ${order.etiqueta}`;
@@ -551,12 +699,12 @@ function renderWindowCost(window, container) {
       panel.append(profit, price);
     } else {
       const notice = document.createElement('p');
-      notice.textContent = 'Este cálculo anterior no incluye ganancia. Recalcula para obtener el precio.';
+      notice.textContent = 'Este cálculo anterior no incluye ganancia. Edita el pedido para revisar el precio.';
       panel.append(notice);
     }
     if (!cost.vigente) {
       const stale = document.createElement('p');
-      stale.textContent = 'Las medidas o el plan cambiaron después de este cálculo. Recalcula antes de usarlo.';
+      stale.textContent = 'Las medidas o el plan cambiaron después de este cálculo. Edita el pedido para revisar el precio.';
       panel.append(stale);
     }
     const breakdown = document.createElement('details');
@@ -591,38 +739,19 @@ function renderWindowCost(window, container) {
     panel.append(notice);
   }
 
-  const calculate = document.createElement('button');
-  calculate.type = 'button';
-  calculate.textContent = cost ? 'Recalcular con costos y ganancia actuales' : 'Calcular precio';
-  calculate.addEventListener('click', async () => {
-    calculate.disabled = true;
-    message.hidden = true;
-    try {
-      const response = await fetch(`/api/ventanas/${window.id}/costo-materiales`, {method: 'POST'});
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.detail ?? 'No se pudo calcular el costo base.');
-      if (!result.completo) {
-        panel.querySelector('.cost-missing')?.remove();
-        const missing = document.createElement('p');
-        missing.className = 'cost-missing';
-        missing.textContent = `Faltan costos de: ${result.faltantes.join(', ')}. No se muestra un subtotal.`;
-        panel.append(missing);
-        return;
-      }
-      await openOrder(currentOrderId);
-    } catch (error) {
-      showError(error.message);
-    } finally {
-      calculate.disabled = false;
-    }
-  });
-  panel.append(calculate);
   container.append(panel);
 }
 
 async function openOrder(id) {
+  const origins = {dashboard: ['Dashboard', '/'], pedidos: ['Pedidos', '/?vista=pedidos'], presupuestos: ['Presupuestos', '/?vista=presupuestos'], historico: ['Histórico', '/?vista=historico']};
+  const [originLabel, originUrl] = origins[new URLSearchParams(location.search).get('origen')] ?? origins.dashboard;
+  const back = document.querySelector('#order-back');
+  back.href = originUrl;
+  back.textContent = `Volver a ${originLabel}`;
   const requestedOrderId = Number(id);
   if (currentOrderId !== requestedOrderId) {
+    document.body.classList.remove('order-active');
+    for (const id of ['budgets', 'orders', 'history']) document.querySelector(`#${id}`).hidden = true;
     exitMeasureEdit();
     currentOrderId = null;
     currentOrderData = null;
@@ -637,9 +766,6 @@ async function openOrder(id) {
     if (!response.ok) throw new Error(response.status === 404 ? 'Pedido no encontrado.' : 'No se pudo consultar el pedido.');
     const order = await response.json();
     document.querySelector('#history-detail')?.remove();
-    document.querySelector('#history').hidden = false;
-    document.querySelector('#budgets').hidden = false;
-    document.querySelector('#orders').hidden = false;
     const eventsView = () => {
       const details = document.createElement('details');
       const summary = document.createElement('summary'); summary.textContent = 'Hitos del pedido'; details.append(summary);
@@ -749,6 +875,7 @@ async function openOrder(id) {
       return details;
     };
     if (order.fecha_cierre) {
+      document.body.classList.remove('order-active');
       document.querySelector('#history').hidden = true;
       document.querySelector('#budgets').hidden = true;
       document.querySelector('#orders').hidden = true;
@@ -774,9 +901,9 @@ async function openOrder(id) {
       if (wastes.length) {
         const included = wastes.reduce((sum, waste) => sum + (waste.incluida ? Math.round(Number(waste.cargo) * 100) : 0), 0);
         const total = wastes.reduce((sum, waste) => sum + Math.round(Number(waste.cargo) * 100), 0);
-        add('Merma', `$${(total / 100).toFixed(2)} · aplicada: $${(included / 100).toFixed(2)}`);
+        add('Merma', `$${wholePesosFromCents(total)} · aplicada: $${wholePesosFromCents(included)}`);
       }
-      add('Traslado', order.traslado === null ? null : `$${order.traslado}`);
+      add('Traslado', order.traslado === null ? null : `$${wholePesosFromAmount(order.traslado)}`);
       add('Total del pedido', order.total_pedido === null ? null : `$${order.total_pedido}`);
       const payments = document.createElement('details');
       const summary = document.createElement('summary'); summary.textContent = `Total pagado neto: $${order.pagado_neto}`; payments.append(summary);
@@ -786,18 +913,20 @@ async function openOrder(id) {
         payments.append(line);
       }
       view.append(payments);
-      const back = document.createElement('a'); back.href = '/'; back.textContent = 'Volver al inicio'; view.append(back);
+      const back = document.createElement('a'); back.href = originUrl; back.textContent = `Volver a ${originLabel}`; view.append(back);
       document.querySelector('main').append(view);
       return;
     }
     if (currentOrderId !== order.id) {
       currentOrderId = order.id;
       showArea('resumen');
-      showWorkshopArea('aluminio');
-      document.querySelector('#client-details').open = false;
+      document.querySelector('#client-details').open = true;
     }
     currentOrderData = order;
-    document.querySelector('#order-events').replaceChildren(eventsView(), productionView(), changesView(), scheduleView());
+    orderEditActive = false;
+    orderEditActions.hidden = true;
+    orderEditDate.hidden = true;
+    orderEdit.hidden = Boolean(order.instalado);
     document.querySelector('#installation-state').textContent = order.instalado ? `Instalado el ${order.fecha_real}` : 'Aún no instalado.';
     document.querySelector('#installation-toggle').textContent = order.instalado ? 'Desmarcar instalación' : 'Marcar instalado';
     exitMeasureEdit();
@@ -807,7 +936,7 @@ async function openOrder(id) {
       : `Pedido ${order.etiqueta}`;
     clientForm.dataset.orderId = order.id;
     showClient(order);
-    document.querySelector('#workshop-notes').textContent = order.notas || 'Sin notas para el taller.';
+    document.querySelector('#installation-notes').textContent = order.notas || 'Sin notas para la instalación.';
     document.querySelector('#client-status').textContent = order.cliente
       ? 'Datos del cliente guardados. Puedes corregirlos aquí.'
       : 'Faltan los datos del cliente.';
@@ -831,20 +960,20 @@ async function openOrder(id) {
       totalMessage.textContent = `Total de ventanas activas: $${order.total_ventanas.importe}`;
     }
     orderTotal.append(totalMessage);
-    document.querySelector('#delivery-value').textContent = order.traslado === null ? 'Sin cargo de traslado.' : `Traslado: $${order.traslado}`;
+    document.querySelector('#delivery-value').textContent = order.traslado === null ? 'Sin cargo de traslado.' : `Traslado: $${wholePesosFromAmount(order.traslado)}`;
     deliveryAmount.value = order.traslado ?? '';
     deliveryAmount.disabled = true;
     deliveryActions.hidden = true;
-    deliveryEdit.hidden = false;
+    deliveryEdit.hidden = true;
     const combinedWaste = order.merma && order.merma_vidrio;
     const sameSelection = combinedWaste && order.merma.incluida === order.merma_vidrio.incluida;
     const combinedCents = combinedWaste ? Math.round(Number(order.merma.cargo) * 100) + Math.round(Number(order.merma_vidrio.cargo) * 100) : 0;
-    document.querySelector('#waste-value').textContent = !combinedWaste ? 'Calcula la merma de aluminio y vidrio.' : !sameSelection ? 'Las selecciones de merma son distintas; revisa el pedido.' : `Cargo por merma: $${(combinedCents / 100).toFixed(2)}${order.merma.incluida ? '' : ' (no aplicado)'}`;
-    document.querySelector('#aluminum-waste-value').textContent = order.merma ? `Aluminio: $${order.merma.cargo}` : 'Sin cálculo de aluminio.';
+    document.querySelector('#waste-value').textContent = !combinedWaste ? 'Calcula la merma de aluminio y vidrio.' : !sameSelection ? 'Las selecciones de merma son distintas; revisa el pedido.' : `Cargo por merma: $${wholePesosFromCents(combinedCents)}${order.merma.incluida ? '' : ' (no aplicado)'}`;
+    document.querySelector('#aluminum-waste-value').textContent = order.merma ? `Aluminio: $${wholePesosFromAmount(order.merma.cargo)}` : 'Sin cálculo de aluminio.';
     const wasteDetails = document.querySelector('#waste-details');
     wasteDetails.replaceChildren();
     if (order.merma?.detalle === null) {
-      wasteDetails.textContent = 'Recalcula la merma para consultar el desglose de este cálculo anterior.';
+      wasteDetails.textContent = 'El desglose de este cálculo anterior no está disponible.';
     } else if (order.merma?.detalle?.length === 0) {
       wasteDetails.textContent = 'No hay sobrantes que generen cargo en este cálculo.';
     } else if (order.merma?.detalle?.length) {
@@ -861,7 +990,7 @@ async function openOrder(id) {
       const body = document.createElement('tbody');
       for (const item of order.merma.detalle) {
         const row = document.createElement('tr');
-        for (const value of [item.perfil.replace(/\s+(?:de\s+)?aluminio\b/gi, ""), item.consumo, item.tramo_pies, item.sobrante, `$${item.importe}`]) {
+        for (const value of [item.perfil.replace(/\s+(?:de\s+)?aluminio\b/gi, ""), item.consumo, item.tramo_pies, item.sobrante, `$${wholePesosFromAmount(item.importe)}`]) {
           const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
         }
         body.append(row);
@@ -872,10 +1001,10 @@ async function openOrder(id) {
       details.append(summary, table, note); wasteDetails.append(details);
     }
     const wasteCheck = document.querySelector('#waste-included');
-    wasteCheck.disabled = !sameSelection;
+    wasteCheck.disabled = true;
     wasteCheck.checked = order.merma?.incluida ?? false;
     const glassWaste = order.merma_vidrio;
-    document.querySelector('#glass-waste-value').textContent = glassWaste === null ? 'La merma de vidrio aún no se ha calculado.' : `Cargo por merma de vidrio: $${glassWaste.cargo}${glassWaste.incluida ? '' : ' (no aplicado)'}`;
+    document.querySelector('#glass-waste-value').textContent = glassWaste === null ? 'La merma de vidrio aún no se ha calculado.' : `Cargo por merma de vidrio: $${wholePesosFromAmount(glassWaste.cargo)}${glassWaste.incluida ? '' : ' (no aplicado)'}`;
     const glassDetails = document.querySelector('#glass-waste-details');
     glassDetails.replaceChildren();
     if (glassWaste?.detalle?.length === 0) {
@@ -890,7 +1019,7 @@ async function openOrder(id) {
       head.append(header); const body = document.createElement('tbody');
       for (const item of glassWaste.detalle) {
         const row = document.createElement('tr');
-        for (const value of [item.vidrio, Math.trunc(Number(item.consumo)), item.hoja, Math.trunc(Number(item.sobrante)), `$${item.importe}`]) {
+      for (const value of [item.vidrio, Math.trunc(Number(item.consumo)), item.hoja, Math.trunc(Number(item.sobrante)), `$${wholePesosFromAmount(item.importe)}`]) {
           const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
         }
         body.append(row);
@@ -903,9 +1032,9 @@ async function openOrder(id) {
     document.querySelector('#reschedule-other').value = '';
     document.querySelector('#installation-date').value = order.fecha_programada ?? '';
     const needsDate = order.aceptado && !order.fecha_programada;
-    document.querySelector('#installation-date').disabled = !needsDate;
-    document.querySelector('#installation-date-actions').hidden = !needsDate;
-    document.querySelector('#installation-date-edit').hidden = needsDate;
+    document.querySelector('#installation-date').disabled = true;
+    document.querySelector('#installation-date-actions').hidden = true;
+    document.querySelector('#installation-date-edit').hidden = true;
     document.querySelector('#installation-date-status').textContent = order.fecha_programada
       ? `Fecha programada: ${order.fecha_programada}${order.instalacion_atrasada ? ' · Instalación atrasada' : ''}`
       : (order.aceptado ? 'Fecha obligatoria pendiente: registra la fecha programada de instalación.' : 'Sin fecha programada.');
@@ -913,7 +1042,7 @@ async function openOrder(id) {
     paymentStatus.replaceChildren();
     const statusLines = [order.aceptado ? 'Pedido aceptado' : 'Presupuesto'];
     if (order.anticipo_requerido === null) {
-      statusLines.push('Calcula todos los precios para consultar el anticipo y registrar movimientos.');
+      statusLines.push(order.merma_pendiente ? 'Calcula la merma pendiente y completa los precios antes de registrar movimientos.' : 'Calcula todos los precios para consultar el anticipo y registrar movimientos.');
     } else {
       statusLines.push(`Anticipo requerido (${order.anticipo_minimo}%): $${order.anticipo_requerido}`,
         `Saldo: $${order.saldo}`, `Excedente: $${order.excedente}`);
@@ -948,11 +1077,12 @@ async function openOrder(id) {
     if (order.total_pedido === null) {
       grandTotal.textContent = '';
     } else {
-      grandTotal.textContent = `${order.total_ventanas.sin_precio ? 'Total parcial del pedido' : 'Total del pedido'}: $${order.total_pedido}`;
+      grandTotal.textContent = `${order.total_ventanas.sin_precio || order.merma_pendiente ? 'Total parcial del pedido' : 'Total del pedido'}: $${order.total_pedido}`;
     }
+    if (order.merma_pendiente) grandTotal.textContent += ' Falta calcular la merma incluida.';
     if (order.total_ventanas.desactualizado) {
       const warning = document.createElement('p');
-      warning.textContent = 'Hay precios desactualizados por cambios de medidas o planes. Recalcula las ventanas indicadas.';
+      warning.textContent = 'Hay precios desactualizados por cambios de medidas o planes. Edita el pedido para revisarlos.';
       orderTotal.append(warning);
     }
     if (!order.ventanas.length) {
@@ -1043,6 +1173,8 @@ async function openOrder(id) {
       discardedList.append(section);
     }
     updateMeasureEditButton(order);
+    clientEdit.hidden = true;
+    deliveryEdit.hidden = true;
     detail.hidden = false;
     await loadOrders();
   } catch (error) {
@@ -1090,6 +1222,7 @@ document.querySelector('#waste-recalculate').addEventListener('click', async eve
   finally { button.disabled = false; }
 });
 document.querySelector('#waste-included').addEventListener('change', async event => {
+  if (orderEditActive) return;
   const checkbox = event.currentTarget;
   checkbox.disabled = true;
   try {
@@ -1129,17 +1262,18 @@ document.querySelector('#payment-form').addEventListener('submit', async event =
     if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo registrar el movimiento.');
     form.reset(); message.hidden = true; await openOrder(currentOrderId);
     if (result.aceptado && !result.fecha_programada) {
-      showArea('instalacion');
-      const dateField = document.querySelector('#installation-date');
-      dateField.scrollIntoView({block: 'center'}); dateField.focus();
+      showArea('resumen');
+      orderEdit.click();
+      orderEditDateValue.scrollIntoView({block: 'center'}); orderEditDateValue.focus();
     }
   } catch (error) { showError(error.message); } finally { button.disabled = false; }
 });
 
 document.querySelector('#pending-installation').addEventListener('click', () => {
   if (!confirmPending()) return;
-  showArea('instalacion');
-  document.querySelector('#installation-date').focus();
+  showArea('resumen');
+  orderEdit.click();
+  orderEditDateValue.focus();
 });
 
 const installationDateForm = document.querySelector('#installation-date-form');
@@ -1173,6 +1307,7 @@ installationDate.addEventListener('input', () => { installationDateError.hidden 
 rescheduleSelect.addEventListener('change', refreshRescheduleReason);
 installationDateForm.addEventListener('submit', async event => {
   event.preventDefault();
+  if (orderEditActive) return;
   if (!installationDate.value || !installationDate.validity.valid) {
     installationDateError.textContent = 'Ingresa una fecha programada válida para guardar.';
     installationDateError.hidden = false; installationDate.focus(); return;
@@ -1208,6 +1343,7 @@ document.querySelector('#delivery-cancel').addEventListener('click', () => {
 });
 deliveryForm.addEventListener('submit', async event => {
   event.preventDefault();
+  if (orderEditActive) { document.querySelector('#save-order-edit').click(); return; }
   if (!deliveryForm.reportValidity()) return;
   const button = deliveryForm.querySelector('button[type="submit"]');
   button.disabled = true;
@@ -1225,6 +1361,7 @@ deliveryForm.addEventListener('submit', async event => {
 
 clientForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (orderEditActive) { document.querySelector('#save-order-edit').click(); return; }
   message.hidden = true;
   const button = clientForm.querySelector('button[type="submit"]');
   button.disabled = true;
@@ -1259,64 +1396,179 @@ clientForm.addEventListener('submit', async (event) => {
   }
 });
 
-document.querySelector('#order-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  message.hidden = true;
-  const button = event.currentTarget.querySelector('button[type="submit"]');
-  button.disabled = true;
+const captureForm = document.querySelector('#order-form');
+function captureHasChanges() {
+  if (capture.hidden) return false;
+  return [...rows.children].some(row => row.querySelector('.width').value.trim() || row.querySelector('.height').value.trim())
+    || clientFields.some(field => captureForm.elements[field].value.trim())
+    || Boolean(document.querySelector('#capture-delivery').value) || Boolean(document.querySelector('#capture-payment').value) || !document.querySelector('#capture-waste').checked;
+}
+let previewVersion = null;
+let previewSequence = 0;
+let previewTimer;
+function captureInput() {
+  return {
+    ventanas: [...rows.children].map(row => ({ancho: row.querySelector('.width').value.trim(), alto: row.querySelector('.height').value.trim()})),
+    traslado: document.querySelector('#capture-delivery').value || null,
+    incluir_merma: document.querySelector('#capture-waste').checked,
+  };
+}
+function schedulePreview() {
+  previewVersion = null;
+  const sequence = ++previewSequence;
+  clearTimeout(previewTimer);
+  document.querySelector('#capture-preview').textContent = 'Actualizando precios estimados…';
+  for (const row of rows.children) row.querySelector('.window-estimate').textContent = 'Actualizando precio estimado…';
+  document.querySelector('#capture-estimated-total').textContent = 'Actualizando total estimado…';
+  document.querySelector('#capture-payment-summary').textContent = 'Actualizando resumen de la cuenta y anticipo mínimo…';
+  document.querySelector('#capture-waste-status').textContent = 'Actualizando merma…';
+  previewTimer = setTimeout(() => updatePreview(sequence), 250);
+}
+async function updatePreview(sequence) {
   try {
-    const windows = [...rows.children].map((row) => ({
-      ancho: row.querySelector('.width').value.trim(),
-      alto: row.querySelector('.height').value.trim(),
-    }));
-    const partialIndex = windows.findIndex((window) => Boolean(window.ancho) !== Boolean(window.alto));
-    if (partialIndex !== -1) {
-      showError(`Ventana ${partialIndex + 1}: completa ancho y alto o descarta la fila.`);
-      return;
+    const response = await originalFetch('/api/presupuestos/vista-previa', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(captureInput())});
+    const result = await response.json();
+    if (sequence !== previewSequence) return;
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo calcular la estimación.');
+    previewVersion = result.version;
+    const preview = document.querySelector('#capture-preview');
+    preview.textContent = '';
+    for (const row of rows.children) row.querySelector('.window-estimate').textContent = 'Precio estimado pendiente de medidas completas.';
+    let subtotal = 0, priced = 0;
+    for (const item of result.ventanas) {
+      const row = rows.children[item.fila - 1];
+      if (!row) continue;
+      if (item.costo.completo) {
+        subtotal += Number(item.costo.precio) * 100; priced++;
+        row.querySelector('.window-estimate').textContent = `Precio estimado: $${item.costo.precio}`;
+      } else {
+        row.querySelector('.window-estimate').textContent = `Precio pendiente. Faltan costos de ${item.costo.faltantes.join(', ')}.`;
+      }
     }
-    if (!windows.some((window) => window.ancho && window.alto)) {
-      showError('Agrega al menos una ventana con ancho y alto completos.');
-      return;
+    for (const error of result.errores) {
+      const match = /^Ventana (\d+):\s*(.*)$/.exec(error);
+      const row = match && rows.children[Number(match[1]) - 1];
+      if (row) row.querySelector('.window-estimate').textContent = match[2];
+      else preview.textContent = error;
     }
-    const response = await fetch('/api/pedidos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ventanas: windows }),
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(typeof error.detail === 'string' ? error.detail : 'No se pudo guardar el pedido.');
-    }
-    const order = await response.json();
-    history.pushState({}, '', `/pedidos/${order.id}`);
-    loadOrders();
-    await openOrder(order.id);
+    const waste = result.merma;
+    const wasteDetails = document.querySelector('#capture-waste-details'); wasteDetails.replaceChildren();
+    if (waste) {
+      for (const [label, amount, details] of [['Aluminio', waste.aluminio, waste.detalle_aluminio], ['Vidrio', waste.vidrio, waste.detalle_vidrio]]) {
+        const line = document.createElement('p'); line.textContent = `${label}: $${wholePesosFromCents(amount)}`; wasteDetails.append(line);
+        for (const item of details) { const itemLine = document.createElement('p'); itemLine.textContent = `${item.perfil ?? item.vidrio}: sobrante ${item.sobrante}, importe aproximado $${wholePesosFromAmount(item.importe)}`; wasteDetails.append(itemLine); }
+      }
+    } else wasteDetails.textContent = 'Desglose pendiente.';
+    document.querySelector('#capture-waste-status').textContent = waste ? `Merma de aluminio y vidrio: $${wholePesosFromCents(waste.aluminio + waste.vidrio)}${result.incluir_merma ? '' : ' (no incluida)'}` : result.merma_error ? `Merma pendiente: ${result.merma_error}` : 'Merma pendiente de medidas completas.';
+    const complete = result.total_completo;
+    const transport = result.traslado_centavos || 0;
+    const wasteCents = result.incluir_merma && waste ? waste.aluminio + waste.vidrio : 0;
+    const totalLabel = complete ? 'Total estimado' : priced ? 'Total estimado parcial' : 'Total estimado no disponible';
+    const totalText = result.total_estimado_pesos !== null
+      ? `${totalLabel}: $${result.total_estimado_pesos}`
+      : `${totalLabel}: faltan precios o medidas completas.`;
+    document.querySelector('#capture-estimated-total').textContent = totalText;
+
+    const summary = document.querySelector('#capture-payment-summary');
+    const summaryLines = ['Resumen de la cuenta'];
+    summaryLines.push(priced === result.ventanas.length && priced > 0
+      ? `Ventanas: $${subtotal / 100}`
+      : priced > 0 ? `Ventanas con precio disponible: $${subtotal / 100}`
+        : 'Ventanas: precio pendiente');
+    if (!result.incluir_merma) summaryLines.push(`Traslado: $${wholePesosFromCents(transport)}`, 'Merma: no incluida');
+    else if (waste) summaryLines.push(`Traslado y merma: $${wholePesosFromCents(transport + wasteCents)}`);
+    else summaryLines.push(`Traslado: $${wholePesosFromCents(transport)}`, 'Merma: pendiente de cálculo');
+    summaryLines.push(totalText);
+    if (complete) {
+      summaryLines.push(`Anticipo mínimo (${result.anticipo_minimo}%): $${result.anticipo_requerido_pesos}`);
+    } else summaryLines.push('Anticipo mínimo: disponible cuando el total esté completo.');
+    summary.textContent = summaryLines.join('\n');
   } catch (error) {
-    showError(error.message);
-  } finally {
-    button.disabled = false;
+    if (sequence !== previewSequence) return;
+    previewVersion = null; document.querySelector('#capture-preview').textContent = error.message;
+    for (const row of rows.children) row.querySelector('.window-estimate').textContent = 'Precio estimado no disponible.';
+    document.querySelector('#capture-estimated-total').textContent = 'Total estimado no disponible.';
+    document.querySelector('#capture-payment-summary').textContent = 'No se pudo calcular el resumen de la cuenta ni el anticipo mínimo.';
   }
+}
+captureForm.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault();
+});
+captureForm.addEventListener('input', event => {
+  if (event.target.closest('#window-rows') || event.target.id === 'capture-delivery') schedulePreview();
+});
+document.querySelector('#capture-waste').addEventListener('change', schedulePreview);
+for (const button of document.querySelectorAll('#capture-nav button')) {
+  button.addEventListener('click', () => {
+    for (const item of document.querySelectorAll('#capture-nav button')) item.setAttribute('aria-pressed', String(item === button));
+    for (const panel of document.querySelectorAll('[data-capture-panel]')) panel.hidden = panel.id !== `capture-${button.dataset.capture}`;
+  });
+}
+captureForm.addEventListener('submit', async event => {
+  event.preventDefault(); message.hidden = true;
+  if (!previewVersion) { showError('Espera a que termine la estimación antes de guardar.'); return; }
+  const withPayment = event.submitter?.dataset.payment === 'true';
+  const payment = document.querySelector('#capture-payment');
+  const tokenKey = 'avao-captura-anticipo';
+  if (!withPayment && sessionStorage.getItem(tokenKey)) { showError('Hay un intento de anticipo pendiente de confirmar. Reinténtalo o consulta los pedidos antes de guardar otro.'); return; }
+  if (withPayment && (!payment.value || !payment.validity.valid || Number(payment.value) <= 0)) { showError('Ingresa un anticipo válido mayor a cero.'); payment.focus(); return; }
+  const client = Object.fromEntries(clientFields.map(field => [field, captureForm.elements[field].value.trim()]));
+  if (!client.nombre || !client.apellido_1 || !/^[0-9]{10}$/.test(client.celular)) {
+    showError('Completa nombre, primer apellido y celular de diez dígitos.');
+    document.querySelector('[data-capture="cliente"]').click(); return;
+  }
+  const controls = [...captureForm.querySelectorAll('input, textarea, button')];
+  const disabled = controls.map(control => control.disabled);
+  controls.forEach(control => { control.disabled = true; });
+  try {
+    let token = sessionStorage.getItem(tokenKey);
+    if (withPayment && !token) { token = crypto.randomUUID(); sessionStorage.setItem(tokenKey, token); }
+    const body = {...captureInput(), cliente: client, version: previewVersion};
+    if (withPayment) { body.importe = payment.value; body.token = token; }
+    const response = await originalFetch(withPayment ? '/api/presupuestos/con-anticipo' : '/api/pedidos', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (withPayment && (response.status === 422 || (response.status === 409 && result.detail !== 'Este intento ya corresponde a otros datos. Consulta los pedidos antes de volver a cobrar.'))) sessionStorage.removeItem(tokenKey);
+      if (response.status === 409 && result.detail === 'Cambió la estimación. Revísala de nuevo antes de guardar.') schedulePreview();
+      throw new Error(typeof result.detail === 'string' ? result.detail : 'No se pudo guardar el presupuesto.');
+    }
+    if (withPayment) sessionStorage.removeItem(tokenKey);
+    captureForm.reset(); rows.replaceChildren(); addRow(); previewVersion = null;
+    document.querySelector('#capture-preview').textContent = '';
+    document.querySelector('#capture-estimated-total').textContent = '';
+    document.querySelector('#capture-payment-summary').textContent = 'Ingresa medidas para consultar el resumen de la cuenta y el anticipo mínimo.';
+    document.querySelector('#capture-waste-status').textContent = '';
+    history.pushState({}, '', `/pedidos/${result.id}`); loadOrders(); await openOrder(result.id);
+    if (withPayment && currentOrderData?.aceptado && !currentOrderData.fecha_programada) {
+      showArea('instalacion'); const field = document.querySelector('#installation-date'); field.scrollIntoView({block: 'center'}); field.focus();
+    }
+  } catch (error) { showError(error.message); } finally { controls.forEach((control, index) => { control.disabled = disabled[index]; }); }
 });
 
+function showStartView() {
+  exitMeasureEdit();
+  currentOrderId = null; currentOrderData = null;
+  document.body.classList.remove('order-active');
+  document.querySelector('#history-detail')?.remove();
+  detail.hidden = true; message.hidden = true; errorReturn.hidden = true;
+  const view = new URLSearchParams(location.search).get('vista');
+  const sections = {presupuestos: 'budgets', pedidos: 'orders', historico: 'history'};
+  const selected = Object.hasOwn(sections, view) ? sections[view] : undefined;
+  if (!selected && view !== 'nuevo') { location.assign('/'); return; }
+  capture.hidden = Boolean(selected);
+  for (const id of Object.values(sections)) document.querySelector(`#${id}`).hidden = id !== selected;
+}
 window.addEventListener('popstate', () => {
-  if (!confirmPending('', true)) {
-    history.pushState({}, '', currentOrderId ? `/pedidos/${currentOrderId}` : '/');
+  if ((captureHasChanges() && !window.confirm('Hay datos provisionales sin guardar. Si continúas se perderán. ¿Continuar?')) || !confirmPending('', true)) {
+    history.pushState({}, '', currentOrderId ? `/pedidos/${currentOrderId}` : '/?vista=nuevo');
     return;
   }
   const match = location.pathname.match(/^\/pedidos\/(\d+)$/);
   if (match) openOrder(match[1]);
-  else {
-    exitMeasureEdit();
-    currentOrderId = null;
-    currentOrderData = null;
-    detail.hidden = true;
-    capture.hidden = false;
-    message.hidden = true;
-    errorReturn.hidden = true;
-  }
+  else showStartView();
 });
 
 const match = location.pathname.match(/^\/pedidos\/(\d+)$/);
 loadOrders();
 if (match) openOrder(match[1]);
-else exitMeasureEdit();
+else showStartView();

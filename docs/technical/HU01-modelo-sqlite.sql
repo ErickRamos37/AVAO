@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
     notas TEXT,
     traslado_centavos INTEGER CHECK (traslado_centavos IS NULL OR traslado_centavos >= 0),
     fecha_programada TEXT,
+    merma_pendiente INTEGER NOT NULL DEFAULT 0 CHECK (merma_pendiente IN (0, 1)),
     instalado INTEGER NOT NULL DEFAULT 0 CHECK (instalado IN (0, 1)),
     fecha_real TEXT,
     fecha_cierre TEXT
@@ -183,4 +184,11 @@ CREATE TABLE IF NOT EXISTS programaciones_instalacion (
     fecha_hora TEXT NOT NULL,
     motivo TEXT,
     motivo_otro TEXT
+);
+
+-- Una intención de captura con anticipo solo puede registrar un pago.
+CREATE TABLE IF NOT EXISTS capturas_pago (
+    token TEXT PRIMARY KEY,
+    pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+    contenido_hash TEXT NOT NULL
 );

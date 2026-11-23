@@ -4,17 +4,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AVAO · Dashboard</title>
-    <link rel="stylesheet" href="/static/styles.css?v=hu25-total-ventanas">
-    <script src="/static/dashboard.js?v=hu33-finanzas" defer></script>
+    <link rel="stylesheet" href="/static/styles.css?v=hu37-barra5">
+    <script src="/static/dashboard.js?v=hu35-volver" defer></script>
+    <script src="/static/navigation.js?v=hu37-inicio" defer></script>
   </head>
   <body>
     <main>
       <header>
         <a href="/" class="brand">AVAO</a>
-        <p>Dashboard</p>
-        <a href="/costos">Inventario de insumos</a>
+        <div class="global-menu">
+          <button id="menu-toggle" type="button" aria-expanded="false" aria-controls="global-navigation">☰ Menú</button>
+          <nav id="global-navigation" aria-label="Navegación principal" hidden>
+            <a href="/">Dashboard</a>
+            <a href="/?vista=nuevo">Nuevo presupuesto</a>
+            <a href="/?vista=pedidos">Pedidos</a>
+            <a href="/?vista=presupuestos">Presupuestos</a>
+            <a href="/costos">Inventario</a>
+            <a href="/?vista=historico">Histórico</a>
+          </nav>
+        </div>
       </header>
-      <p><a href="/">Volver a pedidos</a></p>
       <section aria-labelledby="orders-dashboard-title">
         <h1 id="orders-dashboard-title">Pedidos e instalaciones</h1>
         <div id="orders-dashboard" aria-live="polite">Cargando pedidos…</div>

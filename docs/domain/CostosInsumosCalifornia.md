@@ -117,7 +117,7 @@ Cada tubo cuesta $47.00 y rinde 26 pies lineales (312 pulgadas) de aplicación. 
 - El costo de compra de una hoja de vidrio se puede mostrar como costo por pie cuadrado, usando la hoja doble fuerza de 1/8″ de 71″ × 102″.
 - Los materiales de consumo lineal se valoran por pie lineal; la tela mosquitera se valora por pie cuadrado según `anchoScreen × altoScreen`, convirtiendo de pulgadas cuadradas a pies cuadrados (`÷ 144`).
 - Para el costo de una ventana se valora la medida exacta consumida, sin redondear a un tramo de aluminio o una hoja de vidrio completa.
-- Los cálculos conservan su precisión. El precio final de venta se muestra en pesos enteros: con 50 centavos o más sube al siguiente peso; con menos de 50 centavos baja al peso anterior. El total del pedido suma los precios redondeados por ventana. El costo base de materiales puede conservar centavos.
+- Los cálculos de materiales conservan su precisión. Cada precio de ventana se redondea al peso más cercano: con 50 centavos o más sube; con menos de 50 baja. El total de venta suma esos precios por ventana y los cargos de traslado y merma incluidos; el total se redondea una vez al peso más cercano y ese importe rige aceptación, anticipo, saldo y liquidación. El anticipo mínimo se redondea hacia arriba al peso para no quedar por debajo del porcentaje configurado. Los costos internos y los movimientos reales de pagos y devoluciones conservan centavos.
 - Actualizar el costo de compra afecta cálculos nuevos, no los ya consultados.
 - La lista de accesorios necesarios para armar la ventana todavía será proporcionada por el usuario. La tabla conserva los accesorios que ya están identificados; no se considera completa.
 

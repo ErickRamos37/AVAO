@@ -98,7 +98,7 @@ async function loadDashboardOrders() {
       const list = document.createElement('ul');
       for (const order of groups[key]) {
         const row = document.createElement('li'); const link = document.createElement('a');
-        link.href = `/pedidos/${order.id}`; link.textContent = order.etiqueta ? `Pedido ${order.etiqueta}` : `Pedido ${order.id}`; row.append(link);
+        link.href = `/pedidos/${order.id}?origen=dashboard`; link.textContent = order.etiqueta ? `Pedido ${order.etiqueta}` : `Pedido ${order.id}`; row.append(link);
         const info = [];
         if (order.fecha_programada) info.push(`instalación ${order.fecha_programada}`);
         if (order.instalacion_atrasada) info.push('atrasada');

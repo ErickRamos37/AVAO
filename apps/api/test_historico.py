@@ -9,6 +9,9 @@ from apps.api.main import (MovementInput, InstallationUpdate, DeliveryUpdate, Or
     select_order_waste, void_movement, database_path, calculate_order_waste, calculate_order_glass_waste)
 
 
+from apps.api.testing import order_with_client
+create_order = order_with_client(create_order)
+
 class HistoryTests(InstallationTests):
     def test_close_on_installation_preserves_snapshot_and_reuses_label(self):
         calculate_window_cost(self.window_id)

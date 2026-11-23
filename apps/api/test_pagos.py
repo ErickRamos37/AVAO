@@ -15,6 +15,9 @@ from apps.api.main import (NewOrder, MovementInput, InventoryUpdate, AluminumMar
     list_costs, list_order_progress, mark_aluminum, mark_glass, mark_assembly, DeliveryUpdate, update_delivery)
 
 
+from apps.api.testing import order_with_client
+create_order = order_with_client(create_order)
+
 class PaymentTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory(); self.addCleanup(folder.cleanup)
@@ -40,9 +43,10 @@ class PaymentTests(unittest.TestCase):
     def test_acceptance_payments_excess_refunds_and_void(self):
         for window in self.windows: calculate_window_cost(window["id"])
         total = Decimal(get_order(self.order_id)["total_pedido"])
-        self.assertEqual(Decimal(get_order(self.order_id)["anticipo_requerido"]), (total * Decimal("0.50")).quantize(Decimal("0.01")))
-        half = (total / 2).quantize(Decimal("0.01"))
-        first = self.move("pago", half - Decimal("0.01"))
+        minimum = Decimal(get_order(self.order_id)["anticipo_requerido"])
+        from decimal import ROUND_CEILING
+        self.assertEqual(minimum, (total / 2).quantize(Decimal("1"), rounding=ROUND_CEILING))
+        first = self.move("pago", minimum - Decimal("0.01"))
         self.assertFalse(first["aceptado"])
         second = self.move("pago", "0.01")
         self.assertTrue(second["aceptado"])
@@ -91,7 +95,7 @@ class PaymentTests(unittest.TestCase):
         order = get_order(self.order_id)
         total = Decimal(order["total_pedido"])
         from decimal import ROUND_CEILING
-        self.assertEqual(Decimal(order["anticipo_requerido"]), (total / 2).quantize(Decimal("0.01"), rounding=ROUND_CEILING))
+        self.assertEqual(Decimal(order["anticipo_requerido"]), (total / 2).quantize(Decimal("1"), rounding=ROUND_CEILING))
         movement = MovementInput(tipo="pago", importe="1", fecha="1900-01-01")
         saved = add_movement(self.order_id, movement)["movimientos"][0]
         self.assertEqual(saved["fecha"], datetime.now(ZoneInfo("America/Tijuana")).date().isoformat())
